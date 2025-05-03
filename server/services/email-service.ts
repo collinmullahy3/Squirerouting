@@ -1,10 +1,31 @@
 import { storage } from '../storage';
 import { type LeadInsert } from '@shared/schema';
 import { leadRouter } from './lead-router';
+import IMAP from 'node-imap';
+import { simpleParser } from 'mailparser';
 
 class EmailService {
-  private readonly FORWARDING_EMAIL = 'collinmullahy3+myspace@gmail.com';
-  private _isListening: boolean = true; // Simplified approach - always "listening" for API calls
+  private readonly FORWARDING_EMAIL = process.env.EMAIL_USER || 'squirerouting@gmail.com';
+  private _isListening: boolean = false;
+  private imap: IMAP;
+  private checkInterval: NodeJS.Timeout | null = null;
+  private readonly CHECK_FREQUENCY = 60000; // Check every minute
+
+  constructor() {
+    this.imap = new IMAP({
+      user: process.env.EMAIL_USER || '',
+      password: process.env.EMAIL_PASSWORD || '',
+      host: 'imap.gmail.com',
+      port: 993,
+      tls: true,
+      tlsOptions: { rejectUnauthorized: false }
+    });
+
+    // Setup event handlers
+    this.imap.once('ready', this.onImapReady.bind(this));
+    this.imap.once('error', this.onImapError.bind(this));
+    this.imap.once('end', this.onImapEnd.bind(this));
+  }
 
   get isListening(): boolean {
     return this._isListening;
@@ -16,7 +37,131 @@ class EmailService {
 
   async initialize(): Promise<boolean> {
     console.log(`Email service ready to receive forwarded emails. Agents should forward leads to: ${this.FORWARDING_EMAIL}`);
-    return true;
+
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.log('Email credentials not found. IMAP inbox checking is disabled, but manual simulation will still work.');
+      return true; // Still return true as the service can work in simulation mode
+    }
+
+    // Check if credentials are valid
+    if (process.env.EMAIL_USER.trim() === '' || process.env.EMAIL_PASSWORD.trim() === '') {
+      console.log('Empty email credentials provided. IMAP inbox checking is disabled, but manual simulation will still work.');
+      return true; // Still return true as the service can work in simulation mode
+    }
+
+    try {
+      // Connect to the IMAP server
+      this.imap.connect();
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize email service:', error);
+      console.log('IMAP inbox checking is disabled, but manual simulation will still work.');
+      return true; // Still return true as the service can work in simulation mode
+    }
+  }
+  
+  private onImapReady() {
+    console.log('IMAP connection established successfully');
+    this._isListening = true;
+    
+    // Start periodic checking
+    this.checkNewEmails();
+    this.checkInterval = setInterval(() => this.checkNewEmails(), this.CHECK_FREQUENCY);
+  }
+  
+  private onImapError(err: Error) {
+    console.error('IMAP connection error:', err);
+    this._isListening = false;
+    
+    // Don't try to reconnect if this is an authentication error
+    if (err.toString().includes('Invalid credentials') || err.toString().includes('AUTHENTICATIONFAILED')) {
+      console.log('Authentication failed - not attempting to reconnect');
+      return;
+    }
+    
+    // Try to reconnect in 30 seconds for other types of errors
+    setTimeout(() => {
+      console.log('Attempting to reconnect to IMAP server...');
+      try {
+        this.imap.connect();
+      } catch (error) {
+        console.error('Failed to reconnect:', error);
+      }
+    }, 30000);
+  }
+  
+  private onImapEnd() {
+    console.log('IMAP connection ended');
+    this._isListening = false;
+    
+    // Clear interval if it exists
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+  }
+  
+  private checkNewEmails() {
+    try {
+      this.imap.openBox('INBOX', false, (err, mailbox) => {
+        if (err) {
+          console.error('Error opening inbox:', err);
+          return;
+        }
+        
+        // Search for unread messages
+        this.imap.search(['UNSEEN'], (err, results) => {
+          if (err) {
+            console.error('Error searching for unread messages:', err);
+            return;
+          }
+          
+          if (results.length === 0) {
+            // No new messages
+            return;
+          }
+          
+          console.log(`Found ${results.length} new messages`);
+          
+          // Fetch each message
+          const f = this.imap.fetch(results, { bodies: '' });
+          
+          f.on('message', (msg) => {
+            msg.on('body', (stream) => {
+              // Parse the email
+              simpleParser(stream, async (err, parsed) => {
+                if (err) {
+                  console.error('Error parsing email:', err);
+                  return;
+                }
+                
+                // Process the email
+                await this.processEmail({
+                  from: parsed.from?.text,
+                  subject: parsed.subject,
+                  text: parsed.text,
+                  html: parsed.html
+                });
+                
+                // Mark as read
+                this.imap.addFlags(results, '\\Seen', (err) => {
+                  if (err) {
+                    console.error('Error marking message as read:', err);
+                  }
+                });
+              });
+            });
+          });
+          
+          f.once('error', (err) => {
+            console.error('Error fetching messages:', err);
+          });
+        });
+      });
+    } catch (error) {
+      console.error('Error checking emails:', error);
+    }
   }
 
   // Process an email received via the API endpoint
