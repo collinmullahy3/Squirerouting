@@ -80,6 +80,9 @@ export default function Sidebar({ className }: SidebarProps) {
                     <NavItem href="/performance" icon="bar-chart-2" active={location === "/performance"}>
                       Performance
                     </NavItem>
+                    <NavItem href="/lead-groups" icon="layers" active={location === "/lead-groups"}>
+                      Lead Groups
+                    </NavItem>
                     <NavItem href="/routing-rules" icon="settings" active={location === "/routing-rules"}>
                       Routing Rules
                     </NavItem>
@@ -220,6 +223,12 @@ function NavIcon({ name, active = false, className }: NavIconProps) {
       return (
         <svg className={iconClass} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg>
+      );
+    case "layers":
+      return (
+        <svg className={iconClass} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>
       );
     default:

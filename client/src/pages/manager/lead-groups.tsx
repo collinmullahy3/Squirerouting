@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+// Import RequestInit from the DOM lib
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -85,10 +86,7 @@ export default function LeadGroups() {
         zipCodes: data.zipCodes ? data.zipCodes.split(",").map(zip => zip.trim()).filter(Boolean) : undefined,
       };
       
-      return await apiRequest<any>("/api/lead-groups", {
-        method: "POST",
-        body: JSON.stringify(formattedData),
-      });
+      return await apiRequest<any>("POST", "/api/lead-groups", formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lead-groups"] });

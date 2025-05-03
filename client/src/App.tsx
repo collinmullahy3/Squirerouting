@@ -46,6 +46,7 @@ const Router = () => {
             <Route path="/agents/:id" component={AgentDetails} />
             <Route path="/performance" component={Performance} />
             <Route path="/routing-rules" component={RoutingRules} />
+            <Route path="/lead-groups" component={LeadGroups} />
             <Route path="/email-settings" component={EmailSettings} />
             <Route path="/sendgrid-settings" component={EmailSettings} />
             
