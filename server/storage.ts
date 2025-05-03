@@ -177,6 +177,24 @@ export const storage = {
   },
 
   // Leads
+  async getLeadByEmailAndWindow(email: string, windowDays: number): Promise<Lead | null> {
+    const windowDate = new Date();
+    windowDate.setDate(windowDate.getDate() - windowDays);
+    
+    const result = await db.query.leads.findFirst({
+      where: and(
+        eq(leads.email, email),
+        gte(leads.receivedAt, windowDate)
+      ),
+      orderBy: [desc(leads.receivedAt)],
+      with: {
+        assignedAgent: true
+      }
+    });
+    
+    return result || null;
+  },
+
   async createLead(leadData: LeadInsert): Promise<Lead> {
     const [lead] = await db.insert(leads)
       .values(leadData)

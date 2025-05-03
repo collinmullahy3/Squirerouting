@@ -176,11 +176,26 @@ class EmailService {
       
       console.log('Extracted lead data:', leadData);
       
-      // Create the lead in the database
-      const lead = await storage.createLead(leadData);
+      // Check for lead deduplication window setting
+      const deduplicationSetting = await storage.getSettingByKey('LEAD_DEDUPLICATION_DAYS');
+      const deduplicationDays = deduplicationSetting ? parseInt(deduplicationSetting.value, 10) : 7; // Default to 7 days
       
-      // Route the lead to an agent
-      await leadRouter.routeLead(lead);
+      // Check if we have an existing lead from this email within the window
+      const existingLead = await storage.getLeadByEmailAndWindow(leadData.email, deduplicationDays);
+      
+      let lead;
+      
+      if (existingLead) {
+        console.log(`Found existing lead for ${leadData.email} within ${deduplicationDays} day window`);
+        // Use the existing lead ID and assigned agent if any
+        lead = existingLead;
+      } else {
+        // Create a new lead in the database
+        lead = await storage.createLead(leadData);
+        
+        // Route the lead to an agent
+        await leadRouter.routeLead(lead);
+      }
       
       return true;
     } catch (error) {
