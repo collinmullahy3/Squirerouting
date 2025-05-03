@@ -539,36 +539,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // API endpoint to receive forwarded emails (for real implementation) or process simulated emails (for testing)
+  // API endpoint to receive forwarded emails (for real implementation)
   app.post("/api/admin/process-email", isManager, async (req, res, next) => {
     try {
       const emailData = req.body;
       
       // Process the email data
-      const success = await emailService.processEmail(emailData);
-      res.json({ success });
-    } catch (error) {
-      next(error);
-    }
-  });
-  
-  // Simulate receiving an email for testing
-  app.post("/api/admin/simulate-email", isManager, async (req, res, next) => {
-    try {
-      const simData = req.body;
-      
-      // Process the simulated email
-      const success = await emailService.processSimulatedEmail(simData);
-      res.json({ success });
-    } catch (error) {
-      next(error);
-    }
-  });
-  
-  // Original API endpoint to receive forwarded emails (keeping for backward compatibility)
-  app.post("/api/admin/process-email", isManager, async (req, res, next) => {
-    try {
-      const emailData = req.body;
       const success = await emailService.processEmail(emailData);
       res.json({ success });
     } catch (error) {

@@ -34,7 +34,7 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [_, setLocation] = useLocation();
@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } else if (user.role === "agent") {
         // Agents shouldn't access manager-specific pages
-        if (path === "/" || path === "/agent-groups" || path === "/performance" || path === "/routing-rules") {
+        if (path === "/" || path === "/agent-groups" || path === "/performance" || path === "/routing-rules" || path === "/email-settings") {
           setLocation("/my-leads");
         }
       }
