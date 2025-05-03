@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import LeadCard from '@/components/lead-card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,7 +30,7 @@ export default function Leads() {
     },
   });
 
-  // Status update handler (if needed)
+  // Status update handler
   const handleStatusUpdate = async (leadId: number, status: string) => {
     try {
       // Implement status update logic here
@@ -60,8 +60,27 @@ export default function Leads() {
     }
   };
 
+  // Define lead interface
+  interface Lead {
+    id: number;
+    name: string;
+    email: string;
+    phone?: string;
+    price?: number | string;
+    zipCode?: string;
+    address?: string;
+    propertyUrl?: string;
+    thumbnailUrl?: string;
+    status: string;
+    receivedAt: string;
+    assignedAgent?: {
+      id: number;
+      name: string;
+    };
+  }
+
   // Filter leads
-  const filteredLeads = leads.filter((lead) => {
+  const filteredLeads = leads.filter((lead: Lead) => {
     // Status filter
     if (statusFilter !== 'all' && lead.status !== statusFilter) {
       return false;
@@ -70,8 +89,8 @@ export default function Leads() {
     // Search filter
     if (searchTerm && !(lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                         lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        lead.phone?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        lead.address?.toLowerCase().includes(searchTerm.toLowerCase()))) {
+                        (lead.phone && lead.phone.toLowerCase().includes(searchTerm.toLowerCase())) || 
+                        (lead.address && lead.address.toLowerCase().includes(searchTerm.toLowerCase())))) {
       return false;
     }
 
@@ -85,6 +104,20 @@ export default function Leads() {
 
   const handlePrevPage = () => {
     setCurrentPage(Math.max(1, currentPage - 1));
+  };
+  
+  // Format date
+  const formatDate = (dateString: string | Date | null | undefined): string => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  // Format currency
+  const formatPrice = (price: number | string | null | undefined): string => {
+    if (!price) return 'N/A';
+    return typeof price === 'number' 
+      ? `$${price.toLocaleString()}`
+      : `$${parseFloat(price as string).toLocaleString()}`;
   };
 
   return (
@@ -140,7 +173,7 @@ export default function Leads() {
         </CardContent>
       </Card>
 
-      {/* Leads list */}
+      {/* Leads table */}
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin h-8 w-8 border-4 border-primary border-opacity-50 border-t-primary rounded-full"></div>
@@ -165,15 +198,77 @@ export default function Leads() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredLeads.map((lead) => (
-            <LeadCard 
-              key={lead.id} 
-              lead={lead} 
-              showActions={true}
-              onStatusUpdate={handleStatusUpdate}
-            />
-          ))}
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Property Link</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Received</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredLeads.map((lead: Lead) => (
+                <TableRow key={lead.id}>
+                  <TableCell className="font-medium">{lead.name}</TableCell>
+                  <TableCell>{lead.email}</TableCell>
+                  <TableCell>{lead.phone || 'N/A'}</TableCell>
+                  <TableCell>{formatPrice(lead.price)}</TableCell>
+                  <TableCell>
+                    {lead.address || (lead.zipCode ? `ZIP: ${lead.zipCode}` : 'N/A')}
+                  </TableCell>
+                  <TableCell>
+                    {lead.propertyUrl ? (
+                      <a 
+                        href={lead.propertyUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center"
+                      >
+                        {lead.thumbnailUrl && (
+                          <img 
+                            src={lead.thumbnailUrl} 
+                            alt="Property" 
+                            className="h-6 w-6 mr-2 object-cover rounded"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        )}
+                        View
+                      </a>
+                    ) : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={`
+                      ${lead.status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : ''}
+                      ${lead.status === 'assigned' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : ''}
+                      ${lead.status === 'closed' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                    `}>
+                      {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{formatDate(lead.receivedAt)}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleStatusUpdate(lead.id, 'closed')}
+                      disabled={lead.status === 'closed'}
+                    >
+                      {lead.status === 'closed' ? 'Closed' : 'Mark Closed'}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 
