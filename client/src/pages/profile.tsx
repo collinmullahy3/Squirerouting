@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 // Schema for profile form
 const profileFormSchema = z.object({
@@ -90,7 +91,7 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      await apiRequest("POST", "/api/auth/logout", {});
+      await apiRequest("POST", "/api/auth/logout");
       logout();
       toast({
         title: "Logged out",

@@ -28,7 +28,7 @@ function Router() {
     <AuthProvider>
       <div className="flex h-screen overflow-hidden">
         <Sidebar />
-        <div className="flex flex-col w-0 flex-1 overflow-hidden">
+        <div className="flex flex-col md:ml-64 flex-1 overflow-hidden p-4">
           <Switch>
             {/* Auth Routes */}
             <Route path="/login" component={Login} />

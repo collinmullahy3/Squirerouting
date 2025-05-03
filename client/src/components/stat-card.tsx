@@ -35,10 +35,8 @@ export default function StatCard({ title, value, icon, linkText, href, color = "
       {href && linkText && (
         <div className="bg-slate-50 px-4 py-4 sm:px-6">
           <div className="text-sm">
-            <Link href={href}>
-              <a className="font-medium text-primary-600 hover:text-primary-500">
-                {linkText}
-              </a>
+            <Link href={href} className="font-medium text-primary-600 hover:text-primary-500">
+              {linkText}
             </Link>
           </div>
         </div>
