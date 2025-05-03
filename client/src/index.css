@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+
+    --ring: 215 20.2% 65.1%;
+    
+    --chart-1: 221.2 83.2% 53.3%;
+    --chart-2: 142.1 76.2% 36.3%;
+    --chart-3: 47.9 95.8% 53.1%;
+    --chart-4: 346.8 77.2% 49.8%;
+    --chart-5: 261.1 73.1% 58.4%;
+
+    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 224.3 76.3% 48%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
+
+    --ring: 217.2 32.6% 17.5%;
+    
+    --chart-1: 217.2 91.2% 59.8%;
+    --chart-2: 142.1 70.6% 45.3%;
+    --chart-3: 47.9 95.8% 53.1%;
+    --chart-4: 346.8 77.2% 49.8%;
+    --chart-5: 261.1 83.3% 71.6%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+.sidebar {
+  @apply bg-slate-800 text-slate-300;
+}
+
+.sidebar-header {
+  @apply bg-slate-900 text-white;
+}
+
+.sidebar-item {
+  @apply text-slate-300 hover:bg-slate-700 hover:text-white;
+}
+
+.sidebar-item-active {
+  @apply bg-slate-900 text-white;
+}
+
+.sidebar-icon {
+  @apply text-slate-400 group-hover:text-slate-300;
+}
+
+.sidebar-icon-active {
+  @apply text-white;
+}
+
+.stat-card-icon-primary {
+  @apply bg-blue-100 text-blue-600;
+}
+
+.stat-card-icon-success {
+  @apply bg-green-100 text-green-600;
+}
+
+.stat-card-icon-warning {
+  @apply bg-amber-100 text-amber-600;
+}
+
+.status-badge-assigned {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-badge-pending {
+  @apply bg-amber-100 text-amber-800;
+}
+
+.status-badge-contacted {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.status-badge-not-interested {
+  @apply bg-gray-100 text-gray-800;
+}
+
+.status-badge-closed {
+  @apply bg-purple-100 text-purple-800;
+}
