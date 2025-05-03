@@ -267,7 +267,8 @@ export default function LeadGroups() {
     setOpenDialog(true);
   };
 
-  const handleEditGroup = (group: any) => {
+  const handleEditGroup = (group: LeadGroupType) => {
+    console.log('Editing group:', group);
     setSelectedGroup(group.id);
     form.reset({
       name: group.name,
@@ -406,13 +407,19 @@ export default function LeadGroups() {
                           </Button>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleEditGroup(group)}
-                          >
-                            Edit
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditGroup(group)}
+                              className="flex items-center gap-1"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit Routing Rules
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -471,8 +478,14 @@ export default function LeadGroups() {
                 />
               </div>
               
-              <div className="pt-4">
-                <h3 className="text-lg font-medium mb-2">Routing Criteria</h3>
+              <div className="pt-5 border-t mt-4">
+                <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <span>Lead Routing Criteria</span>
+                </h3>
+                <p className="text-sm text-slate-500 mb-4">Define the criteria for routing leads to this group. Leads matching these criteria will be assigned to agents in this group.</p>
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -543,27 +556,40 @@ export default function LeadGroups() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 pt-4">
+              <div className="grid grid-cols-2 gap-4 pt-5 border-t mt-4">
                 <FormField
                   control={form.control}
                   name="priority"
                   render={({ field }) => (
                     <FormItem className="col-span-2">
-                      <FormLabel>Priority (1-20)</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                        <span>Priority (1-20)</span>
+                      </FormLabel>
                       <FormControl>
-                        <div className="flex items-center space-x-4">
-                          <Slider
-                            defaultValue={[field.value]}
-                            max={20}
-                            min={1}
-                            step={1}
-                            className="flex-1"
-                            onValueChange={(value) => field.onChange(value[0])}
-                          />
-                          <span className="w-12 text-center font-medium">{field.value}</span>
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex items-center space-x-4">
+                            <Slider
+                              defaultValue={[field.value]}
+                              max={20}
+                              min={1}
+                              step={1}
+                              className="flex-1"
+                              onValueChange={(value) => field.onChange(value[0])}
+                            />
+                            <Badge variant="outline" className="w-10 h-10 text-center flex items-center justify-center text-lg font-bold rounded-full bg-indigo-50">
+                              {field.value}
+                            </Badge>
+                          </div>
+                          <div className="flex justify-between text-xs text-slate-500 px-1">
+                            <span>Lower</span>
+                            <span>Higher</span>
+                          </div>
                         </div>
                       </FormControl>
-                      <FormDescription>Higher priority groups are matched first (20 is highest)</FormDescription>
+                      <FormDescription>Higher priority groups are matched first when multiple rules match a lead (20 is highest)</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
