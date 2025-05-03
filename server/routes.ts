@@ -7,7 +7,8 @@ import {
   userLoginSchema, 
   agentGroupInsertSchema, 
   routingRuleInsertSchema, 
-  leadStatusUpdateSchema 
+  leadStatusUpdateSchema,
+  leadGroupInsertSchema
 } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
@@ -866,6 +867,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = (req.user as any).id;
       const setting = await storage.updateSetting(key, value, type, userId, description);
       res.json(setting);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Lead Groups API (new unified model)
+  app.get("/api/lead-groups", isAuthenticated, async (req, res, next) => {
+    try {
+      const groups = await storage.getAllLeadGroups();
+      res.json(groups);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/lead-groups/:id", isAuthenticated, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      const group = await storage.getLeadGroupById(id);
+      if (!group) {
+        return res.status(404).json({ message: "Lead group not found" });
+      }
+      
+      res.json(group);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/lead-groups", isManager, async (req, res, next) => {
+    try {
+      const groupData = leadGroupInsertSchema.parse(req.body);
+      const group = await storage.createLeadGroup(groupData);
+      res.status(201).json(group);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      next(error);
+    }
+  });
+
+  app.put("/api/lead-groups/:id", isManager, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      const groupData = leadGroupInsertSchema.parse(req.body);
+      const updatedGroup = await storage.updateLeadGroup(id, groupData);
+      
+      if (!updatedGroup) {
+        return res.status(404).json({ message: "Lead group not found" });
+      }
+      
+      res.json(updatedGroup);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      next(error);
+    }
+  });
+
+  app.delete("/api/lead-groups/:id", isManager, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      const success = await storage.deleteLeadGroup(id);
+      
+      res.json({ success });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/lead-groups/:groupId/members/:agentId", isManager, async (req, res, next) => {
+    try {
+      const groupId = parseInt(req.params.groupId);
+      const agentId = parseInt(req.params.agentId);
+      
+      if (isNaN(groupId) || isNaN(agentId)) {
+        return res.status(400).json({ message: "Invalid IDs" });
+      }
+      
+      const success = await storage.addAgentToLeadGroup(agentId, groupId);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Failed to add agent to lead group" });
+      }
+      
+      res.status(201).json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.delete("/api/lead-groups/:groupId/members/:agentId", isManager, async (req, res, next) => {
+    try {
+      const groupId = parseInt(req.params.groupId);
+      const agentId = parseInt(req.params.agentId);
+      
+      if (isNaN(groupId) || isNaN(agentId)) {
+        return res.status(400).json({ message: "Invalid IDs" });
+      }
+      
+      const success = await storage.removeAgentFromLeadGroup(agentId, groupId);
+      
+      res.json({ success });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/lead-groups/:id/members", isAuthenticated, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      const agents = await storage.getAgentsByLeadGroupId(id);
+      res.json(agents);
     } catch (error) {
       next(error);
     }

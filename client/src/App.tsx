@@ -19,6 +19,7 @@ import Agents from "@/pages/manager/agents";
 import AgentDetails from "@/pages/manager/agent-details";
 import Performance from "@/pages/manager/performance";
 import RoutingRules from "@/pages/manager/routing-rules";
+import LeadGroups from "@/pages/manager/lead-groups";
 import EmailSettings from "@/pages/manager/email-settings";
 // Using EmailSettings instead of SendGridSettings
 import Leads from "@/pages/manager/leads";
