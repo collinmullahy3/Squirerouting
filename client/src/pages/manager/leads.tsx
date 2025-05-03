@@ -366,7 +366,7 @@ export default function Leads() {
       
       {/* Lead details dialog */}
       <Dialog open={detailsOpen} onOpenChange={(open) => !open && closeLeadDetails()}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           {isLoadingDetails || !leadDetails ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin h-8 w-8 border-4 border-primary border-opacity-50 border-t-primary rounded-full"></div>
@@ -509,13 +509,13 @@ export default function Leads() {
                 
                 {/* Original Email tab */}
                 <TabsContent value="email" className="mt-4">
-                  <Card>
+                  <Card className="overflow-hidden">
                     <CardHeader>
                       <CardTitle>Original Email</CardTitle>
                       <CardDescription>Raw email content as received from the sender</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ScrollArea className="h-[600px] rounded-md border">
+                      <ScrollArea className="h-[500px] w-full rounded-md border">
                         {leadDetails.originalEmail ? (
                           <div className="p-4">
                             <div className="space-y-2 mb-4 p-3 bg-slate-50 rounded border">
@@ -528,20 +528,24 @@ export default function Leads() {
                             {leadDetails.originalEmail.includes('<html') || leadDetails.originalEmail.includes('<body') ? (
                               <div className="mt-4 rounded border p-4 bg-white">
                                 <div className="font-medium text-sm mb-2 text-slate-500">HTML Email Content:</div>
-                                <iframe 
-                                  srcDoc={leadDetails.originalEmail} 
-                                  className="w-full h-[400px] border rounded" 
-                                  sandbox=""
-                                  title="Email Content"
-                                  style={{ overflow: 'auto' }}
-                                />
+                                <div className="w-full overflow-hidden">
+                                  <iframe 
+                                    srcDoc={leadDetails.originalEmail} 
+                                    className="w-full h-[350px] border rounded" 
+                                    sandbox=""
+                                    title="Email Content"
+                                    style={{ overflow: 'auto' }}
+                                  />
+                                </div>
                               </div>
                             ) : (
                               <div className="mt-4 rounded border p-4 bg-white">
                                 <div className="font-medium text-sm mb-2 text-slate-500">Email Content:</div>
-                                <pre className="whitespace-pre-wrap font-sans text-sm max-h-[400px] overflow-y-auto p-2 border rounded">
-                                  {leadDetails.originalEmail}
-                                </pre>
+                                <div className="w-full overflow-hidden">
+                                  <pre className="whitespace-pre-wrap font-sans text-sm max-h-[350px] overflow-y-auto p-2 border rounded w-full">
+                                    {leadDetails.originalEmail}
+                                  </pre>
+                                </div>
                               </div>
                             )}
                           </div>
