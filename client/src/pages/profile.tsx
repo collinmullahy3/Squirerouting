@@ -91,7 +91,10 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      await apiRequest("POST", "/api/auth/logout");
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include"
+      });
       logout();
       toast({
         title: "Logged out",

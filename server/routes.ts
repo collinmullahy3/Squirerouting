@@ -474,14 +474,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/agents", isAuthenticated, async (req, res, next) => {
     try {
       const agents = await storage.getAllAgents();
-      res.json(agents.map(agent => ({
-        id: agent.id,
-        name: agent.name,
-        email: agent.email,
-        phone: agent.phone,
-        avatarUrl: agent.avatarUrl,
-      })));
+      
+      // For each agent, get their groups
+      const agentsWithGroups = await Promise.all(agents.map(async (agent) => {
+        const groups = await storage.getGroupsByAgentId(agent.id);
+        return {
+          id: agent.id,
+          name: agent.name,
+          email: agent.email,
+          username: agent.username,
+          phone: agent.phone,
+          avatarUrl: agent.avatarUrl,
+          groups
+        };
+      }));
+      
+      res.json(agentsWithGroups);
     } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.post("/api/agents", isManager, async (req, res, next) => {
+    try {
+      // Import the schema at the top of the file
+      const { userInsertSchema } = await import("@shared/schema");
+      
+      // Parse and validate the request body
+      const agentData = userInsertSchema.parse({
+        ...req.body,
+        role: "agent", // Force role to be "agent"
+        // Hash the password
+        password: await bcrypt.hash(req.body.password, 10)
+      });
+      
+      // Create the agent
+      const agent = await storage.createUser(agentData);
+      
+      // Remove the password from the response
+      const { password, ...agentWithoutPassword } = agent;
+      
+      res.status(201).json(agentWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
       next(error);
     }
   });

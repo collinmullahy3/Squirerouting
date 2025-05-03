@@ -71,7 +71,10 @@ const Agents = () => {
   // Fetch agents
   const { data: agents, isLoading: isLoadingAgents, error } = useQuery({
     queryKey: ["/api/agents"],
-    queryFn: () => apiRequest("GET", "/api/agents"),
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/agents");
+      return response;
+    },
   });
 
   // Form setup
@@ -88,8 +91,10 @@ const Agents = () => {
 
   // Create agent mutation
   const createAgentMutation = useMutation({
-    mutationFn: (values: AgentFormValues) => 
-      apiRequest("POST", "/api/agents", values),
+    mutationFn: async (values: AgentFormValues) => {
+      const response = await apiRequest("POST", "/api/agents", values);
+      return response;
+    },
     onSuccess: () => {
       toast({
         title: "Success",
