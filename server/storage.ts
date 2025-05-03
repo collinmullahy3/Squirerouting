@@ -2,6 +2,10 @@ import { db } from "@db";
 import { eq, and, desc, asc, or, sql, inArray, lt, gt, gte, lte, isNull, like } from "drizzle-orm";
 import {
   users,
+  // New lead group tables
+  leadGroups,
+  leadGroupMembers,
+  // Legacy tables - for backward compatibility
   agentGroups,
   agentGroupMembers,
   routingRules,
@@ -9,22 +13,192 @@ import {
   leadStatusHistory,
   systemSettings,
   settingTypeEnum,
+  // Types
   type User,
-  type AgentGroup,
-  type RoutingRule,
   type Lead,
   type LeadStatusHistory,
   type SystemSetting,
   type SystemSettingInsert,
   type UserInsert,
-  type AgentGroupInsert,
-  type RoutingRuleInsert,
   type LeadInsert,
-  type LeadStatusUpdate
+  type LeadStatusUpdate,
+  // New lead group types
+  type LeadGroup,
+  type LeadGroupInsert,
+  type LeadGroupMember,
+  // Legacy types
+  type AgentGroup,
+  type AgentGroupInsert,
+  type RoutingRule,
+  type RoutingRuleInsert
 } from "@shared/schema";
 
 export const storage = {
-  // User management
+  // LEAD GROUPS (NEW UNIFIED SCHEMA)
+  async createLeadGroup(groupData: LeadGroupInsert): Promise<LeadGroup> {
+    const [group] = await db.insert(leadGroups)
+      .values(groupData)
+      .returning();
+    return group;
+  },
+
+  async getLeadGroupById(id: number): Promise<LeadGroup | null> {
+    const result = await db.query.leadGroups.findFirst({
+      where: eq(leadGroups.id, id),
+      with: {
+        members: {
+          with: {
+            agent: true
+          }
+        },
+        leads: true
+      }
+    });
+    return result || null;
+  },
+
+  async getAllLeadGroups(): Promise<LeadGroup[]> {
+    return await db.query.leadGroups.findMany({
+      orderBy: [desc(leadGroups.priority), asc(leadGroups.name)],
+      with: {
+        members: {
+          with: {
+            agent: true
+          }
+        }
+      }
+    });
+  },
+
+  async updateLeadGroup(id: number, groupData: Partial<LeadGroupInsert>): Promise<LeadGroup | null> {
+    const [updated] = await db.update(leadGroups)
+      .set({ ...groupData, updatedAt: new Date() })
+      .where(eq(leadGroups.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async deleteLeadGroup(id: number): Promise<boolean> {
+    try {
+      await db.delete(leadGroups)
+        .where(eq(leadGroups.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting lead group:", error);
+      return false;
+    }
+  },
+
+  async addAgentToLeadGroup(agentId: number, groupId: number): Promise<boolean> {
+    try {
+      await db.insert(leadGroupMembers)
+        .values({ agentId, groupId })
+        .onConflictDoNothing();
+      return true;
+    } catch (error) {
+      console.error("Error adding agent to lead group:", error);
+      return false;
+    }
+  },
+
+  async removeAgentFromLeadGroup(agentId: number, groupId: number): Promise<boolean> {
+    try {
+      await db.delete(leadGroupMembers)
+        .where(and(
+          eq(leadGroupMembers.agentId, agentId),
+          eq(leadGroupMembers.groupId, groupId)
+        ));
+      return true;
+    } catch (error) {
+      console.error("Error removing agent from lead group:", error);
+      return false;
+    }
+  },
+
+  async getAgentsByLeadGroupId(groupId: number): Promise<User[]> {
+    return await db.query.users.findMany({
+      where: eq(users.role, 'agent'),
+      with: {
+        leadGroupMemberships: {
+          where: eq(leadGroupMembers.groupId, groupId)
+        }
+      }
+    }).then(users => users.filter(user => user.leadGroupMemberships.length > 0));
+  },
+
+  async getLeadGroupsByAgentId(agentId: number): Promise<LeadGroup[]> {
+    return await db.query.leadGroups.findMany({
+      with: {
+        members: {
+          where: eq(leadGroupMembers.agentId, agentId)
+        }
+      }
+    }).then(groups => groups.filter(group => group.members.length > 0));
+  },
+
+  async updateAgentLastAssignmentInLeadGroup(agentId: number, groupId: number): Promise<void> {
+    await db.update(leadGroupMembers)
+      .set({ lastAssignment: new Date() })
+      .where(and(
+        eq(leadGroupMembers.agentId, agentId),
+        eq(leadGroupMembers.groupId, groupId)
+      ));
+  },
+
+  async assignLeadToLeadGroup(leadId: number, groupId: number): Promise<Lead | null> {
+    const [updated] = await db.update(leads)
+      .set({ 
+        leadGroupId: groupId,
+        updatedAt: new Date() 
+      })
+      .where(eq(leads.id, leadId))
+      .returning();
+    return updated || null;
+  },
+
+  async findMatchingLeadGroups(lead: Lead): Promise<LeadGroup[]> {
+    let query = db.select().from(leadGroups).where(eq(leadGroups.isActive, true));
+    
+    // Price range matching
+    if (lead.price) {
+      const price = parseFloat(lead.price);
+      // Match groups where:
+      // 1. Lead price is >= group minPrice (if set)
+      // 2. Lead price is <= group maxPrice (if set)
+      // 3. If neither min/max is set, then match all
+      query = query.where(or(
+        isNull(leadGroups.minPrice),
+        lte(leadGroups.minPrice, price)
+      )).where(or(
+        isNull(leadGroups.maxPrice),
+        gte(leadGroups.maxPrice, price)
+      ));
+    }
+    
+    // Zip code matching
+    if (lead.zipCode) {
+      // Match if group zipCodes is null OR if lead zipCode is in the group's zip code array
+      query = query.where(or(
+        isNull(leadGroups.zipCodes),
+        sql`${lead.zipCode} = ANY(${leadGroups.zipCodes})`
+      ));
+    }
+    
+    // Address pattern matching
+    if (lead.address && lead.address.trim() !== '') {
+      query = query.where(or(
+        isNull(leadGroups.addressPattern),
+        sql`${leadGroups.addressPattern} IS NULL`,
+        sql`${lead.address} ILIKE '%' || ${leadGroups.addressPattern} || '%'`
+      ));
+    }
+    
+    // Order by priority (highest first) then name
+    const matchingGroups = await query.orderBy(desc(leadGroups.priority), asc(leadGroups.name));
+    return matchingGroups;
+  },
+  
+  // Legacy User management
   async getUserById(id: number): Promise<User | null> {
     const result = await db.query.users.findFirst({
       where: eq(users.id, id)
@@ -218,6 +392,9 @@ export const storage = {
       where: eq(leads.id, id),
       with: {
         assignedAgent: true,
+        // Include new lead group relation
+        leadGroup: true,
+        // Legacy routing rule relation
         routingRule: true,
         statusHistory: {
           with: {

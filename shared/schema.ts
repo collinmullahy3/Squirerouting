@@ -22,7 +22,34 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Agent Groups table
+// Lead Groups table (combines agent groups and routing rules)
+export const leadGroups = pgTable("lead_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  // Routing criteria
+  minPrice: decimal("min_price", { precision: 12, scale: 2 }),
+  maxPrice: decimal("max_price", { precision: 12, scale: 2 }),
+  zipCodes: text("zip_codes").array(),
+  addressPattern: text("address_pattern"),
+  priority: integer("priority").default(5).notNull(), // 1-20 scale (default middle)
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Lead Group Members (agents in the group)
+export const leadGroupMembers = pgTable("lead_group_members", {
+  agentId: integer("agent_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  groupId: integer("group_id").notNull().references(() => leadGroups.id, { onDelete: 'cascade' }),
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  lastAssignment: timestamp("last_assignment"),
+}, (t) => ({
+  pk: primaryKey(t.agentId, t.groupId),
+}));
+
+// For backward compatibility - will be removed in future
+// Agent Groups table (legacy)
 export const agentGroups = pgTable("agent_groups", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -32,7 +59,7 @@ export const agentGroups = pgTable("agent_groups", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Agents to Groups relationship table
+// Agents to Groups relationship table (legacy)
 export const agentGroupMembers = pgTable("agent_group_members", {
   agentId: integer("agent_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   groupId: integer("group_id").notNull().references(() => agentGroups.id, { onDelete: 'cascade' }),
@@ -42,7 +69,7 @@ export const agentGroupMembers = pgTable("agent_group_members", {
   pk: primaryKey(t.agentId, t.groupId),
 }));
 
-// Routing Rules table
+// Routing Rules table (legacy)
 export const routingRules = pgTable("routing_rules", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").notNull().references(() => agentGroups.id, { onDelete: 'cascade' }),
@@ -74,6 +101,9 @@ export const leads = pgTable("leads", {
   source: text("source"),
   status: leadStatusEnum("status").default('pending').notNull(),
   assignedAgentId: integer("assigned_agent_id").references(() => users.id),
+  // Add reference to the new lead group
+  leadGroupId: integer("lead_group_id").references(() => leadGroups.id),
+  // Keep legacy references for backward compatibility
   routingRuleId: integer("routing_rule_id").references(() => routingRules.id),
   originalEmail: text("original_email"),
   originalText: text("original_text"),
@@ -112,14 +142,37 @@ export const usersRelations = relations(users, ({ many }) => ({
   systemSettingsUpdates: many(systemSettings),
   assignedLeads: many(leads),
   statusUpdates: many(leadStatusHistory),
+  // Add relation to new lead group members
+  leadGroupMemberships: many(leadGroupMembers),
+  // Legacy
   groupMemberships: many(agentGroupMembers),
 }));
 
+// New Lead Groups Relations
+export const leadGroupsRelations = relations(leadGroups, ({ many }) => ({
+  members: many(leadGroupMembers),
+  leads: many(leads),
+}));
+
+// New Lead Group Members Relations
+export const leadGroupMembersRelations = relations(leadGroupMembers, ({ one }) => ({
+  agent: one(users, {
+    fields: [leadGroupMembers.agentId],
+    references: [users.id],
+  }),
+  group: one(leadGroups, {
+    fields: [leadGroupMembers.groupId],
+    references: [leadGroups.id],
+  }),
+}));
+
+// Legacy Agent Groups Relations
 export const agentGroupsRelations = relations(agentGroups, ({ many }) => ({
   members: many(agentGroupMembers),
   routingRules: many(routingRules),
 }));
 
+// Legacy Agent Group Members Relations
 export const agentGroupMembersRelations = relations(agentGroupMembers, ({ one }) => ({
   agent: one(users, {
     fields: [agentGroupMembers.agentId],
@@ -131,6 +184,7 @@ export const agentGroupMembersRelations = relations(agentGroupMembers, ({ one })
   }),
 }));
 
+// Legacy Routing Rules Relations
 export const routingRulesRelations = relations(routingRules, ({ one }) => ({
   group: one(agentGroups, {
     fields: [routingRules.groupId],
@@ -143,6 +197,12 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
     fields: [leads.assignedAgentId],
     references: [users.id],
   }),
+  // New relation to lead group
+  leadGroup: one(leadGroups, {
+    fields: [leads.leadGroupId],
+    references: [leadGroups.id],
+  }),
+  // Legacy relation to routing rule
   routingRule: one(routingRules, {
     fields: [leads.routingRuleId],
     references: [routingRules.id],
@@ -181,6 +241,13 @@ export const userLoginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+// New Lead Group Schema
+export const leadGroupInsertSchema = createInsertSchema(leadGroups, {
+  name: (schema) => schema.min(2, "Group name must be at least 2 characters"),
+  priority: (schema) => schema.min(1, "Priority must be between 1-20").max(20, "Priority must be between 1-20"),
+});
+
+// Legacy schemas
 export const agentGroupInsertSchema = createInsertSchema(agentGroups, {
   name: (schema) => schema.min(2, "Group name must be at least 2 characters"),
 });
@@ -221,11 +288,15 @@ export type SystemSetting = typeof systemSettings.$inferSelect;
 export type SystemSettingInsert = z.infer<typeof systemSettingsInsertSchema>;
 export type EmailSettings = z.infer<typeof emailSettingsSchema>;
 
+// New unified types
+export type LeadGroup = typeof leadGroups.$inferSelect;
+export type LeadGroupInsert = z.infer<typeof leadGroupInsertSchema>;
+export type LeadGroupMember = typeof leadGroupMembers.$inferSelect;
+
+// Legacy types
 export type AgentGroup = typeof agentGroups.$inferSelect;
 export type AgentGroupInsert = z.infer<typeof agentGroupInsertSchema>;
-
 export type AgentGroupMember = typeof agentGroupMembers.$inferSelect;
-
 export type RoutingRule = typeof routingRules.$inferSelect;
 export type RoutingRuleInsert = z.infer<typeof routingRuleInsertSchema>;
 
