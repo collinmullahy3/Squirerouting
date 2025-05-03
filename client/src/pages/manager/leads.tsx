@@ -515,7 +515,7 @@ export default function Leads() {
                       <CardDescription>Raw email content as received from the sender</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ScrollArea className="h-[500px] rounded-md border">
+                      <ScrollArea className="h-[600px] rounded-md border">
                         {leadDetails.originalEmail ? (
                           <div className="p-4">
                             <div className="space-y-2 mb-4 p-3 bg-slate-50 rounded border">
@@ -530,15 +530,16 @@ export default function Leads() {
                                 <div className="font-medium text-sm mb-2 text-slate-500">HTML Email Content:</div>
                                 <iframe 
                                   srcDoc={leadDetails.originalEmail} 
-                                  className="w-full min-h-[400px] border rounded" 
+                                  className="w-full h-[400px] border rounded" 
                                   sandbox=""
                                   title="Email Content"
+                                  style={{ overflow: 'auto' }}
                                 />
                               </div>
                             ) : (
                               <div className="mt-4 rounded border p-4 bg-white">
                                 <div className="font-medium text-sm mb-2 text-slate-500">Email Content:</div>
-                                <pre className="whitespace-pre-wrap font-sans text-sm overflow-auto">
+                                <pre className="whitespace-pre-wrap font-sans text-sm max-h-[400px] overflow-y-auto p-2 border rounded">
                                   {leadDetails.originalEmail}
                                 </pre>
                               </div>
