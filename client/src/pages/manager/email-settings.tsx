@@ -89,7 +89,7 @@ export default function EmailSettings() {
     resolver: zodResolver(simulatedEmailSchema),
     defaultValues: {
       subject: "John Smith",
-      text: "Interested in buying a house in zip 90210. My email is john@example.com and phone is 555-123-4567. Looking in the price range of $500,000.",
+      text: "Interested in buying a house in zip 90210. My email is john@example.com and phone is 555-123-4567. Looking in the price range of $500,000.\n\nPlease check out this property I'm interested in: https://www.realtor.com/realestateandhomes-detail/123-Main-St_Beverly-Hills_CA_90210 \n\nHere's an image of the property: https://images.unsplash.com/photo-1564013799919-ab600027ffc6",
       from: "john@example.com"
     }
   });

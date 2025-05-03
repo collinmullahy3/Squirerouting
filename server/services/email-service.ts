@@ -288,6 +288,31 @@ class EmailService {
       const addressRegex = /\d+\s+[a-zA-Z0-9\s,]+(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|parkway|pkwy|circle|cir|boulevard|blvd)\s+[a-zA-Z]+,\s*[a-zA-Z]+\s*\d+/gi;
       const addressMatches = text.match(addressRegex) || [];
       const address = addressMatches.length > 0 ? addressMatches[0] : '';
+      
+      // Extract property URL
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const urlMatches = text.match(urlRegex) || [];
+      let propertyUrl = '';
+      let thumbnailUrl = '';
+      
+      // Find the first URL that looks like a property listing
+      for (const url of urlMatches) {
+        if (url.includes('zillow') || url.includes('realtor') || url.includes('trulia') ||
+            url.includes('redfin') || url.includes('homes') || url.includes('property') ||
+            url.includes('listing')) {
+          propertyUrl = url;
+          break;
+        }
+      }
+      
+      // Check for image URLs - likely a thumbnail
+      for (const url of urlMatches) {
+        if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') ||
+            url.includes('.webp') || url.includes('images') || url.includes('photos')) {
+          thumbnailUrl = url;
+          break;
+        }
+      }
 
       // Extract name - might be in the subject or from field
       let name = '';
@@ -319,6 +344,8 @@ class EmailService {
         zipCode: zipCode || '',
         address: address || '',
         source: 'Email',
+        propertyUrl: propertyUrl || null,
+        thumbnailUrl: thumbnailUrl || null,
         originalEmail,
         receivedAt: new Date(),
         updatedAt: new Date()
