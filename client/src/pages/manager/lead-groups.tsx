@@ -225,6 +225,7 @@ export default function LeadGroups() {
 
   const handleOpenMembers = (groupId: number) => {
     setSelectedGroupForMembers(groupId);
+    setRotationTab("members"); // Reset to members tab when opening
     setMembersDialog(true);
   };
 
@@ -543,58 +544,165 @@ export default function LeadGroups() {
 
       {/* Members Dialog */}
       <Dialog open={membersDialog} onOpenChange={setMembersDialog}>
-        <DialogContent className="sm:max-w-[525px]">
+        <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
-            <DialogTitle>Manage Group Members</DialogTitle>
+            <DialogTitle>Lead Group Management</DialogTitle>
             <DialogDescription>
-              Add or remove agents from this lead group.
+              Manage agents in this lead group and view lead rotation status.
             </DialogDescription>
           </DialogHeader>
           
-          {membersLoading || agentsLoading ? (
-            <div className="py-8 text-center">Loading agents...</div>
-          ) : agents && agents.length > 0 ? (
-            <div className="max-h-[400px] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Agent</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Member</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {agents.map((agent: any) => {
-                    const isMember = Array.isArray(groupMembers) && 
-                      groupMembers.some((member: any) => member.id === agent.id);
-                    return (
-                      <TableRow key={agent.id}>
-                        <TableCell className="font-medium">{agent.name}</TableCell>
-                        <TableCell>{agent.email}</TableCell>
-                        <TableCell>
-                          <Checkbox
-                            id={`agent-${agent.id}`}
-                            checked={isMember}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                handleAddAgent(agent.id);
-                              } else {
-                                handleRemoveAgent(agent.id);
-                              }
-                            }}
-                          />
-                        </TableCell>
+          <Tabs defaultValue="members" value={rotationTab} onValueChange={(value) => setRotationTab(value as "members" | "rotation")}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="members">Members</TabsTrigger>
+              <TabsTrigger value="rotation">Lead Rotation</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="members" className="py-4">
+              {membersLoading || agentsLoading ? (
+                <div className="py-8 text-center">Loading agents...</div>
+              ) : agents && agents.length > 0 ? (
+                <div className="max-h-[400px] overflow-y-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Agent</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Member</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="py-8 text-center text-muted-foreground">
-              No agents found. Add agents first.
-            </div>
-          )}
+                    </TableHeader>
+                    <TableBody>
+                      {agents.map((agent: any) => {
+                        const isMember = Array.isArray(groupMembers) && 
+                          groupMembers.some((member: any) => member.id === agent.id);
+                        return (
+                          <TableRow key={agent.id}>
+                            <TableCell className="font-medium">{agent.name}</TableCell>
+                            <TableCell>{agent.email}</TableCell>
+                            <TableCell>
+                              <Checkbox
+                                id={`agent-${agent.id}`}
+                                checked={isMember}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    handleAddAgent(agent.id);
+                                  } else {
+                                    handleRemoveAgent(agent.id);
+                                  }
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  No agents found. Add agents first.
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="rotation" className="py-4">
+              {rotationLoading ? (
+                <div className="py-8 text-center">Loading rotation data...</div>
+              ) : rotationData ? (
+                <div className="space-y-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-medium mb-2">Lead Rotation Status</h3>
+                    <p className="text-sm text-muted-foreground">
+                      This shows the current lead rotation order for this group. Agents receive leads in a round-robin fashion based on when they last received a lead.                  
+                    </p>
+                  </div>
+                  
+                  {/* Next Agent */}
+                  {rotationData.nextAgent && (
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                      <h4 className="text-sm font-semibold mb-2 text-green-700 dark:text-green-400">Next to Receive a Lead</h4>
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-12 w-12 border-2 border-green-200 dark:border-green-800">
+                          <AvatarImage src={rotationData.nextAgent.avatarUrl} />
+                          <AvatarFallback className="bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300">
+                            {rotationData.nextAgent.name.split(' ').map((part: string) => part[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{rotationData.nextAgent.name}</p>
+                          <p className="text-sm text-green-600 dark:text-green-400">
+                            {rotationData.nextAgent.lastAssignment 
+                              ? `Last received a lead ${format(new Date(rotationData.nextAgent.lastAssignment), 'MMM d, yyyy')}` 
+                              : "Has not received any leads yet"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Last Agent */}
+                  {rotationData.lastAgent && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <h4 className="text-sm font-semibold mb-2 text-blue-700 dark:text-blue-400">Most Recently Received a Lead</h4>
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-12 w-12 border-2 border-blue-200 dark:border-blue-800">
+                          <AvatarImage src={rotationData.lastAgent.avatarUrl} />
+                          <AvatarFallback className="bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-300">
+                            {rotationData.lastAgent.name.split(' ').map((part: string) => part[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{rotationData.lastAgent.name}</p>
+                          <p className="text-sm text-blue-600 dark:text-blue-400">
+                            {rotationData.lastAgent.lastAssignment 
+                              ? `Received a lead on ${format(new Date(rotationData.lastAgent.lastAssignment), 'MMM d, yyyy')}` 
+                              : "Has not received any leads yet"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Separator className="my-6" />
+                  
+                  {/* Full rotation order */}
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Complete Rotation Order</h4>
+                    {rotationData.agents.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-3">
+                        {rotationData.agents.map((agent: any, index: number) => (
+                          <div 
+                            key={agent.id}
+                            className={`flex items-center p-3 rounded-md ${index === 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-slate-50 dark:bg-slate-800/50'}`}
+                          >
+                            <div className="flex-shrink-0 mr-3">
+                              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-medium dark:bg-slate-700">
+                                {index + 1}
+                              </div>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium truncate">{agent.name}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                {agent.lastAssignment 
+                                  ? `Last assigned: ${format(new Date(agent.lastAssignment), 'MMM d, yyyy')}` 
+                                  : "No previous assignments"}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-3">No agents in this group yet</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  No rotation data available. Make sure the group has members.
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
           
           <DialogFooter>
             <Button onClick={() => setMembersDialog(false)}>Close</Button>
