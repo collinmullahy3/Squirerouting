@@ -62,7 +62,7 @@ async function migrateToLeadGroups() {
             .values({
               agentId: member.agentId,
               groupId: newLeadGroup.id,
-              lastAssignment: member.lastAssignment
+              last_assignment: member.lastAssignment
             })
             .onConflictDoNothing();
           
