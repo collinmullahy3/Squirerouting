@@ -284,6 +284,13 @@ export const storage = {
         combinedNotes = combinedNotes ? combinedNotes + newInquiryNote : newData.notes;
       }
 
+      // Check if zip code is different and track multiple zip codes in notes
+      if (newData.zipCode && existingLead.zipCode && existingLead.zipCode !== newData.zipCode) {
+        // Add the additional zip code to notes
+        const zipAddition = `\n\nAdditional zip code from new inquiry: ${newData.zipCode}`;
+        combinedNotes += zipAddition;
+      }
+
       // Update to combine price information for price ranges
       let updatedPrice = existingLead.price;
       let updatedPriceMax = existingLead.priceMax;
@@ -317,6 +324,12 @@ export const storage = {
         }
       }
 
+      // Track additional addresses in notes if provided and different
+      if (newData.address && existingLead.address && existingLead.address !== newData.address) {
+        const addressAddition = `\n\nAdditional address from new inquiry:\n${newData.address}`;
+        combinedNotes += addressAddition;
+      }
+
       // Compile additional property information
       const propertyUrlAddition = existingLead.propertyUrl && newData.propertyUrl && 
                                  existingLead.propertyUrl !== newData.propertyUrl 
@@ -338,6 +351,8 @@ export const storage = {
         newPrice: newData.price,
         updatedPrice,
         updatedPriceMax,
+        oldZipCode: existingLead.zipCode,
+        newZipCode: newData.zipCode,
         hasNewNotes: Boolean(newData.notes),
         hasNewPropertyUrl: Boolean(newData.propertyUrl),
         combinedNotesLength: combinedNotes.length
@@ -350,7 +365,9 @@ export const storage = {
           priceMax: updatedPriceMax,
           notes: combinedNotes || null,
           movingDate: movingDate,
-          // Only update these if they're provided in newData and don't already exist
+          // Keep the original values unless they were empty
+          address: existingLead.address || newData.address || null,
+          zipCode: existingLead.zipCode || newData.zipCode || null,
           propertyUrl: newData.propertyUrl && !existingLead.propertyUrl ? newData.propertyUrl : existingLead.propertyUrl,
           thumbnailUrl: newData.thumbnailUrl && !existingLead.thumbnailUrl ? newData.thumbnailUrl : existingLead.thumbnailUrl,
           updatedAt: new Date()
