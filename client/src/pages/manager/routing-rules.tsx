@@ -62,7 +62,7 @@ const routingRuleSchema = z.object({
   maxPrice: z.coerce.number().optional(),
   zipCodes: z.string().optional(),
   addressPattern: z.string().optional(),
-  priority: z.coerce.number().min(0).max(100).default(0),
+  priority: z.coerce.number().min(1).max(20).default(10),
   isActive: z.boolean().default(true),
 });
 
@@ -112,7 +112,7 @@ export default function RoutingRules() {
       maxPrice: undefined,
       zipCodes: "",
       addressPattern: "",
-      priority: 0,
+      priority: 10,
       isActive: true,
     },
   });
@@ -250,7 +250,7 @@ export default function RoutingRules() {
       maxPrice: undefined,
       zipCodes: "",
       addressPattern: "",
-      priority: 0,
+      priority: 10,
       isActive: true,
     });
     setOpenDialog(true);
@@ -542,31 +542,68 @@ export default function RoutingRules() {
                     <FormLabel>Priority (Higher values are evaluated first)</FormLabel>
                     <FormControl>
                       <div className="flex flex-col w-full gap-1">
-                        {/* Priority ruler with markers for existing rules */}
-                        <div className="relative h-4 w-full mb-2">
+                        {/* Priority ruler with rule name chips */}
+                        <div className="relative h-20 w-full mb-2 mt-6">
                           {/* Ruler background */}
-                          <div className="absolute h-1 w-full bg-slate-200 top-1.5 rounded-full"></div>
-                          
-                          {/* Rule priority markers */}
-                          {rules && rules.filter((r: any) => 
-                            // Don't show marker for the rule being edited
-                            selectedRule !== r.id
-                          ).map((rule: any) => (
-                            <div 
-                              key={rule.id}
-                              className="absolute h-3 w-1 bg-slate-500 top-0.5 rounded-full"
-                              style={{ 
-                                left: `${rule.priority}%`, 
-                                transform: 'translateX(-50%)',
-                                backgroundColor: rule.isActive ? (rule.priority > 75 ? '#ef4444' : (rule.priority > 50 ? '#f59e0b' : (rule.priority > 25 ? '#3b82f6' : '#10b981'))) : '#94a3b8',
-                              }}
-                              title={`${rule.name}: ${rule.priority}`}
-                            />
-                          ))}
+                          <div className="absolute h-1 w-full bg-slate-200 top-6 rounded-full"></div>
                           
                           {/* Priority labels */}
-                          <div className="absolute -top-4 left-0 text-[10px] text-slate-500">Low Priority</div>
-                          <div className="absolute -top-4 right-0 text-[10px] text-slate-500">High Priority</div>
+                          <div className="absolute -top-4 left-0 text-xs text-slate-500">1 (Low)</div>
+                          <div className="absolute -top-4 right-0 text-xs text-slate-500">20 (High)</div>
+                          
+                          {/* Rule name chips */}
+                          {rules && Array.isArray(rules) && rules.filter((r: any) => 
+                            // Don't show chip for the rule being edited
+                            selectedRule !== r.id
+                          ).map((rule: any) => {
+                            // Convert 0-100 scale to 1-20 scale if needed
+                            const priority = rule.priority > 20 ? Math.ceil(rule.priority / 5) : rule.priority;
+                            const position = ((priority - 1) / 19) * 100; // Convert to percentage (1-20 range)
+                            
+                            // Alternate position above/below line to prevent overlap
+                            const isAbove = rule.id % 2 === 0;
+                            
+                            return (
+                              <div 
+                                key={rule.id}
+                                className={`absolute px-2 py-0.5 rounded-full border text-xs font-medium whitespace-nowrap max-w-[120px] truncate ${isAbove ? '-top-2' : 'top-8'}`}
+                                style={{ 
+                                  left: `${position}%`, 
+                                  transform: 'translateX(-50%)',
+                                  backgroundColor: rule.isActive ? 
+                                    (priority > 15 ? '#fef2f2' : (priority > 10 ? '#fefce8' : (priority > 5 ? '#eff6ff' : '#f0fdf4'))) : 
+                                    '#f8fafc',
+                                  borderColor: rule.isActive ? 
+                                    (priority > 15 ? '#ef4444' : (priority > 10 ? '#f59e0b' : (priority > 5 ? '#3b82f6' : '#10b981'))) : 
+                                    '#94a3b8',
+                                  color: rule.isActive ? 
+                                    (priority > 15 ? '#b91c1c' : (priority > 10 ? '#b45309' : (priority > 5 ? '#1d4ed8' : '#047857'))) : 
+                                    '#64748b',
+                                }}
+                                title={`${rule.name}: Priority ${priority}`}
+                              >
+                                <span className="inline-block mr-1">{priority}</span>
+                                {rule.name}
+                              </div>
+                            );
+                          })}
+                          
+                          {/* Ruler tick marks */}
+                          {[...Array(5)].map((_, i) => {
+                            const value = i * 5; // 0, 5, 10, 15
+                            if (value === 0) return null; // Skip 0
+                            const percentage = ((value - 1) / 19) * 100;
+                            return (
+                              <div 
+                                key={i}
+                                className="absolute h-2 w-0.5 bg-slate-300 top-5.5"
+                                style={{ 
+                                  left: `${percentage}%`, 
+                                  transform: 'translateX(-50%)',
+                                }}
+                              />
+                            );
+                          })}
                         </div>
                         
                         {/* The actual slider */}
@@ -574,23 +611,31 @@ export default function RoutingRules() {
                           <Slider
                             onValueChange={(values) => field.onChange(values[0])}
                             defaultValue={[field.value]}
-                            max={100}
+                            min={1}
+                            max={20}
                             step={1}
                             className="flex-1"
                           />
                           <Input
                             type="number"
+                            min={1}
+                            max={20}
                             value={field.value}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={(e) => {
+                              const value = Number(e.target.value);
+                              // Ensure value is within 1-20 range
+                              const cappedValue = Math.min(Math.max(value, 1), 20);
+                              field.onChange(cappedValue);
+                            }}
                             className="w-16"
                           />
                         </div>
                       </div>
                     </FormControl>
                     
-                    {/* Small description to explain the markers */}
+                    {/* Small description to explain the chips */}
                     <FormDescription>
-                      Markers on the slider show where your existing rules are set. Higher priorities take precedence over lower ones.
+                      Colored chips show where your existing rules are set on the priority scale. Higher priorities (closer to 20) take precedence over lower ones.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
