@@ -50,7 +50,19 @@ export default function Login() {
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/auth/login", data);
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+        credentials: "include"
+      });
+      
+      if (!response.ok) {
+        throw new Error("Login failed. Please check your credentials.");
+      }
+      
       const user = await response.json();
       setUser(user);
       
@@ -82,8 +94,8 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Squire</CardTitle>
-          <div className="flex justify-center mb-4">
-            <img src="/Squire.png" alt="Squire Logo" className="h-16 w-16" />
+          <div className="flex justify-center my-4">
+            <img src="Squire.png" alt="Squire Logo" className="h-24 w-auto" />
           </div>
           <CardDescription className="text-center">
             Enter your credentials to sign in to your account

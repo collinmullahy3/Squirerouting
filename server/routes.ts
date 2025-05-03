@@ -28,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tableName: "session",
         createTableIfMissing: true,
       }),
-      secret: process.env.SESSION_SECRET || "leadrouter-session-secret",
+      secret: process.env.SESSION_SECRET || "squire-session-secret",
       resave: false,
       saveUninitialized: false,
       cookie: { 
