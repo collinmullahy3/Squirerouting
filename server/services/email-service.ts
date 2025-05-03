@@ -1,8 +1,9 @@
 import { storage } from '../storage';
-import { type LeadInsert } from '@shared/schema';
+import { type LeadInsert, type Lead, type User } from '@shared/schema';
 import { leadRouter } from './lead-router';
 import IMAP from 'node-imap';
 import { simpleParser } from 'mailparser';
+import nodemailer from 'nodemailer';
 
 class EmailService {
   private readonly FORWARDING_EMAIL = process.env.EMAIL_USER || 'squirerouting@gmail.com';
@@ -10,6 +11,7 @@ class EmailService {
   private imap: IMAP;
   private checkInterval: NodeJS.Timeout | null = null;
   private readonly CHECK_FREQUENCY = 60000; // Check every minute
+  private nodemailer: any = null; // Will initialize if needed
 
   constructor() {
     this.imap = new IMAP({
@@ -50,6 +52,15 @@ class EmailService {
           port: 993,
           tls: true,
           tlsOptions: { rejectUnauthorized: false }
+        });
+        
+        // Initialize nodemailer transport with the same credentials
+        this.nodemailer = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: emailUserSetting.value,
+            pass: emailPasswordSetting.value
+          }
         });
         
         // Reattach event handlers
@@ -332,6 +343,110 @@ class EmailService {
       return true;
     } catch (error) {
       console.error('Error processing email:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send a lead notification email to an agent
+   * 
+   * @param lead The lead details
+   * @param agent The agent to send the notification to
+   * @returns Promise<boolean> True if email was sent successfully
+   */
+  async sendLeadNotification(lead: Lead, agent: User): Promise<boolean> {
+    if (!this.nodemailer) {
+      try {
+        // Get fresh credentials
+        const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+        const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+        
+        if (!emailUserSetting?.value || !emailPasswordSetting?.value) {
+          console.log('Email credentials not found. Cannot send lead notification email.');
+          return false;
+        }
+        
+        // Initialize nodemailer if not already done
+        this.nodemailer = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: emailUserSetting.value,
+            pass: emailPasswordSetting.value
+          }
+        });
+      } catch (error) {
+        console.error('Error initializing nodemailer for lead notification:', error);
+        return false;
+      }
+    }
+    
+    try {
+      // Extract lead details for the email
+      const { name, email, phone, price, zipCode, address, unitNumber, propertyUrl, originalEmail } = lead;
+      
+      // Create a simple HTML email
+      const html = `
+        <h2>New Lead Assignment</h2>
+        <p>A new lead has been assigned to you:</p>
+        
+        <h3>Lead Details</h3>
+        <ul>
+          <li><strong>Name:</strong> ${name || 'Not provided'}</li>
+          <li><strong>Email:</strong> ${email || 'Not provided'}</li>
+          <li><strong>Phone:</strong> ${phone || 'Not provided'}</li>
+          <li><strong>Price Target:</strong> ${price ? `$${price}` : 'Not provided'}</li>
+          <li><strong>Address:</strong> ${address || 'Not provided'}</li>
+          ${unitNumber ? `<li><strong>Unit:</strong> ${unitNumber}</li>` : ''}
+          <li><strong>Zip Code:</strong> ${zipCode || 'Not provided'}</li>
+          ${propertyUrl ? `<li><strong>Property URL:</strong> <a href="${propertyUrl}">${propertyUrl}</a></li>` : ''}
+        </ul>
+
+        <h3>Original Email</h3>
+        <div style="border: 1px solid #ddd; padding: 15px; background-color: #f8f8f8; font-family: monospace;">
+          ${originalEmail ? originalEmail : 'No original email content available'}
+        </div>
+        
+        <p style="margin-top: 20px; font-style: italic;">
+          You can reply directly to this email to respond to the lead. Your reply will be sent to the lead's email address.
+        </p>
+      `;
+
+      // Create a text version as well
+      const text = `
+        New Lead Assignment
+
+        A new lead has been assigned to you:
+
+        Lead Details:
+        - Name: ${name || 'Not provided'}
+        - Email: ${email || 'Not provided'}
+        - Phone: ${phone || 'Not provided'}
+        - Price Target: ${price ? `$${price}` : 'Not provided'}
+        - Address: ${address || 'Not provided'}
+        ${unitNumber ? `- Unit: ${unitNumber}\n` : ''}
+        - Zip Code: ${zipCode || 'Not provided'}
+        ${propertyUrl ? `- Property URL: ${propertyUrl}\n` : ''}
+
+        Original Email:
+        ${originalEmail ? originalEmail : 'No original email content available'}
+
+        You can reply directly to this email to respond to the lead. Your reply will be sent to the lead's email address.
+      `;
+      
+      // Send the email
+      const info = await this.nodemailer.sendMail({
+        from: this.FORWARDING_EMAIL,
+        to: agent.email,
+        replyTo: email || undefined, // Set the reply-to as the lead's email if available
+        subject: `New Lead Assignment: ${name || 'New Inquiry'} - ${address || 'Property Inquiry'}`,
+        text,
+        html
+      });
+      
+      console.log(`Lead notification email sent to agent ${agent.name} (${agent.email}) for lead ${lead.id}`);
+      return true;
+    } catch (error) {
+      console.error(`Error sending lead notification email to agent ${agent.id}:`, error);
       return false;
     }
   }
