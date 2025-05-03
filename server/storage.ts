@@ -443,24 +443,35 @@ export const storage = {
     agent: User;
     closedLeadCount: number;
   }[]> {
-    // This is a complex query, we'll simplify for now and enhance later
+    // Get all agents
     const agents = await db.query.users.findMany({
-      where: eq(users.role, 'agent'),
-      with: {
-        assignedLeads: true
+      where: eq(users.role, 'agent')
+    });
+    
+    // Get all leads and count closed ones per agent
+    const allLeads = await db.query.leads.findMany({
+      where: sql`${leads.assignedAgentId} IS NOT NULL`,
+      columns: {
+        assignedAgentId: true,
+        status: true
       }
     });
     
+    // Count leads per agent
+    const agentLeadCounts = new Map<number, number>();
+    allLeads.forEach(lead => {
+      if (lead.status === 'closed' && lead.assignedAgentId) {
+        const currentCount = agentLeadCounts.get(lead.assignedAgentId) || 0;
+        agentLeadCounts.set(lead.assignedAgentId, currentCount + 1);
+      }
+    });
+    
+    // Create result
     return agents
-      .map(agent => {
-        // Count only closed leads
-        const closedLeadCount = agent.assignedLeads.filter(lead => lead.status === 'closed').length;
-        
-        return {
-          agent,
-          closedLeadCount
-        };
-      })
+      .map(agent => ({
+        agent,
+        closedLeadCount: agentLeadCounts.get(agent.id) || 0
+      }))
       .sort((a, b) => b.closedLeadCount - a.closedLeadCount)
       .slice(0, limit);
   },

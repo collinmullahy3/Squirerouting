@@ -556,6 +556,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.get("/api/dashboard/lead-sources", isAuthenticated, async (req, res, next) => {
+    try {
+      const sources = await storage.getLeadSourceMetrics();
+      res.json(sources);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/dashboard/popular-properties", isAuthenticated, async (req, res, next) => {
+    try {
+      const properties = await storage.getPopularProperties();
+      res.json(properties);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
   // Manual trigger for routing pending leads (for testing or scheduling)
   app.post("/api/admin/process-pending-leads", isManager, async (req, res, next) => {
     try {
