@@ -35,11 +35,7 @@ export default function ManagerDashboard() {
     enabled: isAuthenticated
   });
 
-  // Fetch top agents
-  const { data: topAgents, isLoading: agentsLoading } = useQuery({
-    queryKey: ["/api/dashboard/top-agents"],
-    enabled: isAuthenticated
-  });
+  // We no longer fetch top agents as requested
 
   // Fetch recent leads
   const { data: recentLeads, isLoading: leadsLoading } = useQuery({
@@ -177,85 +173,7 @@ export default function ManagerDashboard() {
             <h3 className="text-lg leading-6 font-medium text-slate-900">
               Agent Group Performance
             </h3>
-            <div className="mt-2 grid grid-cols-1 gap-5 lg:grid-cols-2">
-              {/* Top Performing Agents */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base font-medium">Top Performing Agents</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-hidden">
-                    <table className="min-w-full divide-y divide-slate-200">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Agent
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Group
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Leads
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                            Response Time
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-slate-200">
-                        {agentsLoading ? (
-                          <tr>
-                            <td colSpan={4} className="px-6 py-4">Loading top agents...</td>
-                          </tr>
-                        ) : topAgents && topAgents.length > 0 ? (
-                          topAgents.slice(0, 3).map((agent, index) => (
-                            <tr key={agent.id}>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <div className="flex-shrink-0 h-10 w-10">
-                                    <Avatar>
-                                      <AvatarImage src={agent.avatarUrl} alt={agent.name} />
-                                      <AvatarFallback>{agent.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                                    </Avatar>
-                                  </div>
-                                  <div className="ml-4">
-                                    <div className="text-sm font-medium text-slate-900">
-                                      {agent.name}
-                                    </div>
-                                    <div className="text-sm text-slate-500">
-                                      {agent.email}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-slate-900">
-                                  {index === 0 ? "Luxury Homes" : index === 1 ? "Downtown Condos" : "Suburban Homes"}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="text-sm text-slate-900">{agent.leadCount}</div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                <div className="flex items-center">
-                                  <svg className="w-4 h-4 text-green-500 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  {agent.avgResponseTimeMinutes} min avg
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={4} className="px-6 py-4">No agent data available</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="mt-2 grid grid-cols-1 gap-5 lg:grid-cols-1">
               
               {/* Agent Groups */}
               <Card>
@@ -294,7 +212,7 @@ export default function ManagerDashboard() {
                               <div className="text-sm text-slate-900">{group.leads}</div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge variant={index < 3 ? "success" : "warning"}>
+                              <Badge className={index < 3 ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}>
                                 {index < 3 ? "Active" : "Paused"}
                               </Badge>
                             </td>
