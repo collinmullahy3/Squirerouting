@@ -465,6 +465,141 @@ export const storage = {
       .slice(0, limit);
   },
 
+  async getLeadSourceMetrics(): Promise<{
+    source: string;
+    total: number;
+    closed: number;
+    closingRate: number;
+  }[]> {
+    // Get all leads grouped by source
+    const allLeads = await db.query.leads.findMany({
+      columns: {
+        source: true,
+        status: true
+      }
+    });
+    
+    // Group leads by source
+    const sourceMap = new Map<string, { total: number; closed: number }>();
+    
+    allLeads.forEach(lead => {
+      const source = lead.source || 'Unknown';
+      
+      if (!sourceMap.has(source)) {
+        sourceMap.set(source, { total: 0, closed: 0 });
+      }
+      
+      const sourceData = sourceMap.get(source)!;
+      sourceData.total++;
+      
+      if (lead.status === 'closed') {
+        sourceData.closed++;
+      }
+    });
+    
+    // Convert map to array and calculate rates
+    return Array.from(sourceMap.entries())
+      .map(([source, data]) => ({
+        source,
+        total: data.total,
+        closed: data.closed,
+        closingRate: data.total > 0 ? Math.round((data.closed / data.total) * 100) : 0
+      }))
+      .sort((a, b) => b.total - a.total);
+  },
+  
+  async getPopularProperties(): Promise<{
+    zipCode?: string; 
+    address?: string;
+    priceRange: string;
+    count: number;
+  }[]> {
+    // Get all leads
+    const allLeads = await db.query.leads.findMany({
+      columns: {
+        address: true,
+        zipCode: true,
+        price: true,
+        priceMax: true
+      }
+    });
+    
+    // Group by zip code
+    const zipCodeMap = new Map<string, number>();
+    const addressMap = new Map<string, number>();
+    const priceRangeMap = new Map<string, number>();
+    
+    allLeads.forEach(lead => {
+      // Handle zip codes
+      if (lead.zipCode) {
+        const count = zipCodeMap.get(lead.zipCode) || 0;
+        zipCodeMap.set(lead.zipCode, count + 1);
+      }
+      
+      // Handle addresses (partial matching on key parts)
+      if (lead.address) {
+        // Extract notable parts of address (keywords like street names, neighborhoods)
+        const keywords = lead.address.split(/\s+/)
+          .filter(word => word.length > 3 && !['road', 'street', 'avenue', 'lane', 'drive', 'place', 'court'].includes(word.toLowerCase()))
+          .map(word => word.toLowerCase());
+        
+        keywords.forEach(keyword => {
+          const count = addressMap.get(keyword) || 0;
+          addressMap.set(keyword, count + 1);
+        });
+      }
+      
+      // Handle price ranges
+      let priceRange = 'Unknown';
+      
+      if (lead.price) {
+        const price = Number(lead.price);
+        const priceMax = lead.priceMax ? Number(lead.priceMax) : price;
+        
+        if (price < 200000) {
+          priceRange = 'Under $200K';
+        } else if (price < 500000) {
+          priceRange = '$200K - $500K';
+        } else if (price < 1000000) {
+          priceRange = '$500K - $1M';
+        } else {
+          priceRange = 'Over $1M';
+        }
+      }
+      
+      const rangeCount = priceRangeMap.get(priceRange) || 0;
+      priceRangeMap.set(priceRange, rangeCount + 1);
+    });
+    
+    // Create results array
+    const results: { zipCode?: string; address?: string; priceRange: string; count: number }[] = [];
+    
+    // Add top zip codes
+    Array.from(zipCodeMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .forEach(([zipCode, count]) => {
+        results.push({ zipCode, count, priceRange: '' });
+      });
+      
+    // Add top address keywords
+    Array.from(addressMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .forEach(([address, count]) => {
+        results.push({ address, count, priceRange: '' });
+      });
+    
+    // Add price ranges
+    Array.from(priceRangeMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([priceRange, count]) => {
+        results.push({ priceRange, count });
+      });
+    
+    return results;
+  },
+
   // System Settings Management
   async getSettingByKey(key: string): Promise<SystemSetting | null> {
     const result = await db.query.systemSettings.findFirst({
