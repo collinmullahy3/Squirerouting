@@ -133,41 +133,101 @@ class EmailService {
   }
   
   // Exposed for manual testing
-  public checkEmails() {
-    this.checkNewEmails();
+  public async checkEmails(): Promise<boolean> {
+    try {
+      // Get fresh credentials
+      const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+      const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+      
+      if (!emailUserSetting?.value || !emailPasswordSetting?.value) {
+        console.log('Email credentials not found or invalid. Cannot check emails.');
+        return false;
+      }
+      
+      // Create a new IMAP connection for this check
+      const tempImap = new IMAP({
+        user: emailUserSetting.value,
+        password: emailPasswordSetting.value,
+        host: 'imap.gmail.com',
+        port: 993,
+        tls: true,
+        tlsOptions: { rejectUnauthorized: false }
+      });
+      
+      // Return a promise that resolves when emails are checked
+      return new Promise((resolve) => {
+        // Set up event handlers for this specific connection
+        tempImap.once('ready', () => {
+          console.log('IMAP connection ready for email checking');
+          this.checkNewEmailsWithConnection(tempImap, () => {
+            tempImap.end();
+            resolve(true);
+          });
+        });
+        
+        tempImap.once('error', (err) => {
+          console.error('Error with IMAP connection:', err);
+          resolve(false);
+        });
+        
+        // Connect to the server
+        tempImap.connect();
+      });
+    } catch (error) {
+      console.error('Error checking emails:', error);
+      return false;
+    }
   }
 
   private checkNewEmails() {
     try {
-      this.imap.openBox('INBOX', false, (err, mailbox) => {
+      this.checkNewEmailsWithConnection(this.imap);
+    } catch (error) {
+      console.error('Error checking emails:', error);
+    }
+  }
+  
+  private checkNewEmailsWithConnection(imapConnection: any, callback?: () => void) {
+    try {
+      imapConnection.openBox('INBOX', false, (err: any, mailbox: any) => {
         if (err) {
           console.error('Error opening inbox:', err);
+          if (callback) callback();
           return;
         }
         
         // Search for unread messages
-        this.imap.search(['UNSEEN'], (err, results) => {
+        imapConnection.search(['UNSEEN'], (err: any, results: number[]) => {
           if (err) {
             console.error('Error searching for unread messages:', err);
+            if (callback) callback();
             return;
           }
           
           if (results.length === 0) {
             // No new messages
+            console.log('No unread messages found in inbox');
+            if (callback) callback();
             return;
           }
           
           console.log(`Found ${results.length} new messages`);
           
-          // Fetch each message
-          const f = this.imap.fetch(results, { bodies: '' });
+          let processedCount = 0;
           
-          f.on('message', (msg) => {
-            msg.on('body', (stream) => {
+          // Fetch each message
+          const f = imapConnection.fetch(results, { bodies: '' });
+          
+          f.on('message', (msg: any) => {
+            msg.on('body', (stream: any) => {
               // Parse the email
-              simpleParser(stream, async (err, parsed) => {
+              simpleParser(stream, async (err: any, parsed: any) => {
                 if (err) {
                   console.error('Error parsing email:', err);
+                  processedCount++;
+                  if (processedCount === results.length && callback) {
+                    callback();
+                  }
                   return;
                 }
                 
@@ -180,22 +240,36 @@ class EmailService {
                 });
                 
                 // Mark as read
-                this.imap.addFlags(results, '\\Seen', (err) => {
+                imapConnection.addFlags(results, '\\Seen', (err: any) => {
                   if (err) {
                     console.error('Error marking message as read:', err);
+                  }
+                  
+                  processedCount++;
+                  if (processedCount === results.length && callback) {
+                    callback();
                   }
                 });
               });
             });
           });
           
-          f.once('error', (err) => {
+          f.once('error', (err: any) => {
             console.error('Error fetching messages:', err);
+            if (callback) callback();
+          });
+          
+          // In case no messages are actually processed (unlikely but possible)
+          f.once('end', () => {
+            if (processedCount === 0 && callback) {
+              callback();
+            }
           });
         });
       });
     } catch (error) {
-      console.error('Error checking emails:', error);
+      console.error('Error checking emails with connection:', error);
+      if (callback) callback();
     }
   }
 

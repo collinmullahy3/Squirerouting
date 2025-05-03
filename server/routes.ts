@@ -686,10 +686,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Reinitialize the email service to load the latest credentials
       await emailService.initialize();
       
-      // Manually trigger email checking
-      emailService.checkEmails();
+      // Manually trigger email checking with our new async method
+      const success = await emailService.checkEmails();
       
-      res.json({ message: "Email check process started" });
+      if (success) {
+        res.json({ message: "Email check completed successfully" });
+      } else {
+        res.status(500).json({ message: "Email check failed. Please verify your email credentials." });
+      }
     } catch (error) {
       console.error("Error checking emails:", error);
       res.status(500).json({ message: "Error checking emails" });
