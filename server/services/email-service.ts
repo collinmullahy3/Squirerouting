@@ -425,16 +425,50 @@ class EmailService {
 
       // Extract address - this is more complex and may require NLP
       // For demo purposes, we'll look for common address patterns
-      const addressRegex = /\d+\s+[a-zA-Z0-9\s,]+(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|parkway|pkwy|circle|cir|boulevard|blvd)\s+[a-zA-Z]+,\s*[a-zA-Z]+\s*\d+/gi;
-      const addressMatches = text.match(addressRegex) || [];
+      // First, try to find a full street address with street/ave/etc.
+      const addressRegex = /\d+\s+[a-zA-Z0-9\s,]+(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|parkway|pkwy|circle|cir|boulevard|blvd)(?:\s+[a-zA-Z]+,\s*[a-zA-Z]+\s*\d+)?/gi;
+      // If that fails, look for simpler patterns like "123 Main Street"
+      const simpleAddressRegex = /\d+\s+[a-zA-Z]+\s+(?:street|st|avenue|ave|road|rd|drive|dr)/gi;
+      // Also look for address in a format that might not include street suffix
+      const buildingAddressRegex = /(?:at|on|in)\s+(\d+\s+[a-zA-Z\s]+)(?:,|\.|\n|$)/i;
+      
+      // Try each regex pattern in order of specificity
+      let addressMatches = text.match(addressRegex) || [];
+      if (addressMatches.length === 0) {
+        addressMatches = text.match(simpleAddressRegex) || [];
+      }
+      
+      // Try the building address pattern as well
+      const buildingMatch = text.match(buildingAddressRegex);
+      if (buildingMatch && buildingMatch[1]) {
+        addressMatches.push(buildingMatch[1]);
+      }
+      
       // Get all unique addresses
       const uniqueAddresses = [...new Set(addressMatches)];
       const address = uniqueAddresses.length > 0 ? uniqueAddresses[0] : '';
       
       // Extract unit/apartment number
+      // Look for various unit number patterns
       const unitRegex = /(?:apt|apartment|unit|suite|#)\s*([a-zA-Z0-9-]+)/i;
-      const unitMatches = text.match(unitRegex) || subject.match(unitRegex) || [];
-      const unitNumber = unitMatches.length > 1 ? unitMatches[1] : '';
+      // Also look for unit in the context of an address
+      const addressUnitRegex = /\d+\s+[a-zA-Z\s]+(?:,|\s+)(?:unit|apt|apartment|suite|#)\s+([a-zA-Z0-9-]+)/i;
+      // Direct mention of a unit pattern
+      const directUnitRegex = /unit\s+is\s+([a-zA-Z0-9-]+)/i;
+      
+      // Try all unit regex patterns
+      const unitMatches = text.match(unitRegex) || text.match(addressUnitRegex) || text.match(directUnitRegex) || subject.match(unitRegex) || [];
+      let unitNumber = unitMatches.length > 1 ? unitMatches[1] : '';
+      
+      // If we couldn't find a unit number through regex, check if it's mentioned with the address
+      if (!unitNumber) {
+        // Look for a pattern where building number and unit are combined like "123 Main Street 4B"
+        const combinedUnitRegex = /\d+\s+[a-zA-Z\s]+\s+([A-Z]?\d+[A-Z]?)/i;
+        const combinedMatch = text.match(combinedUnitRegex);
+        if (combinedMatch && combinedMatch[1]) {
+          unitNumber = combinedMatch[1];
+        }
+      }
       
       // Extract bed count
       const bedRegex = /(\d+)\s*(?:bed|bedroom|br)/i;

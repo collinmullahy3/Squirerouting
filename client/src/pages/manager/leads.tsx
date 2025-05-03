@@ -102,12 +102,17 @@ export default function Leads() {
     priceMax?: number | string;
     zipCode?: string;
     address?: string;
+    unitNumber?: string;
+    neighborhood?: string;
+    bedCount?: number;
+    source?: string;
     propertyUrl?: string;
     thumbnailUrl?: string;
     status: string;
     receivedAt: string;
     movingDate?: string | Date;
     notes?: string;
+    originalEmail?: string;
     assignedAgent?: {
       id: number;
       name: string;
@@ -291,7 +296,19 @@ export default function Leads() {
                   <TableCell>{lead.phone || 'N/A'}</TableCell>
                   <TableCell>{formatPrice(lead.price, lead.priceMax)}</TableCell>
                   <TableCell>
-                    {lead.address || (lead.zipCode ? `ZIP: ${lead.zipCode}` : 'N/A')}
+                    <div className="flex flex-col">
+                      {lead.address ? (
+                        <span className="font-medium">{lead.address}</span>
+                      ) : lead.zipCode ? (
+                        <span>ZIP: {lead.zipCode}</span>
+                      ) : (
+                        <span className="text-gray-500">No location</span>
+                      )}
+                      
+                      {lead.unitNumber && (
+                        <span className="text-xs text-primary">Unit {lead.unitNumber}</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>{lead.movingDate ? formatDate(lead.movingDate) : 'N/A'}</TableCell>
                   <TableCell>
@@ -417,18 +434,39 @@ export default function Leads() {
                           <h3 className="font-semibold mb-2">Property Details</h3>
                           <p className="text-gray-800">
                             {leadDetails.bedCount ? <span className="font-medium">{leadDetails.bedCount} bed</span> : ''}
-                            {leadDetails.unitNumber ? <span className="ml-2">Unit: {leadDetails.unitNumber}</span> : ''}
                           </p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-2 mt-4">
+                        <div>
+                          <h3 className="font-semibold mb-2">Building & Unit</h3>
+                          <div className="bg-slate-50 p-3 rounded-md border">
+                            {leadDetails.address ? (
+                              <p className="font-medium">{leadDetails.address}</p>
+                            ) : (
+                              <p className="text-gray-500">No building address provided</p>
+                            )}
+                            
+                            {leadDetails.unitNumber && (
+                              <p className="mt-1 text-primary">Unit {leadDetails.unitNumber}</p>
+                            )}
+                            
+                            {leadDetails.zipCode && (
+                              <p className="text-sm text-gray-500 mt-1">ZIP: {leadDetails.zipCode}</p>
+                            )}
+                            
+                            {leadDetails.neighborhood && (
+                              <p className="text-sm text-gray-500 mt-1">Neighborhood: {leadDetails.neighborhood}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4 mt-4">
                         <div>
-                          <h3 className="font-semibold mb-2">Location</h3>
-                          <p>{leadDetails.address || (leadDetails.zipCode ? `ZIP: ${leadDetails.zipCode}` : 'N/A')}</p>
-                          {leadDetails.neighborhood && (
-                            <p className="text-sm text-gray-500 mt-1">Neighborhood: {leadDetails.neighborhood}</p>
-                          )}
+                          <h3 className="font-semibold mb-2">Moving Date</h3>
+                          <p>{leadDetails.movingDate ? formatDate(leadDetails.movingDate) : 'Not specified'}</p>
                         </div>
                         <div>
                           <h3 className="font-semibold mb-2">Source</h3>
