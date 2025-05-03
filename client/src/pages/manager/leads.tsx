@@ -414,8 +414,25 @@ export default function Leads() {
                           <p className="text-lg">{formatPrice(leadDetails.price, leadDetails.priceMax)}</p>
                         </div>
                         <div>
-                          <h3 className="font-semibold mb-2">Primary Location</h3>
+                          <h3 className="font-semibold mb-2">Property Details</h3>
+                          <p className="text-gray-800">
+                            {leadDetails.bedCount ? <span className="font-medium">{leadDetails.bedCount} bed</span> : ''}
+                            {leadDetails.unitNumber ? <span className="ml-2">Unit: {leadDetails.unitNumber}</span> : ''}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <h3 className="font-semibold mb-2">Location</h3>
                           <p>{leadDetails.address || (leadDetails.zipCode ? `ZIP: ${leadDetails.zipCode}` : 'N/A')}</p>
+                          {leadDetails.neighborhood && (
+                            <p className="text-sm text-gray-500 mt-1">Neighborhood: {leadDetails.neighborhood}</p>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold mb-2">Source</h3>
+                          <p>{leadDetails.source || 'Email'}</p>
                         </div>
                       </div>
                       
@@ -486,16 +503,19 @@ export default function Leads() {
                           <h3 className="font-semibold mb-3">Additional Properties</h3>
                           <div className="space-y-4">
                             {leadDetails.notes.split('Additional property link from new inquiry:').slice(1).map((part, index) => {
-                              const propertyUrl = part.split('\n')[1]?.trim();
+                              // Add explicit type casting to make TypeScript happy
+                              const partStr = String(part);
+                              const idx = Number(index);
+                              const propertyUrl = partStr.split('\n')[1]?.trim();
                               return propertyUrl ? (
-                                <div key={index} className="p-3 border rounded-md">
+                                <div key={idx} className="p-3 border rounded-md">
                                   <a 
                                     href={propertyUrl} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-primary hover:underline"
                                   >
-                                    Additional Property {index + 1}
+                                    Additional Property {idx + 1}
                                   </a>
                                 </div>
                               ) : null;
