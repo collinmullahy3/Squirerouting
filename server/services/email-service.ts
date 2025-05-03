@@ -418,6 +418,18 @@ You can reply directly to this email to respond to the client.
 ${originalEmail || 'No original email content available'}`;
       
       
+      // Log the full email content for testing
+      console.log(`========= EMAIL FORWARDING TEST =========`);
+      console.log(`Subject: New Lead Assignment: ${name || 'New Inquiry'} - ${address || 'Property Inquiry'}`);
+      console.log(`From: ${this.FORWARDING_EMAIL}`);
+      console.log(`To: ${agent.email}`);
+      console.log(`Reply-To: ${email || 'undefined'}`);
+      console.log(`---------- TEXT VERSION ----------`);
+      console.log(text);
+      console.log(`---------- HTML VERSION ----------`);
+      console.log(html);
+      console.log(`====================================`);
+
       // Send the email
       const info = await this.nodemailer.sendMail({
         from: this.FORWARDING_EMAIL,

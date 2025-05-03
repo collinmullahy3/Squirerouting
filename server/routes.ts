@@ -657,7 +657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoint to process a simulated email for testing
   app.post("/api/admin/simulate-email", isManager, async (req, res, next) => {
     try {
-      const { subject, text, from } = req.body;
+      const { subject, text, from, html } = req.body;
       if (!subject || !text) {
         return res.status(400).json({ error: "Subject and text are required" });
       }
@@ -665,11 +665,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const success = await emailService.processSimulatedEmail({
         subject,
         text,
+        html,
         from: from || "test@example.com"
       });
       
       res.json({ success });
     } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Public endpoint for testing email forwarding (TEMPORARY, FOR TESTING ONLY)
+  app.post("/api/test/email-forward", async (req, res, next) => {
+    try {
+      const { subject, text, html, address, unitNumber } = req.body;
+      if (!subject || !text) {
+        return res.status(400).json({ error: "Subject and text are required" });
+      }
+      
+      // Create an email with sample property data
+      const emailContent = {
+        subject: subject || "Interest in property at " + (address || "123 Main Street"),
+        text: text || `Hi, I'm interested in renting at ${address || "123 Main Street"}${unitNumber ? `, Unit ${unitNumber}` : ""}. Please contact me at test@example.com or 555-123-4567.`,
+        html: html || `<p>Hi, I'm interested in renting at <strong>${address || "123 Main Street"}${unitNumber ? `, Unit ${unitNumber}` : ""}</strong>. Please contact me at test@example.com or 555-123-4567.</p>`,
+        from: "test@example.com"
+      };
+      
+      console.log("Processing test email for forwarding:", emailContent);
+      const success = await emailService.processSimulatedEmail(emailContent);
+      
+      res.json({ success, message: success ? "Email processed successfully" : "Failed to process email" });
+    } catch (error) {
+      console.error("Error in test email forwarding:", error);
       next(error);
     }
   });
