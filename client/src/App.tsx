@@ -20,7 +20,7 @@ import AgentDetails from "@/pages/manager/agent-details";
 import Performance from "@/pages/manager/performance";
 import RoutingRules from "@/pages/manager/routing-rules";
 import EmailSettings from "@/pages/manager/email-settings";
-import SendGridSettings from "@/pages/manager/sendgrid-settings";
+// Using EmailSettings instead of SendGridSettings
 import Leads from "@/pages/manager/leads";
 
 // Agent Pages
@@ -46,7 +46,6 @@ const Router = () => {
             <Route path="/performance" component={Performance} />
             <Route path="/routing-rules" component={RoutingRules} />
             <Route path="/email-settings" component={EmailSettings} />
-            <Route path="/sendgrid-settings" component={SendGridSettings} />
             
             {/* Agent Routes */}
             <Route path="/my-leads" component={MyLeads} />

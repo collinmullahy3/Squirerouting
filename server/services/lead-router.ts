@@ -1,6 +1,6 @@
 import { storage } from '../storage';
 import { type Lead, type RoutingRule, type AgentGroup } from '@shared/schema';
-import { emailSender } from './email-sender';
+import { emailService } from './email-service';
 
 class LeadRouter {
   /**
@@ -55,9 +55,13 @@ class LeadRouter {
       // Get the updated lead with assignment details
       const updatedLead = await storage.getLeadById(lead.id);
       if (updatedLead) {
-        // Send email notification to the assigned agent
-        const emailSent = await emailSender.forwardLeadToAgent(updatedLead);
-        console.log(`Email notification to agent ${emailSent ? 'sent successfully' : 'failed'}`);
+        // Get agent details for notification
+        const agentDetails = await storage.getUserById(agent.id);
+        if (agentDetails) {
+          // Send email notification to the assigned agent using the native email service
+          const emailSent = await emailService.sendLeadNotification(updatedLead, agentDetails);
+          console.log(`Email notification to agent ${emailSent ? 'sent successfully' : 'failed'}`);
+        }
       }
       
       return true;
