@@ -208,6 +208,31 @@ export default function EmailSettings() {
     updateEmailCredentialsMutation.mutate(data);
   };
 
+  // Add a mutation for checking emails manually
+  const checkEmailsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/admin/check-emails");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email Check Started",
+        description: "The system is checking for new leads in your email inbox."
+      });
+    },
+    onError: (error) => {
+      console.error("Error checking emails:", error);
+      toast({
+        title: "Error",
+        description: "Failed to check emails. Please verify your email credentials.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleCheckEmails = () => {
+    checkEmailsMutation.mutate();
+  };
+
   return (
     <div className="p-8 overflow-y-auto max-h-screen pb-20">
       <h1 className="text-3xl font-bold mb-6">Email Settings</h1>
@@ -438,14 +463,27 @@ export default function EmailSettings() {
                     )}
                   />
                   
-                  <Button 
-                    type="submit" 
-                    className="flex items-center gap-2"
-                    disabled={updateEmailCredentialsMutation.isPending}
-                  >
-                    <SaveIcon className="h-4 w-4" />
-                    {updateEmailCredentialsMutation.isPending ? "Saving..." : "Save Credentials"}
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button 
+                      type="submit" 
+                      className="flex items-center gap-2"
+                      disabled={updateEmailCredentialsMutation.isPending}
+                    >
+                      <SaveIcon className="h-4 w-4" />
+                      {updateEmailCredentialsMutation.isPending ? "Saving..." : "Save Credentials"}
+                    </Button>
+                    
+                    <Button 
+                      type="button"
+                      variant="outline"
+                      className="flex items-center gap-2"
+                      onClick={handleCheckEmails}
+                      disabled={checkEmailsMutation.isPending || !emailCredentials?.hasPassword}
+                    >
+                      <MailIcon className="h-4 w-4" />
+                      {checkEmailsMutation.isPending ? "Checking..." : "Check For New Emails"}
+                    </Button>
+                  </div>
                 </form>
               </Form>
             )}
@@ -457,6 +495,15 @@ export default function EmailSettings() {
               <AlertDescription>
                 Gmail accounts with 2-factor authentication enabled require an "App password" instead of your regular password.
                 You can create one in your Google Account security settings.
+              </AlertDescription>
+            </Alert>
+            
+            <Alert>
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>Testing with Real Emails</AlertTitle>
+              <AlertDescription>
+                After setting up your email credentials, use the "Check For New Emails" button to manually check your inbox for new leads.
+                This will process any unread emails in your inbox that look like property inquiries.
               </AlertDescription>
             </Alert>
           </CardFooter>
