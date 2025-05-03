@@ -384,16 +384,18 @@ class EmailService {
       // Extract lead details for the email
       const { name, email, phone, price, zipCode, address, unitNumber, propertyUrl, originalEmail } = lead;
       
-      // Forward the original email exactly as-is
-      // Use the original HTML content or create a simple version if none exists
+      // Just use the original email content with no modifications
       let html = originalEmail || '<p>No original email content available</p>';
-      
-      // Use the original text content or make a basic version
       let text = lead.notes || 'No original email content available';
       
+      // Use the name for the subject, since most leads in DB have name = subject from input
+      // This allows us to work with existing data before DB schema migration
+      let subject = name || `Property Inquiry: ${address || ''}${unitNumber ? `, Unit ${unitNumber}` : ''}`;
       
-      // Get the original subject line or generate one if missing
-      const subject = lead.subject || name || 'Property Inquiry';
+      // If a lead includes "Inquiry about" or similar phrases, it's likely a real subject line
+      if (name && (name.toLowerCase().includes('inquiry') || name.toLowerCase().includes('interest') || name.toLowerCase().includes('question'))) {
+        subject = name;
+      }
       
       // Log the full email content for testing
       console.log(`========= EMAIL FORWARDING TEST =========`);
@@ -758,8 +760,9 @@ class EmailService {
         }
       }
 
+      // Only include fields that are in the database schema to avoid errors
       return {
-        name,
+        name: subject || name, // Use the subject as the name if it exists
         email: clientEmail || 'unknown@example.com',
         phone: phone || '',
         price: price ? price.toString() : null,
@@ -772,11 +775,9 @@ class EmailService {
         source: source,
         propertyUrl: propertyUrl || null,
         thumbnailUrl: thumbnailUrl || null,
-        originalEmail,
-        subject,
-        originalText: text,
-        movingDate,
+        originalEmail, // Keep this field as it's in the existing database schema
         notes: notes || null,
+        movingDate,
         receivedAt: new Date(),
         updatedAt: new Date()
       };
