@@ -15,6 +15,7 @@ import Profile from "@/pages/profile";
 // Manager Pages
 import ManagerDashboard from "@/pages/manager/dashboard";
 import AgentGroups from "@/pages/manager/agent-groups";
+import Agents from "@/pages/manager/agents";
 import Performance from "@/pages/manager/performance";
 import RoutingRules from "@/pages/manager/routing-rules";
 import EmailSettings from "@/pages/manager/email-settings";
@@ -36,6 +37,7 @@ function Router() {
             {/* Manager Routes */}
             <Route path="/" component={ManagerDashboard} />
             <Route path="/agent-groups" component={AgentGroups} />
+            <Route path="/agents" component={Agents} />
             <Route path="/performance" component={Performance} />
             <Route path="/routing-rules" component={RoutingRules} />
             <Route path="/email-settings" component={EmailSettings} />

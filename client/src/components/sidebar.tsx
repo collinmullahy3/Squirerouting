@@ -56,7 +56,7 @@ export default function Sidebar({ className }: SidebarProps) {
           <div className="flex flex-col h-0 flex-1 bg-slate-800">
             <div className="flex items-center h-20 flex-shrink-0 px-4 bg-slate-900">
               <div className="flex items-center gap-3">
-                <img src="Squire.png" alt="Squire Logo" className="h-10 w-auto" />
+                <img src="/Squire.png" alt="Squire Logo" className="h-10 w-auto" />
                 <h1 className="text-2xl font-bold text-white">Squire</h1>
               </div>
             </div>
@@ -70,6 +70,9 @@ export default function Sidebar({ className }: SidebarProps) {
                     </NavItem>
                     <NavItem href="/agent-groups" icon="users" active={location === "/agent-groups"}>
                       Agent Groups
+                    </NavItem>
+                    <NavItem href="/agents" icon="user-plus" active={location === "/agents"}>
+                      Agents
                     </NavItem>
                     <NavItem href="/performance" icon="bar-chart-2" active={location === "/performance"}>
                       Performance
@@ -202,6 +205,12 @@ function NavIcon({ name, active = false, className }: NavIconProps) {
       return (
         <svg className={iconClass} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+        </svg>
+      );
+    case "user-plus":
+      return (
+        <svg className={iconClass} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
         </svg>
       );
     default:
