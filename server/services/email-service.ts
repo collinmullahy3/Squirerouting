@@ -341,6 +341,11 @@ class EmailService {
   }
 
   private extractLeadData(email: any): LeadInsert | null {
+    console.log('Extracting lead data from email:', {
+      subject: email.subject,
+      from: email.from?.text || email.from,
+      hasHtml: !!email.html
+    });
     try {
       // Simple pattern matching for lead information
       const text = email.text || '';
@@ -364,32 +369,15 @@ class EmailService {
       let price = null;
       let priceMax = null;
       
-      // Handle price ranges
-      if (priceMatches.length >= 2) {
-        // We have a potential price range
-        // Check if text contains range indicators
-        const hasRangeIndicator = /price range|budget range|between|price from|range of|from .* to/i.test(text);
-        
-        if (hasRangeIndicator || priceMatches.length === 2) {
-          // Convert price strings to numeric values
-          const priceValues = priceMatches.map(priceStr => {
-            const sanitized = priceStr.replace(/\$|,/g, '');
-            if (sanitized.toLowerCase().includes('k')) {
-              return parseFloat(sanitized) * 1000;
-            } else if (sanitized.toLowerCase().includes('million')) {
-              return parseFloat(sanitized) * 1000000;
-            } else {
-              return parseFloat(sanitized);
-            }
-          }).filter(p => !isNaN(p));
-          
-          // Sort to get the min and max
-          if (priceValues.length >= 2) {
-            priceValues.sort((a, b) => a - b);
-            price = priceValues[0];
-            priceMax = priceValues[priceValues.length - 1];
-          }
-        }
+      // First, check if the text explicitly mentions a price range with clear range indicators
+      const rangeRegex = /(?:between|from|range)\s*\$?([\d,]+)\s*(?:to|-|and)\s*\$?([\d,]+)/i;
+      const rangeMatch = text.match(rangeRegex);
+      
+      if (rangeMatch && rangeMatch.length >= 3) {
+        // We have an explicit range like "between $1000 and $2000"
+        price = parseFloat(rangeMatch[1].replace(/,/g, ''));
+        priceMax = parseFloat(rangeMatch[2].replace(/,/g, ''));
+        console.log('Found explicit price range:', { price, priceMax });
       }
       
       // If we don't have a range, just set a single price
@@ -436,36 +424,65 @@ class EmailService {
       const uniqueAddresses = [...new Set(addressMatches)];
       const address = uniqueAddresses.length > 0 ? uniqueAddresses[0] : '';
       
-      // Extract property URLs
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      const urlMatches = text.match(urlRegex) || [];
+      // Extract property URLs - look in both text and HTML content
+      const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
+      const textUrlMatches = text.match(urlRegex) || [];
+      const htmlUrlMatches = originalEmail.match(urlRegex) || [];
+      
+      // Combine both sets of URLs
+      const allUrls = [...new Set([...textUrlMatches, ...htmlUrlMatches])];
+      
       let propertyUrl = '';
       let thumbnailUrl = '';
       
       // Find property listing URLs
       const propertyUrls = [];
-      for (const url of urlMatches) {
-        if (url.includes('zillow') || url.includes('realtor') || url.includes('trulia') ||
-            url.includes('redfin') || url.includes('homes') || url.includes('property') ||
-            url.includes('listing') || url.includes('rent') || url.includes('apartment')) {
-          propertyUrls.push(url);
+      for (const url of allUrls) {
+        // Clean the URL (remove trailing punctuation or quotes)
+        const cleanUrl = url.replace(/["'>,\]]+$/, '');
+        
+        if (cleanUrl.includes('zillow') || cleanUrl.includes('realtor') || cleanUrl.includes('trulia') ||
+            cleanUrl.includes('redfin') || cleanUrl.includes('homes') || cleanUrl.includes('property') ||
+            cleanUrl.includes('listing') || cleanUrl.includes('rent') || cleanUrl.includes('apartment')) {
+          propertyUrls.push(cleanUrl);
         }
       }
+      
+      // Find image URLs in the HTML
+      const imgSrcRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/g;
+      const imgMatches = [];
+      let match;
+      while ((match = imgSrcRegex.exec(originalEmail)) !== null) {
+        if (match[1] && match[1].startsWith('http')) {
+          imgMatches.push(match[1]);
+        }
+      }
+      
+      // Also look for direct image URLs in text or HTML
+      const imageUrls = [];
+      for (const url of allUrls) {
+        const cleanUrl = url.replace(/["'>,\]]+$/, '');
+        if (cleanUrl.includes('.jpg') || cleanUrl.includes('.jpeg') || cleanUrl.includes('.png') ||
+            cleanUrl.includes('.webp') || cleanUrl.includes('images') || cleanUrl.includes('photos')) {
+          imageUrls.push(cleanUrl);
+        }
+      }
+      
+      // Combine both types of image URLs
+      const allImageUrls = [...new Set([...imgMatches, ...imageUrls])];
       
       // Use the first property URL as the main one
       propertyUrl = propertyUrls.length > 0 ? propertyUrls[0] : '';
       
-      // Check for image URLs - likely a thumbnail
-      const imageUrls = [];
-      for (const url of urlMatches) {
-        if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') ||
-            url.includes('.webp') || url.includes('images') || url.includes('photos')) {
-          imageUrls.push(url);
-        }
-      }
-      
       // Use the first image URL as the main thumbnail
-      thumbnailUrl = imageUrls.length > 0 ? imageUrls[0] : '';
+      thumbnailUrl = allImageUrls.length > 0 ? allImageUrls[0] : '';
+      
+      console.log('Extracted URLs:', { 
+        propertyUrl, 
+        thumbnailUrl, 
+        propertyUrlsCount: propertyUrls.length,
+        imageUrlsCount: allImageUrls.length
+      });
 
       // Extract name - might be in the subject or from field
       let name = '';
