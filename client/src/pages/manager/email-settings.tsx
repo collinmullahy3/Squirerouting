@@ -11,7 +11,11 @@ export default function EmailSettings() {
   const [copied, setCopied] = useState(false);
 
   // Fetch email service status
-  const { data: emailStatus, isLoading } = useQuery({
+  const { data: emailStatus, isLoading } = useQuery<{
+    isRunning: boolean;
+    initialized: boolean;
+    forwardingEmail: string;
+  }>({
     queryKey: ["/api/admin/email-service-status"],
     staleTime: 60000, // Cache for 1 minute
   });
@@ -33,16 +37,20 @@ export default function EmailSettings() {
   // For demo purposes - simulate receiving an email
   const handleSimulateEmail = async () => {
     try {
-      const response = await apiRequest("/api/admin/simulate-email", {
-        method: "POST",
-        body: JSON.stringify({
-          subject: "John Smith",
-          text: "Interested in buying a house in zip 90210. My email is john@example.com and phone is 555-123-4567. Looking in the price range of $500,000.",
-          from: "john@example.com"
-        })
-      });
+      const response = await apiRequest<{ success: boolean }>(
+        "/api/admin/simulate-email", 
+        { 
+          method: "POST", 
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject: "John Smith",
+            text: "Interested in buying a house in zip 90210. My email is john@example.com and phone is 555-123-4567. Looking in the price range of $500,000.",
+            from: "john@example.com"
+          })
+        }
+      );
       
-      if (response.success) {
+      if (response && response.success) {
         toast({
           title: "Test email processed",
           description: "The test lead has been successfully processed and routed."
