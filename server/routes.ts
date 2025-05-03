@@ -668,6 +668,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+
+  // API endpoint to check emails manually
+  app.post("/api/admin/check-emails", isManager, async (req, res, next) => {
+    try {
+      // First verify we have email credentials
+      const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+      const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+      
+      if (!emailUserSetting?.value || !emailPasswordSetting?.value) {
+        // If we don't have settings in the database, try using environment variables
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+          return res.status(400).json({ message: "Email credentials not configured. Please set EMAIL_USER and EMAIL_PASSWORD." });
+        }
+      }
+      
+      // Reinitialize the email service to load the latest credentials
+      await emailService.initialize();
+      
+      // Manually trigger email checking
+      emailService.checkEmails();
+      
+      res.json({ message: "Email check process started" });
+    } catch (error) {
+      console.error("Error checking emails:", error);
+      res.status(500).json({ message: "Error checking emails" });
+    }
+  });
   
   // System Settings endpoints
   app.get("/api/settings", isManager, async (req, res, next) => {

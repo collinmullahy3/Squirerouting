@@ -132,6 +132,11 @@ class EmailService {
     }
   }
   
+  // Exposed for manual testing
+  public checkEmails() {
+    this.checkNewEmails();
+  }
+
   private checkNewEmails() {
     try {
       this.imap.openBox('INBOX', false, (err, mailbox) => {
