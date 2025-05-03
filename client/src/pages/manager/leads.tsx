@@ -340,6 +340,219 @@ export default function Leads() {
           </Button>
         </div>
       )}
+      
+      {/* Lead details dialog */}
+      <Dialog open={detailsOpen} onOpenChange={(open) => !open && closeLeadDetails()}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          {isLoadingDetails || !leadDetails ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-opacity-50 border-t-primary rounded-full"></div>
+            </div>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">{leadDetails.name}</DialogTitle>
+                <div className="mt-2 space-y-1 text-sm">
+                  <div><span className="font-semibold">Email:</span> {leadDetails.email}</div>
+                  <div><span className="font-semibold">Phone:</span> {leadDetails.phone || 'N/A'}</div>
+                  <div><span className="font-semibold">Status:</span> 
+                    <Badge className={`ml-2 ${leadDetails.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                            leadDetails.status === 'assigned' ? 'bg-blue-100 text-blue-800' : 
+                            'bg-green-100 text-green-800'}`}>
+                      {leadDetails.status.charAt(0).toUpperCase() + leadDetails.status.slice(1)}
+                    </Badge>
+                  </div>
+                  {leadDetails.assignedAgent && (
+                    <div><span className="font-semibold">Assigned To:</span> {leadDetails.assignedAgent.name}</div>
+                  )}
+                  <div><span className="font-semibold">Received:</span> {formatDate(leadDetails.receivedAt)}</div>
+                  <div><span className="font-semibold">Moving Date:</span> {leadDetails.movingDate ? formatDate(leadDetails.movingDate) : 'N/A'}</div>
+                </div>
+              </DialogHeader>
+
+              <Tabs defaultValue="details" className="mt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="details">Primary Details</TabsTrigger>
+                  <TabsTrigger value="properties">Property Info</TabsTrigger>
+                  <TabsTrigger value="notes">Notes & Additional Data</TabsTrigger>
+                </TabsList>
+                
+                {/* Primary details tab */}
+                <TabsContent value="details" className="mt-4 space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Lead Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="font-semibold mb-2">Price Range</h3>
+                          <p className="text-lg">{formatPrice(leadDetails.price, leadDetails.priceMax)}</p>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold mb-2">Primary Location</h3>
+                          <p>{leadDetails.address || (leadDetails.zipCode ? `ZIP: ${leadDetails.zipCode}` : 'N/A')}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* Properties tab */}
+                <TabsContent value="properties" className="mt-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Property Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {leadDetails.propertyUrl ? (
+                        <div className="flex flex-col md:flex-row gap-4 items-start">
+                          {leadDetails.thumbnailUrl && (
+                            <div className="w-full md:w-1/3">
+                              <img 
+                                src={leadDetails.thumbnailUrl} 
+                                alt="Property" 
+                                className="w-full rounded-md object-cover" 
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <h3 className="font-semibold mb-2">Primary Property</h3>
+                            <a 
+                              href={leadDetails.propertyUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              View Property Listing
+                            </a>
+                            <p className="mt-2 text-sm text-gray-600">Click above to see the main property this lead inquired about.</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p>No property information available.</p>
+                      )}
+                      
+                      {/* Parse and display additional properties from notes */}
+                      {leadDetails.notes && leadDetails.notes.includes('Additional property link') && (
+                        <div className="mt-6">
+                          <h3 className="font-semibold mb-3">Additional Properties</h3>
+                          <div className="space-y-4">
+                            {leadDetails.notes.split('Additional property link from new inquiry:').slice(1).map((part, index) => {
+                              const propertyUrl = part.split('\n')[1]?.trim();
+                              return propertyUrl ? (
+                                <div key={index} className="p-3 border rounded-md">
+                                  <a 
+                                    href={propertyUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                  >
+                                    Additional Property {index + 1}
+                                  </a>
+                                </div>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* Notes tab */}
+                <TabsContent value="notes" className="mt-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Notes & Additional Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[300px] rounded-md border p-4">
+                        {leadDetails.notes ? (
+                          <div className="space-y-4">
+                            <div>
+                              <h3 className="font-semibold mb-2">Additional Zip Codes</h3>
+                              {leadDetails.notes.includes('Additional zip code') ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {leadDetails.zipCode && (
+                                    <Badge variant="outline" className="bg-blue-50">
+                                      {leadDetails.zipCode} (Primary)
+                                    </Badge>
+                                  )}
+                                  {leadDetails.notes.split('Additional zip code from new inquiry:').slice(1).map((part, index) => {
+                                    const zipCode = part.split('\n')[0]?.trim();
+                                    return zipCode ? (
+                                      <Badge key={index} variant="outline">
+                                        {zipCode}
+                                      </Badge>
+                                    ) : null;
+                                  })}
+                                </div>
+                              ) : (
+                                <p>No additional zip codes.</p>
+                              )}
+                            </div>
+                            
+                            <div>
+                              <h3 className="font-semibold mb-2">Additional Addresses</h3>
+                              {leadDetails.notes.includes('Additional address') ? (
+                                <div className="space-y-2">
+                                  {leadDetails.address && (
+                                    <div className="p-2 border rounded-md bg-blue-50">
+                                      <p className="font-medium">Primary Address:</p>
+                                      <p>{leadDetails.address}</p>
+                                    </div>
+                                  )}
+                                  {leadDetails.notes.split('Additional address from new inquiry:').slice(1).map((part, index) => {
+                                    const address = part.split('\n')[1]?.trim();
+                                    return address ? (
+                                      <div key={index} className="p-2 border rounded-md">
+                                        <p>{address}</p>
+                                      </div>
+                                    ) : null;
+                                  })}
+                                </div>
+                              ) : (
+                                <p>No additional addresses.</p>
+                              )}
+                            </div>
+                            
+                            <div>
+                              <h3 className="font-semibold mb-2">Full Notes</h3>
+                              <pre className="whitespace-pre-wrap font-sans text-sm p-4 bg-gray-50 rounded-md">
+                                {leadDetails.notes}
+                              </pre>
+                            </div>
+                          </div>
+                        ) : (
+                          <p>No additional notes available.</p>
+                        )}
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+              
+              <DialogFooter className="mt-6">
+                <Button variant="outline" onClick={closeLeadDetails}>Close</Button>
+                {leadDetails.status !== 'closed' && (
+                  <Button 
+                    onClick={() => {
+                      handleStatusUpdate(leadDetails.id, 'closed');
+                      closeLeadDetails();
+                    }}
+                  >
+                    Mark as Closed
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
