@@ -89,9 +89,9 @@ export default function EmailSettings() {
   const simulateForm = useForm<SimulatedEmailFormValues>({
     resolver: zodResolver(simulatedEmailSchema),
     defaultValues: {
-      subject: "John Smith",
-      text: "Interested in buying a house in zip 90210. My email is john@example.com and phone is 555-123-4567. Looking in the price range of $500,000.\n\nPlease check out this property I'm interested in: https://www.realtor.com/realestateandhomes-detail/123-Main-St_Beverly-Hills_CA_90210 \n\nHere's an image of the property: https://images.unsplash.com/photo-1564013799919-ab600027ffc6",
-      from: "john@example.com"
+      subject: "Sarah Johnson",
+      text: "Hello,\n\nI'm interested in the 3 bed apartment in Chelsea Heights neighborhood at 123 Main Street, Unit 4B. I found it on StreetEasy and I'm looking to move in by June 15th. My budget is between $3,500 and $4,200 per month.\n\nMy contact info:\nEmail: sarah.johnson@example.com\nPhone: 917-555-8901\nZip code: 10011\n\nPlease check out this property listing: https://www.streeteasy.com/building/123-main-street-manhattan/4b\n\nI'm also interested in these alternate options:\n1. https://www.zillow.com/homedetails/456-park-ave-10022/38502929_zpid/\n2. https://www.apartments.com/the-anthem-jersey-city-nj/hgwy6c0/\n\nHere are some property images I found:\nhttps://images.unsplash.com/photo-1522708323590-d24dbb6b0267\nhttps://images.unsplash.com/photo-1493809842364-78817add7ffb\n\nLooking forward to hearing from you!\nSarah",
+      from: "sarah.johnson@example.com"
     }
   });
 
