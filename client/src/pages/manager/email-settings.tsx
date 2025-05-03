@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { InfoIcon, ClipboardIcon, AlertCircleIcon, MailIcon, CheckCircleIcon, XCircleIcon } from "lucide-react";
+import { InfoIcon, ClipboardIcon, AlertCircleIcon, MailIcon, CheckCircleIcon, XCircleIcon, SettingsIcon, SaveIcon } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -19,8 +19,17 @@ const simulatedEmailSchema = z.object({
   from: z.string().email("From must be a valid email address")
 });
 
+const deduplicationSchema = z.object({
+  value: z.string().min(1).refine(val => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+    message: "Must be a positive number"
+  })
+});
+
+type DeduplicationFormValues = z.infer<typeof deduplicationSchema>;
+
 export default function EmailSettings() {
   const [copied, setCopied] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch email service status
   const { data: emailStatus, isLoading } = useQuery<{
@@ -29,6 +38,17 @@ export default function EmailSettings() {
     forwardingEmail: string;
   }>({
     queryKey: ["/api/admin/email-service-status"],
+    staleTime: 60000, // Cache for 1 minute
+  });
+  
+  // Fetch lead deduplication setting
+  const { data: deduplicationSetting, isLoading: isDeduplicationLoading } = useQuery<{
+    key: string;
+    value: string;
+    type: string;
+    description: string;
+  }>({
+    queryKey: ["/api/settings/LEAD_DEDUPLICATION_DAYS"],
     staleTime: 60000, // Cache for 1 minute
   });
 
@@ -78,6 +98,53 @@ export default function EmailSettings() {
         variant: "destructive"
       });
     }
+  };
+
+  // Form for lead deduplication window
+  const deduplicationForm = useForm<DeduplicationFormValues>({
+    resolver: zodResolver(deduplicationSchema),
+    defaultValues: {
+      value: deduplicationSetting?.value || "7",
+    }
+  });
+  
+  // Update form values when settings are loaded
+  React.useEffect(() => {
+    if (deduplicationSetting) {
+      deduplicationForm.reset({
+        value: deduplicationSetting.value
+      });
+    }
+  }, [deduplicationSetting, deduplicationForm]);
+  
+  // Update deduplication setting
+  const updateDeduplicationMutation = useMutation({
+    mutationFn: async (data: DeduplicationFormValues) => {
+      return await apiRequest("PUT", `/api/settings/LEAD_DEDUPLICATION_DAYS`, {
+        value: data.value,
+        type: "system",
+        description: "Number of days to consider emails from the same sender as part of the same lead"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/LEAD_DEDUPLICATION_DAYS"] });
+      toast({
+        title: "Setting Updated",
+        description: "Lead deduplication window has been updated."
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating setting:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update lead deduplication window",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  const handleDeduplicationUpdate = (data: DeduplicationFormValues) => {
+    updateDeduplicationMutation.mutate(data);
   };
 
   return (
@@ -248,6 +315,76 @@ export default function EmailSettings() {
               </form>
             </Form>
           </CardContent>
+        </Card>
+        
+        {/* Lead Deduplication Settings Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SettingsIcon className="h-5 w-5" />
+              Lead Deduplication Settings
+            </CardTitle>
+            <CardDescription>
+              Configure how long emails from the same sender should be treated as part of the same lead.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isDeduplicationLoading ? (
+              <div className="h-24 flex items-center justify-center">
+                <div className="animate-spin h-6 w-6 border-2 border-primary border-opacity-50 border-t-primary rounded-full"></div>
+              </div>
+            ) : (
+              <Form {...deduplicationForm}>
+                <form onSubmit={deduplicationForm.handleSubmit(handleDeduplicationUpdate)} className="space-y-4">
+                  <FormField
+                    control={deduplicationForm.control}
+                    name="value"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Deduplication Window (Days)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="1" 
+                            max="365"
+                            {...field} 
+                            onChange={(e) => {
+                              // Ensure number input is valid
+                              const value = e.target.value === "" ? "1" : e.target.value;
+                              field.onChange(value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Multiple emails from the same sender within this time window will be treated as part of the same lead and routed to the same agent.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button 
+                    type="submit" 
+                    className="flex items-center gap-2"
+                    disabled={updateDeduplicationMutation.isPending}
+                  >
+                    <SaveIcon className="h-4 w-4" />
+                    {updateDeduplicationMutation.isPending ? "Saving..." : "Save Settings"}
+                  </Button>
+                </form>
+              </Form>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Alert>
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>How it works</AlertTitle>
+              <AlertDescription>
+                When emails arrive from the same sender within this time window, the system treats them as updates to an existing lead rather than creating new leads.
+                This ensures that all communications from the same renter are routed to the same agent, improving customer experience.
+              </AlertDescription>
+            </Alert>
+          </CardFooter>
         </Card>
       </div>
     </div>

@@ -607,6 +607,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // System Settings endpoints
+  app.get("/api/settings", isManager, async (req, res, next) => {
+    try {
+      const { type } = req.query;
+      const settings = await storage.getAllSettings(type as string);
+      res.json(settings);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/settings/:key", isManager, async (req, res, next) => {
+    try {
+      const { key } = req.params;
+      const setting = await storage.getSettingByKey(key);
+      if (!setting) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.put("/api/settings/:key", isManager, async (req, res, next) => {
+    try {
+      const { key } = req.params;
+      const { value, type, description } = req.body;
+      
+      if (!value) {
+        return res.status(400).json({ error: "Value is required" });
+      }
+      
+      const userId = (req.user as any).id;
+      const setting = await storage.updateSetting(key, value, type, userId, description);
+      res.json(setting);
+    } catch (error) {
+      next(error);
+    }
+  });
 
   const httpServer = createServer(app);
   
