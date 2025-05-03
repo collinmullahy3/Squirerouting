@@ -395,10 +395,11 @@ export default function Leads() {
               </DialogHeader>
 
               <Tabs defaultValue="details" className="mt-4">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="details">Primary Details</TabsTrigger>
                   <TabsTrigger value="properties">Property Info</TabsTrigger>
                   <TabsTrigger value="notes">Notes & Additional Data</TabsTrigger>
+                  <TabsTrigger value="email">Original Email</TabsTrigger>
                 </TabsList>
                 
                 {/* Primary details tab */}
@@ -573,6 +574,53 @@ export default function Leads() {
                           </div>
                         ) : (
                           <p>No additional notes available.</p>
+                        )}
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* Original Email tab */}
+                <TabsContent value="email" className="mt-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Original Email</CardTitle>
+                      <CardDescription>Raw email content as received from the sender</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[500px] rounded-md border">
+                        {leadDetails.originalEmail ? (
+                          <div className="p-4">
+                            <div className="space-y-2 mb-4 p-3 bg-slate-50 rounded border">
+                              <div><span className="font-medium">From:</span> {leadDetails.name} &lt;{leadDetails.email}&gt;</div>
+                              <div><span className="font-medium">Received:</span> {formatDate(leadDetails.receivedAt)}</div>
+                              <div><span className="font-medium">Status:</span> {leadDetails.status}</div>
+                            </div>
+                            
+                            {/* Determine if content is HTML or plain text */}
+                            {leadDetails.originalEmail.includes('<html') || leadDetails.originalEmail.includes('<body') ? (
+                              <div className="mt-4 rounded border p-4 bg-white">
+                                <div className="font-medium text-sm mb-2 text-slate-500">HTML Email Content:</div>
+                                <iframe 
+                                  srcDoc={leadDetails.originalEmail} 
+                                  className="w-full min-h-[400px] border rounded" 
+                                  sandbox=""
+                                  title="Email Content"
+                                />
+                              </div>
+                            ) : (
+                              <div className="mt-4 rounded border p-4 bg-white">
+                                <div className="font-medium text-sm mb-2 text-slate-500">Email Content:</div>
+                                <pre className="whitespace-pre-wrap font-sans text-sm overflow-auto">
+                                  {leadDetails.originalEmail}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-4 text-center text-gray-500">
+                            <p>Original email content not available</p>
+                          </div>
                         )}
                       </ScrollArea>
                     </CardContent>
