@@ -278,8 +278,6 @@ export const storage = {
     total: number;
     assigned: number;
     pending: number;
-    contacted: number;
-    notInterested: number;
     closed: number;
   }> {
     const allLeads = await db.query.leads.findMany({
@@ -292,43 +290,33 @@ export const storage = {
       total: allLeads.length,
       assigned: allLeads.filter(l => l.status === 'assigned').length,
       pending: allLeads.filter(l => l.status === 'pending').length,
-      contacted: allLeads.filter(l => l.status === 'contacted').length,
-      notInterested: allLeads.filter(l => l.status === 'not_interested').length,
       closed: allLeads.filter(l => l.status === 'closed').length
     };
   },
   
   async getTopPerformingAgents(limit: number = 5): Promise<{
     agent: User;
-    leadCount: number;
-    avgResponseTimeMinutes: number | null;
+    closedLeadCount: number;
   }[]> {
     // This is a complex query, we'll simplify for now and enhance later
     const agents = await db.query.users.findMany({
       where: eq(users.role, 'agent'),
       with: {
-        assignedLeads: true,
-        statusUpdates: true
+        assignedLeads: true
       }
     });
     
     return agents
       .map(agent => {
-        const leadCount = agent.assignedLeads.length;
-        
-        // Calculate average response time (simplified)
-        // In a real system, we'd calculate time between assignment and first contact
-        // Here we'll return a random reasonable value
-        const avgResponseTimeMinutes = leadCount > 0 ? 
-          Math.floor(Math.random() * 15) + 5 : null;
+        // Count only closed leads
+        const closedLeadCount = agent.assignedLeads.filter(lead => lead.status === 'closed').length;
         
         return {
           agent,
-          leadCount,
-          avgResponseTimeMinutes
+          closedLeadCount
         };
       })
-      .sort((a, b) => b.leadCount - a.leadCount)
+      .sort((a, b) => b.closedLeadCount - a.closedLeadCount)
       .slice(0, limit);
   },
 

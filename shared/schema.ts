@@ -5,7 +5,7 @@ import { z } from "zod";
 
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['manager', 'agent']);
-export const leadStatusEnum = pgEnum('lead_status', ['pending', 'assigned', 'contacted', 'not_interested', 'closed']);
+export const leadStatusEnum = pgEnum('lead_status', ['pending', 'assigned', 'closed']);
 export const settingTypeEnum = pgEnum('setting_type', ['email', 'notification', 'system']);
 
 // Users table (managers and agents)
@@ -194,7 +194,7 @@ export const emailSettingsSchema = z.object({
 });
 
 export const leadStatusUpdateSchema = z.object({
-  status: z.enum(['pending', 'assigned', 'contacted', 'not_interested', 'closed']),
+  status: z.enum(['pending', 'assigned', 'closed']),
   notes: z.string().optional(),
 });
 
