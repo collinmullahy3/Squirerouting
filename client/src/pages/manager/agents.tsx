@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Link } from "wouter";
 
 import {
   Card,

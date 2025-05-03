@@ -239,7 +239,7 @@ export default function AgentDetails() {
                 </Table>
               ) : (
                 <div className="py-8 text-center text-gray-500">
-                  <ArrowDownTrayIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <InboxIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p>No leads assigned to this agent yet.</p>
                 </div>
               )}
