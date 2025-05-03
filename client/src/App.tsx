@@ -17,6 +17,7 @@ import ManagerDashboard from "@/pages/manager/dashboard";
 import AgentGroups from "@/pages/manager/agent-groups";
 import Performance from "@/pages/manager/performance";
 import RoutingRules from "@/pages/manager/routing-rules";
+import EmailSettings from "@/pages/manager/email-settings";
 
 // Agent Pages
 import MyLeads from "@/pages/agent/my-leads";
@@ -37,6 +38,7 @@ function Router() {
             <Route path="/agent-groups" component={AgentGroups} />
             <Route path="/performance" component={Performance} />
             <Route path="/routing-rules" component={RoutingRules} />
+            <Route path="/email-settings" component={EmailSettings} />
             
             {/* Agent Routes */}
             <Route path="/my-leads" component={MyLeads} />

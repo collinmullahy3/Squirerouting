@@ -79,7 +79,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email service initialization
   const emailInitialized = await emailService.initialize();
   if (emailInitialized) {
-    emailService.startListening();
     console.log("Email service started successfully");
   } else {
     console.log("Email service initialization failed");
@@ -536,7 +535,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       isRunning: emailService.isListening,
       initialized: emailInitialized,
+      forwardingEmail: emailService.forwardingEmail
     });
+  });
+  
+  // API endpoint to receive forwarded emails (for real implementation) or process simulated emails (for testing)
+  app.post("/api/admin/process-email", isManager, async (req, res, next) => {
+    try {
+      const emailData = req.body;
+      const success = await emailService.processEmail(emailData);
+      res.json({ success });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // API endpoint to process a simulated email for testing
+  app.post("/api/admin/simulate-email", isManager, async (req, res, next) => {
+    try {
+      const { subject, text, from } = req.body;
+      if (!subject || !text) {
+        return res.status(400).json({ error: "Subject and text are required" });
+      }
+      
+      const success = await emailService.processSimulatedEmail({
+        subject,
+        text,
+        from: from || "test@example.com"
+      });
+      
+      res.json({ success });
+    } catch (error) {
+      next(error);
+    }
   });
 
   const httpServer = createServer(app);
