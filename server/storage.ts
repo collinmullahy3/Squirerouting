@@ -157,45 +157,27 @@ export const storage = {
   },
 
   async findMatchingLeadGroups(lead: Lead): Promise<LeadGroup[]> {
-    let query = db.select().from(leadGroups).where(eq(leadGroups.isActive, true));
+    // Build a base query to get all active lead groups
+    const baseQuery = db.select().from(leadGroups);
     
-    // Price range matching
-    if (lead.price) {
-      const price = parseFloat(lead.price);
-      // Match groups where:
-      // 1. Lead price is >= group minPrice (if set)
-      // 2. Lead price is <= group maxPrice (if set)
-      // 3. If neither min/max is set, then match all
-      query = query.where(or(
-        isNull(leadGroups.minPrice),
-        lte(leadGroups.minPrice, price)
-      )).where(or(
-        isNull(leadGroups.maxPrice),
-        gte(leadGroups.maxPrice, price)
-      ));
-    }
+    // Create a more complex query with all conditions
+    const result = await baseQuery
+      .where(eq(leadGroups.isActive, true))
+      .where(lead.price ? 
+        sql`(${leadGroups.minPrice} IS NULL OR ${leadGroups.minPrice} <= ${parseFloat(lead.price)})` : 
+        sql`TRUE`)
+      .where(lead.price ? 
+        sql`(${leadGroups.maxPrice} IS NULL OR ${leadGroups.maxPrice} >= ${parseFloat(lead.price)})` : 
+        sql`TRUE`)
+      .where(lead.zipCode ? 
+        sql`(${leadGroups.zipCodes} IS NULL OR ${lead.zipCode} = ANY(${leadGroups.zipCodes}))` : 
+        sql`TRUE`)
+      .where(lead.address && lead.address.trim() !== '' ? 
+        sql`(${leadGroups.addressPattern} IS NULL OR ${lead.address} ILIKE '%' || ${leadGroups.addressPattern} || '%')` : 
+        sql`TRUE`)
+      .orderBy(desc(leadGroups.priority), asc(leadGroups.name));
     
-    // Zip code matching
-    if (lead.zipCode) {
-      // Match if group zipCodes is null OR if lead zipCode is in the group's zip code array
-      query = query.where(or(
-        isNull(leadGroups.zipCodes),
-        sql`${lead.zipCode} = ANY(${leadGroups.zipCodes})`
-      ));
-    }
-    
-    // Address pattern matching
-    if (lead.address && lead.address.trim() !== '') {
-      query = query.where(or(
-        isNull(leadGroups.addressPattern),
-        sql`${leadGroups.addressPattern} IS NULL`,
-        sql`${lead.address} ILIKE '%' || ${leadGroups.addressPattern} || '%'`
-      ));
-    }
-    
-    // Order by priority (highest first) then name
-    const matchingGroups = await query.orderBy(desc(leadGroups.priority), asc(leadGroups.name));
-    return matchingGroups;
+    return result;
   },
   
   // Legacy User management

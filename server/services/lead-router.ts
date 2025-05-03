@@ -1,10 +1,10 @@
 import { storage } from '../storage';
-import { type Lead, type RoutingRule, type AgentGroup } from '@shared/schema';
+import { type Lead, type LeadGroup } from '@shared/schema';
 import { emailService } from './email-service';
 
 class LeadRouter {
   /**
-   * Routes a lead to the appropriate agent group based on routing rules
+   * Routes a lead to the appropriate lead group based on matching criteria
    */
   async routeLead(lead: Lead): Promise<boolean> {
     try {
@@ -13,50 +13,49 @@ class LeadRouter {
         return false;
       }
 
-      // Get all active routing rules
-      const rules = await storage.getAllRoutingRules();
-      const activeRules = rules.filter(rule => rule.isActive);
-
-      // Find the first matching rule
-      const matchingRule = this.findMatchingRule(lead, activeRules);
+      // Find matching lead groups based on lead criteria
+      const matchingGroups = await storage.findMatchingLeadGroups(lead);
       
-      if (!matchingRule) {
-        console.log(`No matching rule found for lead ${lead.id}`);
+      if (!matchingGroups || matchingGroups.length === 0) {
+        console.log(`No matching lead group found for lead ${lead.id}`);
         return false;
       }
 
-      // Get the agent group for the matching rule
-      const group = await storage.getAgentGroupById(matchingRule.groupId);
+      // Get the highest priority group that has agents
+      let selectedGroup: LeadGroup | null = null;
+      let selectedAgent: { id: number; name: string } | null = null;
       
-      if (!group || !group.isActive) {
-        console.log(`Group ${matchingRule.groupId} not found or inactive`);
+      // Try groups in priority order until we find one with available agents
+      for (const group of matchingGroups) {
+        const agent = await this.getNextAgentInLeadGroup(group.id);
+        if (agent) {
+          selectedGroup = group;
+          selectedAgent = agent;
+          break;
+        }
+      }
+      
+      if (!selectedGroup || !selectedAgent) {
+        console.log(`No available agents in any matching groups for lead ${lead.id}`);
         return false;
       }
 
-      // Find the next agent in round-robin fashion
-      const agent = await this.getNextAgentInGroup(group.id);
-      
-      if (!agent) {
-        console.log(`No available agents in group ${group.id}`);
-        return false;
-      }
-
-      // Record the routing rule that was used
-      await storage.updateLeadRoutingRule(lead.id, matchingRule.id);
+      // Record the lead group that was used
+      await storage.assignLeadToLeadGroup(lead.id, selectedGroup.id);
       
       // Assign the lead to the agent
-      await storage.assignLeadToAgent(lead.id, agent.id);
+      await storage.assignLeadToAgent(lead.id, selectedAgent.id);
       
       // Update the last assignment timestamp for this agent in this group
-      await storage.updateAgentLastAssignment(agent.id, group.id);
+      await storage.updateAgentLastAssignmentInLeadGroup(selectedAgent.id, selectedGroup.id);
       
-      console.log(`Lead ${lead.id} assigned to agent ${agent.id} in group ${group.id}`);
+      console.log(`Lead ${lead.id} assigned to agent ${selectedAgent.id} in lead group ${selectedGroup.id}`);
       
       // Get the updated lead with assignment details
       const updatedLead = await storage.getLeadById(lead.id);
       if (updatedLead) {
         // Get agent details for notification
-        const agentDetails = await storage.getUserById(agent.id);
+        const agentDetails = await storage.getUserById(selectedAgent.id);
         if (agentDetails) {
           // Send email notification to the assigned agent using the native email service
           const emailSent = await emailService.sendLeadNotification(updatedLead, agentDetails);
@@ -72,78 +71,27 @@ class LeadRouter {
   }
 
   /**
-   * Finds the first routing rule that matches the lead criteria
+   * Gets the next agent in the lead group using round-robin algorithm
    */
-  private findMatchingRule(lead: Lead, rules: RoutingRule[]): RoutingRule | null {
-    // Sort rules by priority (highest first)
-    const sortedRules = [...rules].sort((a, b) => b.priority - a.priority);
-    
-    for (const rule of sortedRules) {
-      let matches = true;
-      
-      // Check price range if specified
-      if (rule.minPrice !== null && lead.price !== null) {
-        if (Number(lead.price) < Number(rule.minPrice)) {
-          matches = false;
-          continue;
-        }
-      }
-      
-      if (rule.maxPrice !== null && lead.price !== null) {
-        if (Number(lead.price) > Number(rule.maxPrice)) {
-          matches = false;
-          continue;
-        }
-      }
-      
-      // Check zip codes if specified
-      if (rule.zipCodes?.length && lead.zipCode) {
-        if (!rule.zipCodes.includes(lead.zipCode)) {
-          matches = false;
-          continue;
-        }
-      }
-      
-      // Check address pattern if specified
-      if (rule.addressPattern && lead.address) {
-        const regex = new RegExp(rule.addressPattern, 'i');
-        if (!regex.test(lead.address)) {
-          matches = false;
-          continue;
-        }
-      }
-      
-      // If all checks pass, return this rule
-      if (matches) {
-        return rule;
-      }
-    }
-    
-    return null;
-  }
-
-  /**
-   * Gets the next agent in the group using round-robin algorithm
-   */
-  private async getNextAgentInGroup(groupId: number): Promise<{ id: number; name: string } | null> {
+  private async getNextAgentInLeadGroup(groupId: number): Promise<{ id: number; name: string } | null> {
     try {
       // Get all agents in the group
-      const agents = await storage.getAgentsByGroupId(groupId);
+      const agents = await storage.getAgentsByLeadGroupId(groupId);
       
       if (!agents.length) {
         return null;
       }
       
       // Get the group
-      const group = await storage.getAgentGroupById(groupId);
+      const group = await storage.getLeadGroupById(groupId);
       
       if (!group) {
         return null;
       }
       
       // Get agent memberships to access lastAssignment
-      const memberships = await db.query.agentGroupMembers.findMany({
-        where: eq(agentGroupMembers.groupId, groupId)
+      const memberships = await db.query.leadGroupMembers.findMany({
+        where: eq(leadGroupMembers.groupId, groupId)
       });
       
       // Sort agents by last assignment time (oldest first)
@@ -202,4 +150,4 @@ export const leadRouter = new LeadRouter();
 // Add database import to fix the method above
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { agentGroupMembers } from "@shared/schema";
+import { leadGroupMembers, agentGroupMembers } from "@shared/schema";
