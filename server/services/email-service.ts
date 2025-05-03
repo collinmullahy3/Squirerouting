@@ -355,32 +355,53 @@ class EmailService {
    * @returns Promise<boolean> True if email was sent successfully
    */
   async sendLeadNotification(lead: Lead, agent: User): Promise<boolean> {
-    if (!this.nodemailer) {
-      try {
-        // Get fresh credentials
-        const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
-        const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
-        
-        if (!emailUserSetting?.value || !emailPasswordSetting?.value) {
-          console.log('Email credentials not found. Cannot send lead notification email.');
-          return false;
-        }
-        
-        // Initialize nodemailer if not already done
-        this.nodemailer = nodemailer.createTransport({
+    let transporter;
+    try {
+      // First try environment variables directly
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+        console.log(`Using environment variables for email: ${process.env.EMAIL_USER}`);
+        transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: emailUserSetting.value,
-            pass: emailPasswordSetting.value
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD
           }
         });
-      } catch (error) {
-        console.error('Error initializing nodemailer for lead notification:', error);
+      } 
+      // Then try database settings
+      else if (!this.nodemailer) {
+        try {
+          // Get fresh credentials
+          const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+          const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+          
+          if (!emailUserSetting?.value || !emailPasswordSetting?.value) {
+            console.log('Email credentials not found. Cannot send lead notification email.');
+            return false;
+          }
+          
+          // Initialize nodemailer if not already done
+          this.nodemailer = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              user: emailUserSetting.value,
+              pass: emailPasswordSetting.value
+            }
+          });
+          transporter = this.nodemailer;
+        } catch (error) {
+          console.error('Error initializing nodemailer for lead notification:', error);
+          return false;
+        }
+      } else {
+        transporter = this.nodemailer;
+      }
+      
+      if (!transporter) {
+        console.log('No email transport available. Cannot send email.');
         return false;
       }
-    }
     
-    try {
       // Extract lead details for the email
       const { name, email, phone, price, zipCode, address, unitNumber, propertyUrl, originalEmail } = lead;
       
@@ -410,7 +431,7 @@ class EmailService {
       console.log(`====================================`);
 
       // Send the email
-      const info = await this.nodemailer.sendMail({
+      const info = await transporter.sendMail({
         from: this.FORWARDING_EMAIL,
         to: agent.email,
         replyTo: email || undefined, // Set the reply-to as the lead's email if available
@@ -420,6 +441,7 @@ class EmailService {
       });
       
       console.log(`Lead notification email sent to agent ${agent.name} (${agent.email}) for lead ${lead.id}`);
+      console.log('Email send result:', info);
       return true;
     } catch (error) {
       console.error(`Error sending lead notification email to agent ${agent.id}:`, error);
