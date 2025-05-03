@@ -207,6 +207,7 @@ export const storage = {
       where: eq(leads.id, id),
       with: {
         assignedAgent: true,
+        routingRule: true,
         statusHistory: {
           with: {
             agent: true
@@ -380,6 +381,18 @@ export const storage = {
       console.error('Error updating lead from new inquiry:', error);
       return null;
     }
+  },
+
+  async updateLeadRoutingRule(leadId: number, ruleId: number): Promise<Lead | null> {
+    const [updatedLead] = await db.update(leads)
+      .set({
+        routingRuleId: ruleId,
+        updatedAt: new Date()
+      })
+      .where(eq(leads.id, leadId))
+      .returning();
+    
+    return updatedLead || null;
   },
 
   async assignLeadToAgent(leadId: number, agentId: number): Promise<Lead | null> {

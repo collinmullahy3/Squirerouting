@@ -165,6 +165,29 @@ export default function Leads() {
     
     return formattedMin;
   };
+  
+  // Get a human-readable description of rule matching criteria
+  const getMatchCriteria = (rule: any) => {
+    const criteria = [];
+    
+    if (rule.minPrice && rule.maxPrice) {
+      criteria.push(`Price: ${formatPrice(rule.minPrice)} to ${formatPrice(rule.maxPrice)}`);
+    } else if (rule.minPrice) {
+      criteria.push(`Price: From ${formatPrice(rule.minPrice)}`);
+    } else if (rule.maxPrice) {
+      criteria.push(`Price: Up to ${formatPrice(rule.maxPrice)}`);
+    }
+    
+    if (rule.zipCodes?.length) {
+      criteria.push(`ZIP: ${rule.zipCodes}`);
+    }
+    
+    if (rule.addressPattern) {
+      criteria.push(`Address: ${rule.addressPattern}`);
+    }
+    
+    return criteria.length > 0 ? criteria.join(', ') : 'All leads';
+  };
 
   return (
     <div className="p-8 w-full overflow-y-auto pb-20">
@@ -367,6 +390,7 @@ export default function Leads() {
                   )}
                   <div><span className="font-semibold">Received:</span> {formatDate(leadDetails.receivedAt)}</div>
                   <div><span className="font-semibold">Moving Date:</span> {leadDetails.movingDate ? formatDate(leadDetails.movingDate) : 'N/A'}</div>
+                  <div><span className="font-semibold">Routing Rule:</span> {leadDetails.routingRule ? leadDetails.routingRule.name : 'Manual Assignment'}</div>
                 </div>
               </DialogHeader>
 
@@ -394,6 +418,26 @@ export default function Leads() {
                           <p>{leadDetails.address || (leadDetails.zipCode ? `ZIP: ${leadDetails.zipCode}` : 'N/A')}</p>
                         </div>
                       </div>
+                      
+                      {leadDetails.routingRule && (
+                        <div className="mt-4 p-3 bg-slate-50 rounded-md border">
+                          <h3 className="font-semibold mb-2">Routing Information</h3>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-gray-500">Rule:</span> {leadDetails.routingRule.name}
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Agent Group:</span> {leadDetails.routingRule.group ? leadDetails.routingRule.group.name : 'Unknown'}
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Priority:</span> {leadDetails.routingRule.priority}
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Match Criteria:</span> {getMatchCriteria(leadDetails.routingRule)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
