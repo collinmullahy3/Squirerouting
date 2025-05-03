@@ -71,6 +71,7 @@ export const leads = pgTable("leads", {
   source: text("source"),
   status: leadStatusEnum("status").default('pending').notNull(),
   assignedAgentId: integer("assigned_agent_id").references(() => users.id),
+  routingRuleId: integer("routing_rule_id").references(() => routingRules.id),
   originalEmail: text("original_email"),
   notes: text("notes"),
   propertyUrl: text("property_url"),
@@ -136,6 +137,10 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
   assignedAgent: one(users, {
     fields: [leads.assignedAgentId],
     references: [users.id],
+  }),
+  routingRule: one(routingRules, {
+    fields: [leads.routingRuleId],
+    references: [routingRules.id],
   }),
   statusHistory: many(leadStatusHistory),
 }));

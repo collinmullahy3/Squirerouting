@@ -40,6 +40,9 @@ class LeadRouter {
         return false;
       }
 
+      // Record the routing rule that was used
+      await storage.updateLeadRoutingRule(lead.id, matchingRule.id);
+      
       // Assign the lead to the agent
       await storage.assignLeadToAgent(lead.id, agent.id);
       
