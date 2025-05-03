@@ -289,6 +289,17 @@ export const storage = {
         return null;
       }
 
+      // Store all original emails in a combined format
+      let combinedOriginalEmail = existingLead.originalEmail || '';
+      if (newData.originalEmail) {
+        // Add a separator between emails
+        const dateStr = new Date().toLocaleString();
+        const emailSeparator = `\n\n==== NEW INQUIRY (${dateStr}) ====\n\n`;
+        combinedOriginalEmail = combinedOriginalEmail 
+          ? combinedOriginalEmail + emailSeparator + newData.originalEmail
+          : newData.originalEmail;
+      }
+
       // Combine original notes with new notes if available
       let combinedNotes = existingLead.notes || '';
       if (newData.notes) {
@@ -367,7 +378,8 @@ export const storage = {
         newZipCode: newData.zipCode,
         hasNewNotes: Boolean(newData.notes),
         hasNewPropertyUrl: Boolean(newData.propertyUrl),
-        combinedNotesLength: combinedNotes.length
+        combinedNotesLength: combinedNotes.length,
+        hasNewEmail: Boolean(newData.originalEmail)
       });
 
       // Update the lead record
@@ -377,6 +389,8 @@ export const storage = {
           priceMax: updatedPriceMax,
           notes: combinedNotes || null,
           movingDate: movingDate,
+          // Store all emails
+          originalEmail: combinedOriginalEmail,
           // Keep the original values unless they were empty
           address: existingLead.address || newData.address || null,
           zipCode: existingLead.zipCode || newData.zipCode || null,
