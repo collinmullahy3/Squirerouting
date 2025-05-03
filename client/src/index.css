@@ -4,88 +4,105 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 47.4% 11.2%;
+    /* New custom colors */
+    --charcoal: #1E1E1E;
+    --parchment: #EDE8DF;
+    --bronze: #6A584C;
+    --oak: #3A2F28;
+    --gold: #C9AD6A;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --background: 39 22% 90%; /* Parchment */
+    --foreground: 0 0% 12%; /* Charcoal */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
+    --muted: 33 14% 80%;
+    --muted-foreground: 25 14% 40%;
+
+    --popover: 39 22% 90%;
+    --popover-foreground: 0 0% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card-foreground: 0 0% 12%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 33 14% 85%;
+    --input: 33 14% 85%;
 
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 25 18% 35%; /* Bronze */
+    --primary-foreground: 39 22% 90%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 39 22% 90%; /* Parchment */
+    --secondary-foreground: 0 0% 12%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 25 18% 35%; /* Bronze */
+    --accent-foreground: 39 22% 90%;
 
     --destructive: 0 100% 50%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 39 22% 90%;
 
-    --ring: 215 20.2% 65.1%;
+    --ring: 25 18% 35%;
     
-    --chart-1: 221.2 83.2% 53.3%;
-    --chart-2: 142.1 76.2% 36.3%;
-    --chart-3: 47.9 95.8% 53.1%;
-    --chart-4: 346.8 77.2% 49.8%;
-    --chart-5: 261.1 73.1% 58.4%;
+    --chart-1: 25 18% 35%; /* Bronze */
+    --chart-2: 41 50% 60%; /* Gold */
+    --chart-3: 30 8% 20%; /* Oak */
+    --chart-4: 25 30% 50%;
+    --chart-5: 35 40% 60%;
 
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 224.3 76.3% 48%;
+    --sidebar-background: 30 8% 20%; /* Oak */
+    --sidebar-foreground: 39 22% 90%; /* Parchment */
+    --sidebar-primary: 41 50% 60%; /* Gold */
+    --sidebar-primary-foreground: 0 0% 12%; /* Charcoal */
+    --sidebar-accent: 25 18% 35%; /* Bronze */
+    --sidebar-accent-foreground: 39 22% 90%; /* Parchment */
+    --sidebar-border: 25 18% 35%; /* Bronze */
+    --sidebar-ring: 41 50% 60%; /* Gold */
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 12%; /* Charcoal */
+    --foreground: 39 22% 90%; /* Parchment */
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 30 8% 20%; /* Oak */
+    --muted-foreground: 41 50% 60%; /* Gold */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 12%; /* Charcoal */
+    --popover-foreground: 39 22% 90%; /* Parchment */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 12%; /* Charcoal */
+    --card-foreground: 39 22% 90%; /* Parchment */
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 30 8% 20%; /* Oak */
+    --input: 30 8% 20%; /* Oak */
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 41 50% 60%; /* Gold */
+    --primary-foreground: 0 0% 12%; /* Charcoal */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 30 8% 20%; /* Oak */
+    --secondary-foreground: 39 22% 90%; /* Parchment */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 41 50% 60%; /* Gold */
+    --accent-foreground: 0 0% 12%; /* Charcoal */
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 85.7% 97.3%;
+    --destructive-foreground: 39 22% 90%; /* Parchment */
 
-    --ring: 217.2 32.6% 17.5%;
+    --ring: 41 50% 60%; /* Gold */
     
-    --chart-1: 217.2 91.2% 59.8%;
-    --chart-2: 142.1 70.6% 45.3%;
-    --chart-3: 47.9 95.8% 53.1%;
-    --chart-4: 346.8 77.2% 49.8%;
-    --chart-5: 261.1 83.3% 71.6%;
+    --chart-1: 41 50% 60%; /* Gold */
+    --chart-2: 25 18% 35%; /* Bronze */
+    --chart-3: 30 8% 20%; /* Oak */
+    --chart-4: 39 22% 90%; /* Parchment */
+    --chart-5: 35 40% 70%; /* Light gold */
+
+    /* Keep sidebar dark properties matched with our palette */
+    --sidebar-background: 0 0% 12%; /* Charcoal */
+    --sidebar-foreground: 39 22% 90%; /* Parchment */
+    --sidebar-primary: 41 50% 60%; /* Gold */
+    --sidebar-primary-foreground: 0 0% 12%; /* Charcoal */
+    --sidebar-accent: 25 18% 35%; /* Bronze */
+    --sidebar-accent-foreground: 39 22% 90%; /* Parchment */
+    --sidebar-border: 30 8% 20%; /* Oak */
+    --sidebar-ring: 41 50% 60%; /* Gold */
   }
 }
 
@@ -97,60 +114,101 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+  
+  h1, h2, h3, h4, .title {
+    @apply font-serif;
+  }
+  
+  h1 {
+    @apply text-4xl font-bold mb-4;
+  }
+  
+  h2 {
+    @apply text-3xl font-semibold mb-3;
+  }
+  
+  h3 {
+    @apply text-2xl font-medium mb-2;
+  }
+  
+  h4 {
+    @apply text-xl font-medium mb-2;
+  }
+  
+  /* Parchment-texture background subtle effect */
+  .bg-parchment-texture {
+    background-color: #EDE8DF;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='2' stitchTiles='stitch'/%3E%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+  
+  /* Gradient text effect for emphasis */
+  .gradient-text {
+    @apply text-transparent bg-clip-text;
+    background-image: linear-gradient(135deg, #6A584C 0%, #C9AD6A 100%);
+  }
+  
+  /* Button Styles */
+  .btn-bronze {
+    @apply bg-bronze text-parchment hover:bg-bronze/90 transition-colors;
+  }
+  
+  .btn-gold {
+    @apply bg-gold text-charcoal hover:bg-gold/90 transition-colors;
+  }
 }
 
 .sidebar {
-  @apply bg-slate-800 text-slate-300;
+  @apply bg-oak text-parchment;
 }
 
 .sidebar-header {
-  @apply bg-slate-900 text-white;
+  @apply bg-charcoal text-parchment;
 }
 
 .sidebar-item {
-  @apply text-slate-300 hover:bg-slate-700 hover:text-white;
+  @apply text-parchment hover:bg-bronze hover:text-parchment;
 }
 
 .sidebar-item-active {
-  @apply bg-slate-900 text-white;
+  @apply bg-bronze text-parchment;
 }
 
 .sidebar-icon {
-  @apply text-slate-400 group-hover:text-slate-300;
+  @apply text-parchment opacity-80 group-hover:opacity-100;
 }
 
 .sidebar-icon-active {
-  @apply text-white;
+  @apply text-gold;
 }
 
 .stat-card-icon-primary {
-  @apply bg-blue-100 text-blue-600;
+  @apply bg-parchment/80 text-bronze;
 }
 
 .stat-card-icon-success {
-  @apply bg-green-100 text-green-600;
+  @apply bg-parchment/80 text-gold;
 }
 
 .stat-card-icon-warning {
-  @apply bg-amber-100 text-amber-600;
+  @apply bg-parchment/80 text-oak;
 }
 
 .status-badge-assigned {
-  @apply bg-green-100 text-green-800;
+  @apply bg-bronze/20 text-bronze;
 }
 
 .status-badge-pending {
-  @apply bg-amber-100 text-amber-800;
+  @apply bg-gold/20 text-gold;
 }
 
 .status-badge-contacted {
-  @apply bg-blue-100 text-blue-800;
+  @apply bg-bronze/10 text-bronze;
 }
 
 .status-badge-not-interested {
-  @apply bg-gray-100 text-gray-800;
+  @apply bg-charcoal/10 text-charcoal;
 }
 
 .status-badge-closed {
-  @apply bg-purple-100 text-purple-800;
+  @apply bg-oak/20 text-oak;
 }
