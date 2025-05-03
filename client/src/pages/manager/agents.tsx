@@ -293,9 +293,9 @@ const Agents = () => {
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Assign Agent to Lead Groups</DialogTitle>
+                              <DialogTitle>Manage Agent in Lead Groups</DialogTitle>
                               <DialogDescription>
-                                Select which lead groups {agent.name} should be assigned to receive leads from.
+                                Select which lead groups {agent.name} should be assigned to for receiving leads.
                               </DialogDescription>
                             </DialogHeader>
                             <AssignGroupsContent agentId={agent.id} currentGroups={agent.groups || []} />
@@ -388,10 +388,10 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
       // Refresh the agents list
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
     } catch (error) {
-      console.error("Error updating agent groups:", error);
+      console.error("Error updating lead groups:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update agent groups",
+        description: error instanceof Error ? error.message : "Failed to update lead groups",
         variant: "destructive",
       });
     } finally {
@@ -430,7 +430,7 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
         </>
       ) : (
         <div className="py-8 text-center text-muted-foreground">
-          No agent groups found. Please create agent groups first.
+          No lead groups found. Please create lead groups first.
         </div>
       )}
     </div>
