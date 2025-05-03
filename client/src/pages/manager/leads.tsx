@@ -395,10 +395,9 @@ export default function Leads() {
               </DialogHeader>
 
               <Tabs defaultValue="details" className="mt-4">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="details">Primary Details</TabsTrigger>
                   <TabsTrigger value="properties">Property Info</TabsTrigger>
-                  <TabsTrigger value="notes">Notes & Additional Data</TabsTrigger>
                   <TabsTrigger value="email">Original Email</TabsTrigger>
                 </TabsList>
                 
@@ -504,78 +503,6 @@ export default function Leads() {
                           </div>
                         </div>
                       )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                {/* Notes tab */}
-                <TabsContent value="notes" className="mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Notes & Additional Information</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="h-[300px] rounded-md border p-4">
-                        {leadDetails.notes ? (
-                          <div className="space-y-4">
-                            <div>
-                              <h3 className="font-semibold mb-2">Additional Zip Codes</h3>
-                              {leadDetails.notes.includes('Additional zip code') ? (
-                                <div className="flex flex-wrap gap-2">
-                                  {leadDetails.zipCode && (
-                                    <Badge variant="outline" className="bg-blue-50">
-                                      {leadDetails.zipCode} (Primary)
-                                    </Badge>
-                                  )}
-                                  {leadDetails.notes.split('Additional zip code from new inquiry:').slice(1).map((part, index) => {
-                                    const zipCode = part.split('\n')[0]?.trim();
-                                    return zipCode ? (
-                                      <Badge key={index} variant="outline">
-                                        {zipCode}
-                                      </Badge>
-                                    ) : null;
-                                  })}
-                                </div>
-                              ) : (
-                                <p>No additional zip codes.</p>
-                              )}
-                            </div>
-                            
-                            <div>
-                              <h3 className="font-semibold mb-2">Additional Addresses</h3>
-                              {leadDetails.notes.includes('Additional address') ? (
-                                <div className="space-y-2">
-                                  {leadDetails.address && (
-                                    <div className="p-2 border rounded-md bg-blue-50">
-                                      <p className="font-medium">Primary Address:</p>
-                                      <p>{leadDetails.address}</p>
-                                    </div>
-                                  )}
-                                  {leadDetails.notes.split('Additional address from new inquiry:').slice(1).map((part, index) => {
-                                    const address = part.split('\n')[1]?.trim();
-                                    return address ? (
-                                      <div key={index} className="p-2 border rounded-md">
-                                        <p>{address}</p>
-                                      </div>
-                                    ) : null;
-                                  })}
-                                </div>
-                              ) : (
-                                <p>No additional addresses.</p>
-                              )}
-                            </div>
-                            
-                            <div>
-                              <h3 className="font-semibold mb-2">Full Notes</h3>
-                              <pre className="whitespace-pre-wrap font-sans text-sm p-4 bg-gray-50 rounded-md">
-                                {leadDetails.notes}
-                              </pre>
-                            </div>
-                          </div>
-                        ) : (
-                          <p>No additional notes available.</p>
-                        )}
-                      </ScrollArea>
                     </CardContent>
                   </Card>
                 </TabsContent>
