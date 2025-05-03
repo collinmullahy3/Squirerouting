@@ -71,20 +71,14 @@ export default function Sidebar({ className }: SidebarProps) {
                     <NavItem href="/leads" icon="inbox" active={location === "/leads" || location.startsWith("/leads/")}>
                       All Leads
                     </NavItem>
-                    <NavItem href="/agent-groups" icon="users" active={location === "/agent-groups"}>
-                      Agent Groups
+                    <NavItem href="/lead-groups" icon="layers" active={location === "/lead-groups"}>
+                      Lead Groups
                     </NavItem>
                     <NavItem href="/agents" icon="user-plus" active={location === "/agents"}>
                       Agents
                     </NavItem>
                     <NavItem href="/performance" icon="bar-chart-2" active={location === "/performance"}>
                       Performance
-                    </NavItem>
-                    <NavItem href="/lead-groups" icon="layers" active={location === "/lead-groups"}>
-                      Lead Groups
-                    </NavItem>
-                    <NavItem href="/routing-rules" icon="settings" active={location === "/routing-rules"}>
-                      Routing Rules
                     </NavItem>
                     <NavItem href="/email-settings" icon="mail" active={location === "/email-settings"}>
                       Email Settings
