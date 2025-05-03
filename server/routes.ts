@@ -464,7 +464,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Lead not found" });
       }
       
-      res.json(updatedLead);
+      // Send email notification to the assigned agent
+      const { emailSender } = await import('./services/email-sender');
+      const emailSent = await emailSender.forwardLeadToAgent(updatedLead);
+      console.log(`Email notification to agent ${emailSent ? 'sent successfully' : 'failed'}`);
+      
+      res.json({ ...updatedLead, emailSent });
     } catch (error) {
       next(error);
     }
