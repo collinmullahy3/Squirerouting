@@ -575,6 +575,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Get email credentials
+  app.get("/api/admin/email-credentials", isManager, async (req, res, next) => {
+    try {
+      const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+      const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+      
+      res.json({
+        emailUser: emailUserSetting?.value || process.env.EMAIL_USER || '',
+        // We don't send the actual password, just whether it exists
+        hasPassword: !!(emailPasswordSetting?.value || process.env.EMAIL_PASSWORD)
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Update email credentials
+  app.post("/api/admin/email-credentials", isManager, async (req, res, next) => {
+    try {
+      const { emailUser, emailPassword } = req.body;
+      const userId = (req.user as any).id;
+      
+      if (!emailUser) {
+        return res.status(400).json({ error: "Email username is required" });
+      }
+      
+      // Update the email username
+      await storage.updateSetting("EMAIL_USER", emailUser, "email", userId, "Email account username");
+      
+      // Only update password if provided
+      if (emailPassword) {
+        await storage.updateSetting("EMAIL_PASSWORD", emailPassword, "email", userId, "Email account password");
+      }
+      
+      // Restart the email service
+      await emailService.initialize();
+      
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
   // API endpoint to receive forwarded emails (for real implementation)
   app.post("/api/admin/process-email", isManager, async (req, res, next) => {
     try {

@@ -36,15 +36,45 @@ class EmailService {
   }
 
   async initialize(): Promise<boolean> {
+    try {
+      // Try to get email credentials from database settings
+      const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+      const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+      
+      // If we have settings in the database, update our IMAP client
+      if (emailUserSetting?.value && emailPasswordSetting?.value) {
+        this.imap = new IMAP({
+          user: emailUserSetting.value,
+          password: emailPasswordSetting.value,
+          host: 'imap.gmail.com',
+          port: 993,
+          tls: true,
+          tlsOptions: { rejectUnauthorized: false }
+        });
+        
+        // Reattach event handlers
+        this.imap.once('ready', this.onImapReady.bind(this));
+        this.imap.once('error', this.onImapError.bind(this));
+        this.imap.once('end', this.onImapEnd.bind(this));
+      }
+    } catch (error) {
+      console.error("Error initializing email service with database settings:", error);
+      // Continue with environment variables if database settings fail
+    }
+    
     console.log(`Email service ready to receive forwarded emails. Agents should forward leads to: ${this.FORWARDING_EMAIL}`);
 
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    // Try to get email credentials from settings or environment variables
+    const emailUser = this.imap.user;
+    const emailPassword = this.imap.password;
+      
+    if (!emailUser || !emailPassword) {
       console.log('Email credentials not found. IMAP inbox checking is disabled, but manual simulation will still work.');
       return true; // Still return true as the service can work in simulation mode
     }
 
     // Check if credentials are valid
-    if (process.env.EMAIL_USER.trim() === '' || process.env.EMAIL_PASSWORD.trim() === '') {
+    if (emailUser.trim() === '' || emailPassword.trim() === '') {
       console.log('Empty email credentials provided. IMAP inbox checking is disabled, but manual simulation will still work.');
       return true; // Still return true as the service can work in simulation mode
     }

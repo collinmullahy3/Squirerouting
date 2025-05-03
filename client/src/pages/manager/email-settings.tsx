@@ -4,7 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { InfoIcon, ClipboardIcon, AlertCircleIcon, MailIcon, CheckCircleIcon, XCircleIcon, SettingsIcon, SaveIcon } from "lucide-react";
+import { InfoIcon, ClipboardIcon, AlertCircleIcon, MailIcon, CheckCircleIcon, XCircleIcon, SettingsIcon, SaveIcon, KeyIcon, LockIcon } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -25,7 +25,13 @@ const deduplicationSchema = z.object({
   })
 });
 
+const emailCredentialsSchema = z.object({
+  emailUser: z.string().email("Must be a valid email address"),
+  emailPassword: z.string().optional()
+});
+
 type DeduplicationFormValues = z.infer<typeof deduplicationSchema>;
+type EmailCredentialsFormValues = z.infer<typeof emailCredentialsSchema>;
 
 export default function EmailSettings() {
   const [copied, setCopied] = useState(false);
@@ -49,6 +55,15 @@ export default function EmailSettings() {
     description: string;
   }>({
     queryKey: ["/api/settings/LEAD_DEDUPLICATION_DAYS"],
+    staleTime: 60000, // Cache for 1 minute
+  });
+  
+  // Fetch email credentials
+  const { data: emailCredentials, isLoading: isEmailCredentialsLoading } = useQuery<{
+    emailUser: string;
+    hasPassword: boolean;
+  }>({
+    queryKey: ["/api/admin/email-credentials"],
     staleTime: 60000, // Cache for 1 minute
   });
 
