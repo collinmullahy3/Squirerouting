@@ -384,54 +384,39 @@ class EmailService {
       // Extract lead details for the email
       const { name, email, phone, price, zipCode, address, unitNumber, propertyUrl, originalEmail } = lead;
       
-      // Create a simple HTML email
-      const html = `
-        <h2>New Lead Assignment</h2>
-        <p>A new lead has been assigned to you:</p>
-        
-        <h3>Lead Details</h3>
-        <ul>
-          <li><strong>Name:</strong> ${name || 'Not provided'}</li>
-          <li><strong>Email:</strong> ${email || 'Not provided'}</li>
-          <li><strong>Phone:</strong> ${phone || 'Not provided'}</li>
-          <li><strong>Price Target:</strong> ${price ? `$${price}` : 'Not provided'}</li>
-          <li><strong>Address:</strong> ${address || 'Not provided'}</li>
-          ${unitNumber ? `<li><strong>Unit:</strong> ${unitNumber}</li>` : ''}
-          <li><strong>Zip Code:</strong> ${zipCode || 'Not provided'}</li>
-          ${propertyUrl ? `<li><strong>Property URL:</strong> <a href="${propertyUrl}">${propertyUrl}</a></li>` : ''}
-        </ul>
-
-        <h3>Original Email</h3>
-        <div style="border: 1px solid #ddd; padding: 15px; background-color: #f8f8f8; font-family: monospace;">
-          ${originalEmail ? originalEmail : 'No original email content available'}
+      // Just forward the original email as-is with minimal addition
+      let html: string; 
+      if (originalEmail && originalEmail.includes('<html')) {
+        // If it's already HTML, we'll just add a small header
+        html = `
+        <div style="background-color: #f0f8ff; padding: 10px; margin-bottom: 15px; border-left: 4px solid #0078d4;">
+          <p><strong>Lead assigned to you.</strong> You can reply directly to this email to respond to the client.</p>
+          <p>Property: ${address || 'Address not available'} ${unitNumber ? `Unit ${unitNumber}` : ''}</p>
         </div>
-        
-        <p style="margin-top: 20px; font-style: italic;">
-          You can reply directly to this email to respond to the lead. Your reply will be sent to the lead's email address.
-        </p>
-      `;
+        ${originalEmail}
+        `;
+      } else {
+        // Otherwise create a structured email
+        html = `
+        <div style="background-color: #f0f8ff; padding: 10px; margin-bottom: 15px; border-left: 4px solid #0078d4;">
+          <p><strong>Lead assigned to you.</strong> You can reply directly to this email to respond to the client.</p>
+          <p>Property: ${address || 'Address not available'} ${unitNumber ? `Unit ${unitNumber}` : ''}</p>
+        </div>
 
-      // Create a text version as well
-      const text = `
-        New Lead Assignment
+        <div style="white-space: pre-wrap; font-family: monospace;">
+          ${originalEmail || 'No original email content available'}
+        </div>
+        `;
+      }
 
-        A new lead has been assigned to you:
+      // Create a simpler text version that preserves the original email content
+      const text = `Lead assigned to you. Property: ${address || 'Address not available'} ${unitNumber ? `Unit ${unitNumber}` : ''}
+You can reply directly to this email to respond to the client.
 
-        Lead Details:
-        - Name: ${name || 'Not provided'}
-        - Email: ${email || 'Not provided'}
-        - Phone: ${phone || 'Not provided'}
-        - Price Target: ${price ? `$${price}` : 'Not provided'}
-        - Address: ${address || 'Not provided'}
-        ${unitNumber ? `- Unit: ${unitNumber}\n` : ''}
-        - Zip Code: ${zipCode || 'Not provided'}
-        ${propertyUrl ? `- Property URL: ${propertyUrl}\n` : ''}
+----- Original Email -----
 
-        Original Email:
-        ${originalEmail ? originalEmail : 'No original email content available'}
-
-        You can reply directly to this email to respond to the lead. Your reply will be sent to the lead's email address.
-      `;
+${originalEmail || 'No original email content available'}`;
+      
       
       // Send the email
       const info = await this.nodemailer.sendMail({
