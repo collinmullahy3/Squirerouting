@@ -162,9 +162,9 @@ export default function ManagerDashboard() {
               {recentLeads && recentLeads.length > 0 && (
                 <div className="bg-slate-50 px-4 py-4 sm:px-6">
                   <div className="text-sm">
-                    <a href="/leads" className="font-medium text-primary-600 hover:text-primary-500">
+                    <Link href="/leads" className="font-medium text-primary-600 hover:text-primary-500">
                       View all leads
-                    </a>
+                    </Link>
                   </div>
                 </div>
               )}

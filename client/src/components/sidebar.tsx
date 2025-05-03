@@ -68,6 +68,9 @@ export default function Sidebar({ className }: SidebarProps) {
                     <NavItem href="/" icon="home" active={location === "/"}>
                       Dashboard
                     </NavItem>
+                    <NavItem href="/leads" icon="inbox" active={location === "/leads" || location.startsWith("/leads/")}>
+                      All Leads
+                    </NavItem>
                     <NavItem href="/agent-groups" icon="users" active={location === "/agent-groups"}>
                       Agent Groups
                     </NavItem>

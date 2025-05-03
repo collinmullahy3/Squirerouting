@@ -20,6 +20,7 @@ import AgentDetails from "@/pages/manager/agent-details";
 import Performance from "@/pages/manager/performance";
 import RoutingRules from "@/pages/manager/routing-rules";
 import EmailSettings from "@/pages/manager/email-settings";
+import Leads from "@/pages/manager/leads";
 
 // Agent Pages
 import MyLeads from "@/pages/agent/my-leads";
@@ -37,6 +38,7 @@ const Router = () => {
             
             {/* Manager Routes */}
             <Route path="/" component={ManagerDashboard} />
+            <Route path="/leads" component={Leads} />
             <Route path="/agent-groups" component={AgentGroups} />
             <Route path="/agents" component={Agents} />
             <Route path="/agents/:id" component={AgentDetails} />
