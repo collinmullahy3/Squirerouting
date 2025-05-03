@@ -268,6 +268,103 @@ export const storage = {
     });
   },
 
+  async updateLeadFromNewInquiry(id: number, newData: Partial<LeadInsert>): Promise<Lead | null> {
+    try {
+      // First get the existing lead to combine data properly
+      const existingLead = await this.getLeadById(id);
+      if (!existingLead) {
+        console.error('Cannot update - lead not found:', id);
+        return null;
+      }
+
+      // Combine original notes with new notes if available
+      let combinedNotes = existingLead.notes || '';
+      if (newData.notes) {
+        const newInquiryNote = `\n\n---\nNew inquiry on ${new Date().toLocaleDateString()}:\n${newData.notes}`;
+        combinedNotes = combinedNotes ? combinedNotes + newInquiryNote : newData.notes;
+      }
+
+      // Update to combine price information for price ranges
+      let updatedPrice = existingLead.price;
+      let updatedPriceMax = existingLead.priceMax;
+
+      if (newData.price) {
+        // Convert prices to numbers for comparison
+        const oldPrice = existingLead.price ? parseFloat(existingLead.price) : null;
+        const newPrice = parseFloat(newData.price);
+        
+        // If we have a max price from either existing or new, set up a range
+        const oldPriceMax = existingLead.priceMax ? parseFloat(existingLead.priceMax) : null;
+        const newPriceMax = newData.priceMax ? parseFloat(newData.priceMax) : null;
+        
+        // Calculate the new price range
+        if (oldPrice !== null && newPrice) {
+          if (oldPriceMax !== null || newPriceMax !== null) {
+            // We have a range scenario
+            updatedPrice = String(Math.min(oldPrice, newPrice));
+            // Max will be the greatest of all values
+            const maxValues = [oldPrice, newPrice];
+            if (oldPriceMax !== null) maxValues.push(oldPriceMax);
+            if (newPriceMax !== null) maxValues.push(newPriceMax);
+            updatedPriceMax = String(Math.max(...maxValues));
+          } else {
+            // We have two prices but no explicit range
+            if (oldPrice !== newPrice) {
+              updatedPrice = String(Math.min(oldPrice, newPrice));
+              updatedPriceMax = String(Math.max(oldPrice, newPrice));
+            }
+          }
+        }
+      }
+
+      // Compile additional property information
+      const propertyUrlAddition = existingLead.propertyUrl && newData.propertyUrl && 
+                                 existingLead.propertyUrl !== newData.propertyUrl 
+        ? `\n\nAdditional property link from new inquiry:\n${newData.propertyUrl}` 
+        : '';
+
+      if (propertyUrlAddition) {
+        combinedNotes += propertyUrlAddition;
+      }
+
+      // For moving date, prefer the new one if the old one doesn't exist
+      const movingDate = newData.movingDate && !existingLead.movingDate 
+        ? newData.movingDate 
+        : existingLead.movingDate;
+
+      console.log('Updating lead with new inquiry data:', {
+        id,
+        oldPrice: existingLead.price,
+        newPrice: newData.price,
+        updatedPrice,
+        updatedPriceMax,
+        hasNewNotes: Boolean(newData.notes),
+        hasNewPropertyUrl: Boolean(newData.propertyUrl),
+        combinedNotesLength: combinedNotes.length
+      });
+
+      // Update the lead record
+      const [updatedLead] = await db.update(leads)
+        .set({
+          price: updatedPrice,
+          priceMax: updatedPriceMax,
+          notes: combinedNotes || null,
+          movingDate: movingDate,
+          // Only update these if they're provided in newData and don't already exist
+          propertyUrl: newData.propertyUrl && !existingLead.propertyUrl ? newData.propertyUrl : existingLead.propertyUrl,
+          thumbnailUrl: newData.thumbnailUrl && !existingLead.thumbnailUrl ? newData.thumbnailUrl : existingLead.thumbnailUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(leads.id, id))
+        .returning();
+
+      return updatedLead || null;
+    } catch (error) {
+      console.error('Error updating lead from new inquiry:', error);
+      return null;
+    }
+  },
+
   async assignLeadToAgent(leadId: number, agentId: number): Promise<Lead | null> {
     return await this.updateLeadStatus(
       leadId, 

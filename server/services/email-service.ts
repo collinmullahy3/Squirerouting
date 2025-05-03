@@ -230,8 +230,12 @@ class EmailService {
       
       if (existingLead) {
         console.log(`Found existing lead for ${leadData.email} within ${deduplicationDays} day window`);
-        // Use the existing lead ID and assigned agent if any
-        lead = existingLead;
+        // Update the existing lead with new information
+        lead = await storage.updateLeadFromNewInquiry(existingLead.id, leadData);
+        if (!lead) {
+          console.error(`Failed to update existing lead ${existingLead.id} with new inquiry data`);
+          lead = existingLead; // Fallback to existing lead without updates
+        }
       } else {
         // Create a new lead in the database
         lead = await storage.createLead(leadData);
