@@ -391,7 +391,7 @@ class EmailService {
         html = `
         <div style="background-color: #f0f8ff; padding: 10px; margin-bottom: 15px; border-left: 4px solid #0078d4;">
           <p><strong>Lead assigned to you.</strong> You can reply directly to this email to respond to the client.</p>
-          <p>Property: ${address || 'Address not available'} ${unitNumber ? `Unit ${unitNumber}` : ''}</p>
+          <p>Property: ${address || 'Address not available'}${unitNumber ? `, Unit ${unitNumber}` : ''}</p>
         </div>
         ${originalEmail}
         `;
@@ -400,7 +400,7 @@ class EmailService {
         html = `
         <div style="background-color: #f0f8ff; padding: 10px; margin-bottom: 15px; border-left: 4px solid #0078d4;">
           <p><strong>Lead assigned to you.</strong> You can reply directly to this email to respond to the client.</p>
-          <p>Property: ${address || 'Address not available'} ${unitNumber ? `Unit ${unitNumber}` : ''}</p>
+          <p>Property: ${address || 'Address not available'}${unitNumber ? `, Unit ${unitNumber}` : ''}</p>
         </div>
 
         <div style="white-space: pre-wrap; font-family: monospace;">
@@ -410,7 +410,7 @@ class EmailService {
       }
 
       // Create a simpler text version that preserves the original email content
-      const text = `Lead assigned to you. Property: ${address || 'Address not available'} ${unitNumber ? `Unit ${unitNumber}` : ''}
+      const text = `Lead assigned to you. Property: ${address || 'Address not available'}${unitNumber ? `, Unit ${unitNumber}` : ''}
 You can reply directly to this email to respond to the client.
 
 ----- Original Email -----
