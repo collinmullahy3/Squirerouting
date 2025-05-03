@@ -67,12 +67,15 @@ export default function Leads() {
     email: string;
     phone?: string;
     price?: number | string;
+    priceMax?: number | string;
     zipCode?: string;
     address?: string;
     propertyUrl?: string;
     thumbnailUrl?: string;
     status: string;
     receivedAt: string;
+    movingDate?: string | Date;
+    notes?: string;
     assignedAgent?: {
       id: number;
       name: string;
@@ -113,11 +116,22 @@ export default function Leads() {
   };
 
   // Format currency
-  const formatPrice = (price: number | string | null | undefined): string => {
+  const formatPrice = (price: number | string | null | undefined, priceMax?: number | string | null): string => {
     if (!price) return 'N/A';
-    return typeof price === 'number' 
-      ? `$${price.toLocaleString()}`
-      : `$${parseFloat(price as string).toLocaleString()}`;
+
+    const formattedMin = typeof price === 'number' 
+        ? `$${price.toLocaleString()}`
+        : `$${parseFloat(price as string).toLocaleString()}`;
+        
+    // If we have a price range, format it as min-max
+    if (priceMax) {
+      const formattedMax = typeof priceMax === 'number' 
+        ? `$${priceMax.toLocaleString()}`
+        : `$${parseFloat(priceMax as string).toLocaleString()}`;
+      return `${formattedMin} - ${formattedMax}`;
+    }
+    
+    return formattedMin;
   };
 
   return (
@@ -207,6 +221,7 @@ export default function Leads() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Location</TableHead>
+                <TableHead>Moving Date</TableHead>
                 <TableHead>Property Link</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Received</TableHead>
@@ -219,10 +234,11 @@ export default function Leads() {
                   <TableCell className="font-medium">{lead.name}</TableCell>
                   <TableCell>{lead.email}</TableCell>
                   <TableCell>{lead.phone || 'N/A'}</TableCell>
-                  <TableCell>{formatPrice(lead.price)}</TableCell>
+                  <TableCell>{formatPrice(lead.price, lead.priceMax)}</TableCell>
                   <TableCell>
                     {lead.address || (lead.zipCode ? `ZIP: ${lead.zipCode}` : 'N/A')}
                   </TableCell>
+                  <TableCell>{lead.movingDate ? formatDate(lead.movingDate) : 'N/A'}</TableCell>
                   <TableCell>
                     {lead.propertyUrl ? (
                       <a 

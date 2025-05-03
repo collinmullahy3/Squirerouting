@@ -275,11 +275,42 @@ class EmailService {
       const phoneMatches = text.match(phoneRegex) || [];
       const phone = phoneMatches.length > 0 ? phoneMatches[0] : '';
 
-      // Extract price using regex
+      // Extract price range using regex
       const priceRegex = /\$[\d,]+(\.[\d]{2})?|\d{3,}k|\d+\s*million/gi;
       const priceMatches = text.match(priceRegex) || [];
       let price = null;
-      if (priceMatches.length > 0) {
+      let priceMax = null;
+      
+      // Handle price ranges
+      if (priceMatches.length >= 2) {
+        // We have a potential price range
+        // Check if text contains range indicators
+        const hasRangeIndicator = /price range|budget range|between|price from|range of|from .* to/i.test(text);
+        
+        if (hasRangeIndicator || priceMatches.length === 2) {
+          // Convert price strings to numeric values
+          const priceValues = priceMatches.map(priceStr => {
+            const sanitized = priceStr.replace(/\$|,/g, '');
+            if (sanitized.toLowerCase().includes('k')) {
+              return parseFloat(sanitized) * 1000;
+            } else if (sanitized.toLowerCase().includes('million')) {
+              return parseFloat(sanitized) * 1000000;
+            } else {
+              return parseFloat(sanitized);
+            }
+          }).filter(p => !isNaN(p));
+          
+          // Sort to get the min and max
+          if (priceValues.length >= 2) {
+            priceValues.sort((a, b) => a - b);
+            price = priceValues[0];
+            priceMax = priceValues[priceValues.length - 1];
+          }
+        }
+      }
+      
+      // If we don't have a range, just set a single price
+      if (price === null && priceMatches.length > 0) {
         // Convert price string to numeric value
         const priceStr = priceMatches[0].replace(/\$|,/g, '');
         if (priceStr.toLowerCase().includes('k')) {
@@ -288,6 +319,24 @@ class EmailService {
           price = parseFloat(priceStr) * 1000000;
         } else {
           price = parseFloat(priceStr);
+        }
+      }
+
+      // Extract moving date using regex patterns
+      const movingDateRegex = /(?:move(?:-| |\s+)in(?:g)?(?:\s+|\s+by\s+|\s+date\s+|:\s+))(\w+\s+\d{1,2}(?:st|nd|rd|th)?\s*,?\s*\d{4}|\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}|\w+\s+\d{1,2}(?:st|nd|rd|th)?|\d{1,2}(?:st|nd|rd|th)?\s+\w+\s*,?\s*\d{4}?)/i;
+      const movingDateMatches = text.match(movingDateRegex);
+      
+      let movingDate = null;
+      if (movingDateMatches && movingDateMatches.length > 1) {
+        try {
+          // Try to parse the date string
+          const dateStr = movingDateMatches[1].trim();
+          const parsedDate = new Date(dateStr);
+          if (!isNaN(parsedDate.getTime())) {
+            movingDate = parsedDate;
+          }
+        } catch (e) {
+          console.log('Failed to parse moving date:', e);
         }
       }
 
@@ -300,32 +349,40 @@ class EmailService {
       // For demo purposes, we'll look for common address patterns
       const addressRegex = /\d+\s+[a-zA-Z0-9\s,]+(?:street|st|avenue|ave|road|rd|highway|hwy|square|sq|trail|trl|drive|dr|court|ct|parkway|pkwy|circle|cir|boulevard|blvd)\s+[a-zA-Z]+,\s*[a-zA-Z]+\s*\d+/gi;
       const addressMatches = text.match(addressRegex) || [];
-      const address = addressMatches.length > 0 ? addressMatches[0] : '';
+      // Get all unique addresses
+      const uniqueAddresses = [...new Set(addressMatches)];
+      const address = uniqueAddresses.length > 0 ? uniqueAddresses[0] : '';
       
-      // Extract property URL
+      // Extract property URLs
       const urlRegex = /(https?:\/\/[^\s]+)/g;
       const urlMatches = text.match(urlRegex) || [];
       let propertyUrl = '';
       let thumbnailUrl = '';
       
-      // Find the first URL that looks like a property listing
+      // Find property listing URLs
+      const propertyUrls = [];
       for (const url of urlMatches) {
         if (url.includes('zillow') || url.includes('realtor') || url.includes('trulia') ||
             url.includes('redfin') || url.includes('homes') || url.includes('property') ||
-            url.includes('listing')) {
-          propertyUrl = url;
-          break;
+            url.includes('listing') || url.includes('rent') || url.includes('apartment')) {
+          propertyUrls.push(url);
         }
       }
       
+      // Use the first property URL as the main one
+      propertyUrl = propertyUrls.length > 0 ? propertyUrls[0] : '';
+      
       // Check for image URLs - likely a thumbnail
+      const imageUrls = [];
       for (const url of urlMatches) {
         if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') ||
             url.includes('.webp') || url.includes('images') || url.includes('photos')) {
-          thumbnailUrl = url;
-          break;
+          imageUrls.push(url);
         }
       }
+      
+      // Use the first image URL as the main thumbnail
+      thumbnailUrl = imageUrls.length > 0 ? imageUrls[0] : '';
 
       // Extract name - might be in the subject or from field
       let name = '';
@@ -349,17 +406,37 @@ class EmailService {
         return null;
       }
 
+      // If we have multiple addresses, add them to the notes
+      let notes = '';
+      if (uniqueAddresses.length > 1) {
+        notes += 'Additional property addresses:\n';
+        for (let i = 1; i < uniqueAddresses.length; i++) {
+          notes += `${i}. ${uniqueAddresses[i]}\n`;
+        }
+      }
+      
+      // If we have multiple property URLs, add them to the notes
+      if (propertyUrls.length > 1) {
+        notes += '\nAdditional property links:\n';
+        for (let i = 1; i < propertyUrls.length; i++) {
+          notes += `${i}. ${propertyUrls[i]}\n`;
+        }
+      }
+
       return {
         name,
         email: clientEmail || 'unknown@example.com',
         phone: phone || '',
         price: price ? price.toString() : null,
+        priceMax: priceMax ? priceMax.toString() : null,
         zipCode: zipCode || '',
         address: address || '',
         source: 'Email',
         propertyUrl: propertyUrl || null,
         thumbnailUrl: thumbnailUrl || null,
         originalEmail,
+        movingDate,
+        notes: notes || null,
         receivedAt: new Date(),
         updatedAt: new Date()
       };
