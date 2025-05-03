@@ -99,7 +99,7 @@ export default function AgentDetails() {
           <h2 className="text-2xl font-bold">Invalid Agent ID</h2>
           <p className="mt-2 text-gray-600">Please select a valid agent.</p>
           <Button asChild className="mt-4">
-            <Link href="/manager/agents">Back to Agents</Link>
+            <Link href="/agents">Back to Agents</Link>
           </Button>
         </div>
       </div>
@@ -110,7 +110,7 @@ export default function AgentDetails() {
     <div className="p-8 space-y-6">
       <div className="flex items-center gap-4">
         <Button asChild variant="outline" size="sm">
-          <Link href="/manager/agents" className="flex items-center gap-1">
+          <Link href="/agents" className="flex items-center gap-1">
             <ArrowLeftIcon className="h-4 w-4" /> Back to Agents
           </Link>
         </Button>

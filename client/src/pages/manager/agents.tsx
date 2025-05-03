@@ -280,7 +280,7 @@ const Agents = () => {
                     <TableCell>
                       <div className="flex space-x-2">
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/manager/agents/${agent.id}`}>
+                          <Link href={`/agents/${agent.id}`}>
                             View Leads
                           </Link>
                         </Button>
