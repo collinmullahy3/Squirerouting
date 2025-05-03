@@ -127,16 +127,17 @@ interface NavItemProps {
 
 function NavItem({ href, icon, children, active = false }: NavItemProps) {
   return (
-    <Link href={href}>
-      <a className={cn(
+    <Link 
+      href={href}
+      className={cn(
         "group flex items-center px-2 py-2 text-sm font-medium rounded-md",
         active
           ? "bg-slate-900 text-white sidebar-item-active"
           : "text-slate-300 hover:bg-slate-700 hover:text-white sidebar-item"
-      )}>
-        <NavIcon name={icon} active={active} className="mr-3 h-6 w-6" />
-        {children}
-      </a>
+      )}
+    >
+      <NavIcon name={icon} active={active} className="mr-3 h-6 w-6" />
+      {children}
     </Link>
   );
 }
