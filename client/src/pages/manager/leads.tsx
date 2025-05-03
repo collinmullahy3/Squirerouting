@@ -9,11 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const limit = 10; // Items per page
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -29,6 +34,33 @@ export default function Leads() {
       return response.json();
     },
   });
+  
+  // Fetch lead details when a lead is selected
+  const { data: leadDetails, isLoading: isLoadingDetails } = useQuery({
+    queryKey: ['/api/leads/details', selectedLeadId],
+    queryFn: async () => {
+      if (!selectedLeadId) return null;
+      const response = await fetch(`/api/leads/${selectedLeadId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch lead details');
+      }
+      return response.json();
+    },
+    enabled: !!selectedLeadId,
+  });
+  
+  // Handle opening the lead details dialog
+  const openLeadDetails = (leadId: number) => {
+    setSelectedLeadId(leadId);
+    setDetailsOpen(true);
+  };
+  
+  // Handle closing the lead details dialog
+  const closeLeadDetails = () => {
+    setDetailsOpen(false);
+    // Delay clearing the selected lead to avoid UI flickering during close animation
+    setTimeout(() => setSelectedLeadId(null), 300);
+  };
 
   // Status update handler
   const handleStatusUpdate = async (leadId: number, status: string) => {
@@ -230,7 +262,7 @@ export default function Leads() {
             </TableHeader>
             <TableBody>
               {filteredLeads.map((lead: Lead) => (
-                <TableRow key={lead.id}>
+                <TableRow key={lead.id} className="cursor-pointer hover:bg-gray-50" onClick={() => openLeadDetails(lead.id)}>
                   <TableCell className="font-medium">{lead.name}</TableCell>
                   <TableCell>{lead.email}</TableCell>
                   <TableCell>{lead.phone || 'N/A'}</TableCell>
@@ -275,7 +307,7 @@ export default function Leads() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleStatusUpdate(lead.id, 'closed')}
+                      onClick={(e) => { e.stopPropagation(); handleStatusUpdate(lead.id, 'closed'); }}
                       disabled={lead.status === 'closed'}
                     >
                       {lead.status === 'closed' ? 'Closed' : 'Mark Closed'}
