@@ -384,43 +384,20 @@ class EmailService {
       // Extract lead details for the email
       const { name, email, phone, price, zipCode, address, unitNumber, propertyUrl, originalEmail } = lead;
       
-      // Just forward the original email as-is with minimal addition
-      let html: string; 
-      if (originalEmail && originalEmail.includes('<html')) {
-        // If it's already HTML, we'll just add a small header
-        html = `
-        <div style="background-color: #f0f8ff; padding: 10px; margin-bottom: 15px; border-left: 4px solid #0078d4;">
-          <p><strong>Lead assigned to you.</strong> You can reply directly to this email to respond to the client.</p>
-          <p>Property: ${address || 'Address not available'}${unitNumber ? `, Unit ${unitNumber}` : ''}</p>
-        </div>
-        ${originalEmail}
-        `;
-      } else {
-        // Otherwise create a structured email
-        html = `
-        <div style="background-color: #f0f8ff; padding: 10px; margin-bottom: 15px; border-left: 4px solid #0078d4;">
-          <p><strong>Lead assigned to you.</strong> You can reply directly to this email to respond to the client.</p>
-          <p>Property: ${address || 'Address not available'}${unitNumber ? `, Unit ${unitNumber}` : ''}</p>
-        </div>
-
-        <div style="white-space: pre-wrap; font-family: monospace;">
-          ${originalEmail || 'No original email content available'}
-        </div>
-        `;
-      }
-
-      // Create a simpler text version that preserves the original email content
-      const text = `Lead assigned to you. Property: ${address || 'Address not available'}${unitNumber ? `, Unit ${unitNumber}` : ''}
-You can reply directly to this email to respond to the client.
-
------ Original Email -----
-
-${originalEmail || 'No original email content available'}`;
+      // Forward the original email exactly as-is
+      // Use the original HTML content or create a simple version if none exists
+      let html = originalEmail || '<p>No original email content available</p>';
       
+      // Use the original text content or make a basic version
+      let text = lead.notes || 'No original email content available';
+      
+      
+      // Get the original subject line or generate one if missing
+      const subject = lead.subject || name || 'Property Inquiry';
       
       // Log the full email content for testing
       console.log(`========= EMAIL FORWARDING TEST =========`);
-      console.log(`Subject: New Lead Assignment: ${name || 'New Inquiry'} - ${address || 'Property Inquiry'}`);
+      console.log(`Subject: ${subject}`);
       console.log(`From: ${this.FORWARDING_EMAIL}`);
       console.log(`To: ${agent.email}`);
       console.log(`Reply-To: ${email || 'undefined'}`);
@@ -435,7 +412,7 @@ ${originalEmail || 'No original email content available'}`;
         from: this.FORWARDING_EMAIL,
         to: agent.email,
         replyTo: email || undefined, // Set the reply-to as the lead's email if available
-        subject: `New Lead Assignment: ${name || 'New Inquiry'} - ${address || 'Property Inquiry'}`,
+        subject: subject,
         text,
         html
       });
@@ -796,6 +773,8 @@ ${originalEmail || 'No original email content available'}`;
         propertyUrl: propertyUrl || null,
         thumbnailUrl: thumbnailUrl || null,
         originalEmail,
+        subject,
+        originalText: text,
         movingDate,
         notes: notes || null,
         receivedAt: new Date(),

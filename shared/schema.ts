@@ -76,6 +76,8 @@ export const leads = pgTable("leads", {
   assignedAgentId: integer("assigned_agent_id").references(() => users.id),
   routingRuleId: integer("routing_rule_id").references(() => routingRules.id),
   originalEmail: text("original_email"),
+  originalText: text("original_text"),
+  subject: text("subject"),
   notes: text("notes"),
   propertyUrl: text("property_url"),
   thumbnailUrl: text("thumbnail_url"),
