@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useAuth } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { format } from "date-fns";
 // Import RequestInit from the DOM lib
 
 // UI Components
@@ -20,6 +21,9 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 
 // Define form schema
 const leadGroupFormSchema = z.object({
@@ -43,6 +47,7 @@ export default function LeadGroups() {
   const [selectedGroup, setSelectedGroup] = useState<number | null>(null);
   const [membersDialog, setMembersDialog] = useState(false);
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<number | null>(null);
+  const [rotationTab, setRotationTab] = useState<"members" | "rotation">("members");
 
   // Fetch groups
   const { data: groups, isLoading: groupsLoading } = useQuery({
@@ -60,6 +65,12 @@ export default function LeadGroups() {
   const { data: groupMembers, isLoading: membersLoading } = useQuery({
     queryKey: ["/api/lead-groups", selectedGroupForMembers, "members"],
     enabled: isAuthenticated && selectedGroupForMembers !== null
+  });
+
+  // Fetch rotation data for the selected group
+  const { data: rotationData, isLoading: rotationLoading } = useQuery({
+    queryKey: ["/api/lead-groups", selectedGroupForMembers, "rotation"],
+    enabled: isAuthenticated && selectedGroupForMembers !== null && rotationTab === "rotation"
   });
 
   // Form setup

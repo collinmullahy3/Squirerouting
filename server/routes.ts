@@ -8,7 +8,9 @@ import {
   agentGroupInsertSchema, 
   routingRuleInsertSchema, 
   leadStatusUpdateSchema,
-  leadGroupInsertSchema
+  leadGroupInsertSchema,
+  users,
+  leadGroupMembers
 } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
@@ -16,7 +18,8 @@ import pgSession from "connect-pg-simple";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
-import { pool } from "@db";
+import { pool, db } from "@db";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up session store with PostgreSQL
@@ -998,6 +1001,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const agents = await storage.getAgentsByLeadGroupId(id);
       res.json(agents);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get detailed rotation information for a lead group
+  app.get("/api/lead-groups/:id/rotation", isAuthenticated, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      // Get all agents in the group with their membership details
+      const agents = await db.query.users.findMany({
+        where: eq(users.role, 'agent'),
+        with: {
+          leadGroupMemberships: {
+            where: eq(leadGroupMembers.groupId, id)
+          }
+        }
+      }).then(users => 
+        users
+          .filter(user => user.leadGroupMemberships.length > 0)
+          .map(user => ({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+            lastAssignment: user.leadGroupMemberships[0]?.lastAssignment || null
+          }))
+      );
+      
+      // Sort agents by lastAssignment (null values first, then oldest first)
+      const sortedAgents = [...agents].sort((a, b) => {
+        if (!a.lastAssignment && !b.lastAssignment) return 0;
+        if (!a.lastAssignment) return -1;
+        if (!b.lastAssignment) return 1;
+        return new Date(a.lastAssignment).getTime() - new Date(b.lastAssignment).getTime();
+      });
+      
+      // Determine who's next and who was last
+      const nextAgent = sortedAgents.length > 0 ? sortedAgents[0] : null;
+      const lastAgent = sortedAgents.length > 0 
+        ? [...sortedAgents]
+            .filter(a => a.lastAssignment)
+            .sort((a, b) => new Date(b.lastAssignment!).getTime() - new Date(a.lastAssignment!).getTime())[0] || null
+        : null;
+      
+      res.json({
+        groupId: id,
+        agents: sortedAgents,
+        nextAgent,
+        lastAgent
+      });
     } catch (error) {
       next(error);
     }
