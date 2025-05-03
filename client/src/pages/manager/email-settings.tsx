@@ -4,7 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { InfoIcon, ClipboardIcon, AlertCircleIcon, MailIcon, CheckCircleIcon, XCircleIcon, SettingsIcon, SaveIcon, KeyIcon, LockIcon } from "lucide-react";
+import { InfoIcon, ClipboardIcon, AlertCircleIcon, MailIcon, CheckCircleIcon, XCircleIcon, SettingsIcon, SaveIcon, KeyIcon, LockIcon, SendIcon } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const simulatedEmailSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
@@ -489,12 +490,28 @@ export default function EmailSettings() {
             )}
           </CardContent>
           <CardFooter className="flex flex-col items-start gap-4">
+            <Alert variant="destructive">
+              <AlertCircleIcon className="h-4 w-4" />
+              <AlertTitle>Gmail Configuration Required</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p>Gmail requires special configuration to allow third-party apps to access your inbox:</p>
+                <ol className="list-decimal pl-5 space-y-1">
+                  <li>Enable 2-step verification on your Google account (if not already enabled)</li>
+                  <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="underline font-medium">App Passwords</a> in your Google Account</li>
+                  <li>Select "Mail" as the app and your device</li>
+                  <li>Click "Generate" to create an app password</li>
+                  <li>Use this app password (not your regular Gmail password) in the form above</li>
+                </ol>
+              </AlertDescription>
+            </Alert>
+            
             <Alert>
               <InfoIcon className="h-4 w-4" />
-              <AlertTitle>Email Security</AlertTitle>
+              <AlertTitle>Less Secure Apps Settings</AlertTitle>
               <AlertDescription>
-                Gmail accounts with 2-factor authentication enabled require an "App password" instead of your regular password.
-                You can create one in your Google Account security settings.
+                If you're not using 2-step verification, you'll need to enable "Less secure app access" in your
+                <a href="https://myaccount.google.com/lesssecureapps" target="_blank" rel="noopener noreferrer" className="underline font-medium"> Google Account settings</a>,
+                although this option is being deprecated by Google and may not be available.
               </AlertDescription>
             </Alert>
             
