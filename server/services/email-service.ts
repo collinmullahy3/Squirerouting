@@ -298,17 +298,23 @@ class EmailService {
         updatedAt: leadData.updatedAt
       });
       
+      // IMPORTANT: Normalize email to lowercase to ensure proper deduplication
+      if (leadData.email) {
+        leadData.email = leadData.email.toLowerCase();
+      }
+      
       // Check for lead deduplication window setting
       const deduplicationSetting = await storage.getSettingByKey('LEAD_DEDUPLICATION_DAYS');
       const deduplicationDays = deduplicationSetting ? parseInt(deduplicationSetting.value, 10) : 7; // Default to 7 days
       
       // Check if we have an existing lead from this email within the window
+      console.log(`Checking for existing lead with email ${leadData.email} within ${deduplicationDays} days window`);
       const existingLead = await storage.getLeadByEmailAndWindow(leadData.email, deduplicationDays);
       
       let lead;
       
       if (existingLead) {
-        console.log(`Found existing lead for ${leadData.email} within ${deduplicationDays} day window`);
+        console.log(`Found existing lead (ID: ${existingLead.id}) for ${leadData.email} within ${deduplicationDays} day window`);
         // Update the existing lead with new information
         lead = await storage.updateLeadFromNewInquiry(existingLead.id, leadData);
         if (!lead) {
@@ -356,7 +362,8 @@ class EmailService {
       // Extract email using regex
       const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
       const emailMatches = text.match(emailRegex) || [];
-      const clientEmail = emailMatches.length > 0 ? emailMatches[0] : '';
+      // Convert to lowercase to ensure proper matching
+      const clientEmail = emailMatches.length > 0 ? emailMatches[0].toLowerCase() : '';
 
       // Extract phone using regex
       const phoneRegex = /(\+\d{1,2}\s?)?(\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}/g;

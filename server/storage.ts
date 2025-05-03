@@ -181,9 +181,14 @@ export const storage = {
     const windowDate = new Date();
     windowDate.setDate(windowDate.getDate() - windowDays);
     
+    // Normalize email to lowercase for case-insensitive comparison
+    const normalizedEmail = email.toLowerCase();
+    console.log(`Looking for leads with email ${normalizedEmail} after ${windowDate}`);
+    
+    // Use SQL to make a case-insensitive query
     const result = await db.query.leads.findFirst({
       where: and(
-        eq(leads.email, email),
+        sql`LOWER(${leads.email}) = ${normalizedEmail}`,
         gte(leads.receivedAt, windowDate)
       ),
       orderBy: [desc(leads.receivedAt)],
@@ -191,6 +196,12 @@ export const storage = {
         assignedAgent: true
       }
     });
+    
+    if (result) {
+      console.log(`Found existing lead with ID ${result.id} for email ${normalizedEmail}`);
+    } else {
+      console.log(`No existing lead found for email ${normalizedEmail} within date window`);
+    }
     
     return result || null;
   },
