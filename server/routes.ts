@@ -534,7 +534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/email-service-status", isManager, (req, res) => {
     res.json({
       isRunning: emailService.isListening,
-      initialized: true,
+      initialized: emailInitialized,
       forwardingEmail: emailService.forwardingEmail
     });
   });
