@@ -49,26 +49,85 @@ export default function LeadGroups() {
   const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<number | null>(null);
   const [rotationTab, setRotationTab] = useState<"members" | "rotation">("members");
 
+  // Define lead group type
+  type LeadGroupType = {
+    id: number;
+    name: string;
+    description?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    zipCodes?: string[];
+    addressPattern?: string;
+    priority: number;
+    isActive: boolean;
+    members?: { id: number; name: string }[];
+  };
+
   // Fetch groups
-  const { data: groups, isLoading: groupsLoading } = useQuery({
+  const { data: groups, isLoading: groupsLoading } = useQuery<LeadGroupType[]>({
     queryKey: ["/api/lead-groups"],
     enabled: isAuthenticated
   });
 
+  // Define agent type
+  type AgentType = {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    phone?: string;
+    avatarUrl?: string;
+  };
+
+  // Define group member type
+  type GroupMemberType = {
+    id: number;
+    name: string;
+    email: string;
+    avatarUrl?: string;
+    lastAssignment?: string;
+  };
+
   // Fetch agents
-  const { data: agents, isLoading: agentsLoading } = useQuery({
+  const { data: agents, isLoading: agentsLoading } = useQuery<AgentType[]>({
     queryKey: ["/api/agents"],
     enabled: isAuthenticated
   });
 
   // Fetch group members for the selected group
-  const { data: groupMembers, isLoading: membersLoading } = useQuery({
+  const { data: groupMembers, isLoading: membersLoading } = useQuery<GroupMemberType[]>({
     queryKey: ["/api/lead-groups", selectedGroupForMembers, "members"],
     enabled: isAuthenticated && selectedGroupForMembers !== null
   });
 
+  // Define rotation data type
+  type RotationDataType = {
+    groupId: number;
+    agents: Array<{
+      id: number;
+      name: string;
+      email: string;
+      avatarUrl?: string;
+      lastAssignment: string | null;
+    }>;
+    nextAgent: {
+      id: number;
+      name: string;
+      email: string;
+      avatarUrl?: string;
+      lastAssignment: string | null;
+    } | null;
+    lastAgent: {
+      id: number;
+      name: string;
+      email: string;
+      avatarUrl?: string;
+      lastAssignment: string | null;
+    } | null;
+  }
+
   // Fetch rotation data for the selected group
-  const { data: rotationData, isLoading: rotationLoading } = useQuery({
+  const { data: rotationData, isLoading: rotationLoading } = useQuery<RotationDataType>({
     queryKey: ["/api/lead-groups", selectedGroupForMembers, "rotation"],
     enabled: isAuthenticated && selectedGroupForMembers !== null && rotationTab === "rotation"
   });
@@ -330,7 +389,7 @@ export default function LeadGroups() {
                         </TableCell>
                         <TableCell>{group.addressPattern || "Any"}</TableCell>
                         <TableCell>
-                          <Badge variant={group.isActive ? "success" : "warning"}>
+                          <Badge className={group.isActive ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-amber-100 text-amber-800 hover:bg-amber-200"}>
                             {group.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
@@ -618,7 +677,7 @@ export default function LeadGroups() {
                   </div>
                   
                   {/* Next Agent */}
-                  {rotationData.nextAgent && (
+                  {rotationData && rotationData.nextAgent && (
                     <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                       <h4 className="text-sm font-semibold mb-2 text-green-700 dark:text-green-400">Next to Receive a Lead</h4>
                       <div className="flex items-center space-x-3">
@@ -641,7 +700,7 @@ export default function LeadGroups() {
                   )}
                   
                   {/* Last Agent */}
-                  {rotationData.lastAgent && (
+                  {rotationData && rotationData.lastAgent && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                       <h4 className="text-sm font-semibold mb-2 text-blue-700 dark:text-blue-400">Most Recently Received a Lead</h4>
                       <div className="flex items-center space-x-3">
@@ -668,7 +727,7 @@ export default function LeadGroups() {
                   {/* Full rotation order */}
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Complete Rotation Order</h4>
-                    {rotationData.agents.length > 0 ? (
+                    {rotationData && rotationData.agents && rotationData.agents.length > 0 ? (
                       <div className="grid grid-cols-1 gap-3">
                         {rotationData.agents.map((agent: any, index: number) => (
                           <div 
