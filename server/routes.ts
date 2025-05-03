@@ -548,8 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: item.agent.id,
         name: item.agent.name,
         email: item.agent.email,
-        leadCount: item.leadCount,
-        avgResponseTimeMinutes: item.avgResponseTimeMinutes,
+        closedLeadCount: item.closedLeadCount,
         avatarUrl: item.agent.avatarUrl,
       })));
     } catch (error) {

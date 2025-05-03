@@ -180,6 +180,17 @@ async function seed() {
     const createdLeads = await db.insert(schema.leads).values(leads).returning();
     console.log(`Created ${createdLeads.length} leads`);
     
+    // Create system settings
+    await db.insert(schema.systemSettings).values([
+      {
+        key: "LEAD_DEDUPLICATION_DAYS",
+        value: "7",
+        type: "system",
+        description: "Number of days to consider emails from the same sender as part of the same lead"
+      }
+    ]);
+    console.log("Created system settings");
+
     // Create lead status history
     const statusHistories = [
       {
