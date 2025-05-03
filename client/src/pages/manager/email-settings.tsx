@@ -161,6 +161,52 @@ export default function EmailSettings() {
   const handleDeduplicationUpdate = (data: DeduplicationFormValues) => {
     updateDeduplicationMutation.mutate(data);
   };
+  
+  // Form for email credentials
+  const emailCredentialsForm = useForm<EmailCredentialsFormValues>({
+    resolver: zodResolver(emailCredentialsSchema),
+    defaultValues: {
+      emailUser: emailCredentials?.emailUser || '',
+      emailPassword: ''
+    }
+  });
+  
+  // Update form values when credentials are loaded
+  React.useEffect(() => {
+    if (emailCredentials) {
+      emailCredentialsForm.reset({
+        emailUser: emailCredentials.emailUser,
+        emailPassword: '' // Don't show the password
+      });
+    }
+  }, [emailCredentials, emailCredentialsForm]);
+  
+  // Update email credentials
+  const updateEmailCredentialsMutation = useMutation({
+    mutationFn: async (data: EmailCredentialsFormValues) => {
+      return await apiRequest("POST", "/api/admin/email-credentials", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/email-credentials"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/email-service-status"] });
+      toast({
+        title: "Credentials Updated",
+        description: "Email credentials have been updated and the service has been restarted."
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating email credentials:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update email credentials",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  const handleEmailCredentialsUpdate = (data: EmailCredentialsFormValues) => {
+    updateEmailCredentialsMutation.mutate(data);
+  };
 
   return (
     <div className="p-8">
@@ -330,6 +376,90 @@ export default function EmailSettings() {
               </form>
             </Form>
           </CardContent>
+        </Card>
+        
+        {/* Email Service Credentials Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyIcon className="h-5 w-5" />
+              Email Service Credentials
+            </CardTitle>
+            <CardDescription>
+              Configure the email account that will be used to check for new leads. This must be a Gmail account with IMAP access enabled.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isEmailCredentialsLoading ? (
+              <div className="h-24 flex items-center justify-center">
+                <div className="animate-spin h-6 w-6 border-2 border-primary border-opacity-50 border-t-primary rounded-full"></div>
+              </div>
+            ) : (
+              <Form {...emailCredentialsForm}>
+                <form onSubmit={emailCredentialsForm.handleSubmit(handleEmailCredentialsUpdate)} className="space-y-4">
+                  <FormField
+                    control={emailCredentialsForm.control}
+                    name="emailUser"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input placeholder="leads@yourdomain.com" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Gmail account where real estate portals will send leads to.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={emailCredentialsForm.control}
+                    name="emailPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Password {emailCredentials?.hasPassword && <span className="text-xs text-slate-500 font-normal">(leave blank to keep current password)</span>}</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input 
+                              type="password" 
+                              placeholder={emailCredentials?.hasPassword ? "●●●●●●●●" : "Enter email password"} 
+                              {...field} 
+                            />
+                            <LockIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Make sure to create an "App password" for Gmail if you have 2FA enabled.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button 
+                    type="submit" 
+                    className="flex items-center gap-2"
+                    disabled={updateEmailCredentialsMutation.isPending}
+                  >
+                    <SaveIcon className="h-4 w-4" />
+                    {updateEmailCredentialsMutation.isPending ? "Saving..." : "Save Credentials"}
+                  </Button>
+                </form>
+              </Form>
+            )}
+          </CardContent>
+          <CardFooter className="flex flex-col items-start gap-4">
+            <Alert>
+              <InfoIcon className="h-4 w-4" />
+              <AlertTitle>Email Security</AlertTitle>
+              <AlertDescription>
+                Gmail accounts with 2-factor authentication enabled require an "App password" instead of your regular password.
+                You can create one in your Google Account security settings.
+              </AlertDescription>
+            </Alert>
+          </CardFooter>
         </Card>
         
         {/* Lead Deduplication Settings Card */}
