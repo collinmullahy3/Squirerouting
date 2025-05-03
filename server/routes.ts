@@ -999,8 +999,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid ID" });
       }
       
-      const agents = await storage.getAgentsByLeadGroupId(id);
-      res.json(agents);
+      // Only get agents already in this group
+      const memberAgents = await db.query.leadGroupMembers.findMany({
+        where: eq(leadGroupMembers.groupId, id),
+        with: {
+          agent: true
+        }
+      }).then(members => members.map(m => m.agent));
+      
+      res.json(memberAgents);
     } catch (error) {
       next(error);
     }

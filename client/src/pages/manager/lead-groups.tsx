@@ -663,49 +663,105 @@ export default function LeadGroups() {
               {membersLoading || agentsLoading ? (
                 <div className="py-8 text-center">Loading agents...</div>
               ) : agents && agents.length > 0 ? (
-                <div className="max-h-[400px] overflow-y-auto">
-                  {/* Debug info - remove after testing */}
-                  <div className="text-xs mb-2 p-2 bg-slate-100 rounded dark:bg-slate-800">
-                    Group ID: {selectedGroupForMembers}, Members: {groupMembers ? groupMembers.length : 0} agents
+                <div className="max-h-[500px] overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Group members list */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Group Members</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        These agents will receive leads matching this group's criteria in rotation order.
+                      </p>
+                      
+                      {/* Member list */}
+                      <div className="border rounded-md">
+                        {Array.isArray(groupMembers) && groupMembers.length > 0 ? (
+                          <div className="divide-y">
+                            {groupMembers.map((agent: any) => (
+                              <div key={agent.id} className="p-3 flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <Avatar className="h-9 w-9">
+                                    <AvatarImage src={agent.avatarUrl} />
+                                    <AvatarFallback>
+                                      {agent.name.split(' ').map((part: string) => part[0]).join('')}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="font-medium">{agent.name}</p>
+                                    <p className="text-sm text-muted-foreground">{agent.email}</p>
+                                  </div>
+                                </div>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleRemoveAgent(agent.id)}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-6 text-center text-muted-foreground">
+                            <div className="mb-2">No agents in this group yet</div>
+                            <div className="text-sm">Add agents from the list on the right</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Available agents list */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Available Agents</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Select agents to add to this lead group.
+                      </p>
+                      
+                      {/* Filterable list of available agents */}
+                      <div className="relative">
+                        <Input 
+                          placeholder="Filter agents..." 
+                          className="mb-3" 
+                          onChange={(e) => {
+                            // TODO: Add filtering logic if needed
+                          }} 
+                        />
+                      </div>
+                      
+                      <div className="border rounded-md">
+                        <div className="divide-y">
+                          {Array.isArray(agents) && agents.filter(agent => {
+                            // Only show agents not already in the group
+                            return !Array.isArray(groupMembers) || 
+                              !groupMembers.some(member => member.id === agent.id);
+                          }).map((agent: any) => (
+                            <div key={agent.id} className="p-3 flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <Avatar className="h-9 w-9">
+                                  <AvatarImage src={agent.avatarUrl} />
+                                  <AvatarFallback>
+                                    {agent.name.split(' ').map((part: string) => part[0]).join('')}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">{agent.name}</p>
+                                  <p className="text-sm text-muted-foreground">{agent.email}</p>
+                                </div>
+                              </div>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleAddAgent(agent.id)}
+                                className="text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                Add
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Agent</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Member</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {agents.map((agent: any) => {
-                        // Check if agent is already a member of this group
-                        const isMember = Array.isArray(groupMembers) && 
-                          groupMembers.some((member: any) => {
-                            return member.id === agent.id;
-                          });
-                          
-                        return (
-                          <TableRow key={agent.id}>
-                            <TableCell className="font-medium">{agent.name}</TableCell>
-                            <TableCell>{agent.email}</TableCell>
-                            <TableCell>
-                              <Checkbox
-                                id={`agent-${agent.id}`}
-                                checked={isMember}
-                                onCheckedChange={(checked) => {
-                                  if (checked === true) {
-                                    handleAddAgent(agent.id);
-                                  } else {
-                                    handleRemoveAgent(agent.id);
-                                  }
-                                }}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
                 </div>
               ) : (
                 <div className="py-8 text-center text-muted-foreground">
