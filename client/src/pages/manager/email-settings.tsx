@@ -62,14 +62,7 @@ export default function EmailSettings() {
   // For demo purposes - simulate receiving an email
   const handleSimulateEmail = async (data: SimulatedEmailFormValues) => {
     try {
-      const response = await apiRequest<{ success: boolean }>(
-        "/api/admin/simulate-email", 
-        { 
-          method: "POST", 
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        }
-      );
+      const response = await apiRequest<{ success: boolean }>("POST", "/api/admin/simulate-email", data);
       
       if (response && response.success) {
         toast({

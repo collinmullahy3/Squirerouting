@@ -24,7 +24,7 @@ import EmailSettings from "@/pages/manager/email-settings";
 import MyLeads from "@/pages/agent/my-leads";
 import MyPerformance from "@/pages/agent/my-performance";
 
-function Router() {
+const Router = () => {
   return (
     <AuthProvider>
       <div className="flex h-screen overflow-hidden">

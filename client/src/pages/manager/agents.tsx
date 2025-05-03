@@ -48,6 +48,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -279,9 +280,22 @@ const Agents = () => {
                         <Button variant="outline" size="sm">
                           Edit
                         </Button>
-                        <Button variant="outline" size="sm">
-                          Assign Groups
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              Assign Groups
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Assign Agent to Groups</DialogTitle>
+                              <DialogDescription>
+                                Select which agent groups {agent.name} should belong to.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <AssignGroupsContent agentId={agent.id} currentGroups={agent.groups || []} />
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -295,6 +309,125 @@ const Agents = () => {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+};
+
+// Component for the assign groups dialog content
+interface AssignGroupsContentProps {
+  agentId: number;
+  currentGroups: {id: number, name: string}[];
+}
+
+const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProps) => {
+  const [selectedGroups, setSelectedGroups] = useState<number[]>(
+    currentGroups.map(group => group.id)
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch all groups
+  const { data: groups, isLoading } = useQuery({
+    queryKey: ["/api/agent-groups"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/agent-groups");
+      return response;
+    },
+  });
+
+  const handleToggleGroup = (groupId: number) => {
+    setSelectedGroups(prev => {
+      if (prev.includes(groupId)) {
+        return prev.filter(id => id !== groupId);
+      } else {
+        return [...prev, groupId];
+      }
+    });
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    
+    try {
+      // First, get current assignments to determine what changed
+      const currentAssignments = currentGroups.map(g => g.id);
+      
+      // Groups to add (in selected but not in current)
+      const groupsToAdd = selectedGroups.filter(id => !currentAssignments.includes(id));
+      
+      // Groups to remove (in current but not in selected)
+      const groupsToRemove = currentAssignments.filter(id => !selectedGroups.includes(id));
+      
+      // Add agent to new groups
+      for (const groupId of groupsToAdd) {
+        await apiRequest(
+          "POST", 
+          `/api/agent-groups/${groupId}/members/${agentId}`
+        );
+      }
+      
+      // Remove agent from groups they should no longer be in
+      for (const groupId of groupsToRemove) {
+        await apiRequest(
+          "DELETE", 
+          `/api/agent-groups/${groupId}/members/${agentId}`
+        );
+      }
+      
+      // Show success message
+      toast({
+        title: "Groups updated",
+        description: "The agent's group assignments have been updated.",
+      });
+      
+      // Refresh the agents list
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+    } catch (error) {
+      console.error("Error updating agent groups:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update agent groups",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="py-4">
+      {isLoading ? (
+        <div className="py-8 text-center">Loading groups...</div>
+      ) : groups && groups.length > 0 ? (
+        <>
+          <div className="space-y-4 mb-6">
+            {groups.map((group: any) => (
+              <div key={group.id} className="flex items-center space-x-2">
+                <Checkbox 
+                  id={`group-${group.id}`}
+                  checked={selectedGroups.includes(group.id)}
+                  onCheckedChange={() => handleToggleGroup(group.id)}
+                />
+                <label 
+                  htmlFor={`group-${group.id}`}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {group.name}
+                </label>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </>
+      ) : (
+        <div className="py-8 text-center text-muted-foreground">
+          No agent groups found. Please create agent groups first.
+        </div>
+      )}
     </div>
   );
 };
