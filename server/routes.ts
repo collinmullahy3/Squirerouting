@@ -705,6 +705,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // SendGrid API key endpoint
+  app.get("/api/admin/sendgrid-credentials", isManager, async (req, res, next) => {
+    try {
+      const sendgridKeySetting = await storage.getSettingByKey("SENDGRID_API_KEY");
+      
+      res.json({
+        hasApiKey: !!sendgridKeySetting?.value || !!process.env.SENDGRID_API_KEY
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Update SendGrid API key
+  app.post("/api/admin/sendgrid-credentials", isManager, async (req, res, next) => {
+    try {
+      const { apiKey } = req.body;
+      const userId = (req.user as any).id;
+      
+      if (!apiKey) {
+        return res.status(400).json({ error: "SendGrid API Key is required" });
+      }
+      
+      // Update the API key
+      await storage.updateSetting(
+        "SENDGRID_API_KEY", 
+        apiKey, 
+        "system", 
+        userId, 
+        "SendGrid API Key for email notifications"
+      );
+      
+      // Initialize the email sender service
+      const { emailSender } = await import('./services/email-sender');
+      const initialized = await emailSender.initialize();
+      
+      res.json({ success: true, initialized });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // System Settings endpoints
   app.get("/api/settings", isManager, async (req, res, next) => {
     try {
