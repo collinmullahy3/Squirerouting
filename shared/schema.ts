@@ -65,6 +65,7 @@ export const leads = pgTable("leads", {
   email: text("email").notNull(),
   phone: text("phone"),
   price: decimal("price", { precision: 12, scale: 2 }),
+  priceMax: decimal("price_max", { precision: 12, scale: 2 }),
   zipCode: text("zip_code"),
   address: text("address"),
   source: text("source"),
@@ -74,6 +75,7 @@ export const leads = pgTable("leads", {
   notes: text("notes"),
   propertyUrl: text("property_url"),
   thumbnailUrl: text("thumbnail_url"),
+  movingDate: timestamp("moving_date"),
   receivedAt: timestamp("received_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
