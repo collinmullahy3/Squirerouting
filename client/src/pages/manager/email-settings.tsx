@@ -26,10 +26,11 @@ export default function EmailSettings() {
   // Set up the mutation for saving
   const { mutate: saveCredentials, isPending } = useMutation({
     mutationFn: async (credentials: { email: string; password: string }) => {
-      return apiRequest<{ success: boolean }>(('/api/admin/email-settings'), {
-        method: 'POST',
-        body: JSON.stringify(credentials),
-      });
+      return apiRequest<{ success: boolean }>(
+        'POST',
+        '/api/admin/email-settings',
+        credentials
+      );
     },
     onSuccess: () => {
       toast({
