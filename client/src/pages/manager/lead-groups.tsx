@@ -113,10 +113,7 @@ export default function LeadGroups() {
         zipCodes: data.zipCodes ? data.zipCodes.split(",").map(zip => zip.trim()).filter(Boolean) : undefined,
       };
       
-      return await apiRequest<any>(`/api/lead-groups/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(formattedData),
-      });
+      return await apiRequest<any>("PUT", `/api/lead-groups/${id}`, formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lead-groups"] });
@@ -137,9 +134,7 @@ export default function LeadGroups() {
 
   const addAgentToGroupMutation = useMutation({
     mutationFn: async ({ groupId, agentId }: { groupId: number; agentId: number }) => {
-      return await apiRequest<any>(`/api/lead-groups/${groupId}/members/${agentId}`, {
-        method: "POST",
-      });
+      return await apiRequest<any>("POST", `/api/lead-groups/${groupId}/members/${agentId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lead-groups", selectedGroupForMembers, "members"] });
@@ -159,9 +154,7 @@ export default function LeadGroups() {
 
   const removeAgentFromGroupMutation = useMutation({
     mutationFn: async ({ groupId, agentId }: { groupId: number; agentId: number }) => {
-      return await apiRequest<any>(`/api/lead-groups/${groupId}/members/${agentId}`, {
-        method: "DELETE",
-      });
+      return await apiRequest<any>("DELETE", `/api/lead-groups/${groupId}/members/${agentId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lead-groups", selectedGroupForMembers, "members"] });
