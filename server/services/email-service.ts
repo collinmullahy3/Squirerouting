@@ -431,6 +431,21 @@ class EmailService {
       const uniqueAddresses = [...new Set(addressMatches)];
       const address = uniqueAddresses.length > 0 ? uniqueAddresses[0] : '';
       
+      // Extract unit/apartment number
+      const unitRegex = /(?:apt|apartment|unit|suite|#)\s*([a-zA-Z0-9-]+)/i;
+      const unitMatches = text.match(unitRegex) || subject.match(unitRegex) || [];
+      const unitNumber = unitMatches.length > 1 ? unitMatches[1] : '';
+      
+      // Extract bed count
+      const bedRegex = /(\d+)\s*(?:bed|bedroom|br)/i;
+      const bedMatches = text.match(bedRegex) || subject.match(bedRegex) || [];
+      const bedCount = bedMatches.length > 1 ? parseInt(bedMatches[1]) : null;
+      
+      // Extract neighborhood - look for common neighborhood indicators
+      const neighborhoodRegex = /(?:in|at|near)\s+([a-zA-Z\s]+(?:heights|village|park|hills|district|square|gardens|acres|place))/i;
+      const neighborhoodMatches = text.match(neighborhoodRegex) || subject.match(neighborhoodRegex) || [];
+      const neighborhood = neighborhoodMatches.length > 1 ? neighborhoodMatches[1].trim() : '';
+      
       // Extract property URLs - look in both text and HTML content
       const urlRegex = /(https?:\/\/[^\s"'<>]+)/g;
       const textUrlMatches = text.match(urlRegex) || [];
@@ -491,6 +506,39 @@ class EmailService {
         imageUrlsCount: allImageUrls.length
       });
 
+      // Extract the source (website that sent the lead)
+      let source = 'Email';
+      
+      // Check sender address domain for known real estate websites
+      const sourceDomainRegex = /@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i;
+      const sourceDomainMatch = from.match(sourceDomainRegex);
+      if (sourceDomainMatch && sourceDomainMatch.length > 1) {
+        const domain = sourceDomainMatch[1].toLowerCase();
+        
+        if (domain.includes('zillow')) {
+          source = 'Zillow.com';
+        } else if (domain.includes('trulia')) {
+          source = 'Trulia.com';
+        } else if (domain.includes('realtor')) {
+          source = 'Realtor.com';
+        } else if (domain.includes('apartments')) {
+          source = 'Apartments.com';
+        } else if (domain.includes('streeteasy')) {
+          source = 'StreetEasy.com';
+        } else if (domain.includes('zumper')) {
+          source = 'Zumper.com';
+        } else if (domain.includes('redfin')) {
+          source = 'Redfin.com';
+        } else if (domain.includes('hotpads')) {
+          source = 'HotPads.com';
+        } else if (domain.includes('renthop')) {
+          source = 'RentHop.com';
+        } else {
+          // Use the domain as the source if it's not a recognized platform
+          source = domain;
+        }
+      }
+      
       // Extract name - might be in the subject or from field
       let name = '';
       
@@ -538,7 +586,10 @@ class EmailService {
         priceMax: priceMax ? priceMax.toString() : null,
         zipCode: zipCode || '',
         address: address || '',
-        source: 'Email',
+        unitNumber: unitNumber || '',
+        neighborhood: neighborhood || '',
+        bedCount: bedCount,
+        source: source,
         propertyUrl: propertyUrl || null,
         thumbnailUrl: thumbnailUrl || null,
         originalEmail,
