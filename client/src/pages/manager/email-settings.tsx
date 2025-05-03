@@ -209,7 +209,7 @@ export default function EmailSettings() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-8 overflow-y-auto max-h-screen pb-20">
       <h1 className="text-3xl font-bold mb-6">Email Settings</h1>
       
       <div className="grid gap-6 mb-8">

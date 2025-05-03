@@ -204,7 +204,20 @@ class EmailService {
         return false;
       }
       
-      console.log('Extracted lead data:', leadData);
+      // Log full lead data for debugging
+      console.log('Extracted lead data:', {
+        name: leadData.name,
+        email: leadData.email,
+        phone: leadData.phone,
+        price: leadData.price,
+        zipCode: leadData.zipCode,
+        address: leadData.address,
+        source: leadData.source,
+        propertyUrl: leadData.propertyUrl,
+        thumbnailUrl: leadData.thumbnailUrl,
+        receivedAt: leadData.receivedAt,
+        updatedAt: leadData.updatedAt
+      });
       
       // Check for lead deduplication window setting
       const deduplicationSetting = await storage.getSettingByKey('LEAD_DEDUPLICATION_DAYS');
