@@ -541,22 +541,57 @@ export default function RoutingRules() {
                   <FormItem>
                     <FormLabel>Priority (Higher values are evaluated first)</FormLabel>
                     <FormControl>
-                      <div className="flex items-center space-x-4">
-                        <Slider
-                          onValueChange={(values) => field.onChange(values[0])}
-                          defaultValue={[field.value]}
-                          max={100}
-                          step={1}
-                          className="flex-1"
-                        />
-                        <Input
-                          type="number"
-                          value={field.value}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                          className="w-16"
-                        />
+                      <div className="flex flex-col w-full gap-1">
+                        {/* Priority ruler with markers for existing rules */}
+                        <div className="relative h-4 w-full mb-2">
+                          {/* Ruler background */}
+                          <div className="absolute h-1 w-full bg-slate-200 top-1.5 rounded-full"></div>
+                          
+                          {/* Rule priority markers */}
+                          {rules && rules.filter((r: any) => 
+                            // Don't show marker for the rule being edited
+                            selectedRule !== r.id
+                          ).map((rule: any) => (
+                            <div 
+                              key={rule.id}
+                              className="absolute h-3 w-1 bg-slate-500 top-0.5 rounded-full"
+                              style={{ 
+                                left: `${rule.priority}%`, 
+                                transform: 'translateX(-50%)',
+                                backgroundColor: rule.isActive ? (rule.priority > 75 ? '#ef4444' : (rule.priority > 50 ? '#f59e0b' : (rule.priority > 25 ? '#3b82f6' : '#10b981'))) : '#94a3b8',
+                              }}
+                              title={`${rule.name}: ${rule.priority}`}
+                            />
+                          ))}
+                          
+                          {/* Priority labels */}
+                          <div className="absolute -top-4 left-0 text-[10px] text-slate-500">Low Priority</div>
+                          <div className="absolute -top-4 right-0 text-[10px] text-slate-500">High Priority</div>
+                        </div>
+                        
+                        {/* The actual slider */}
+                        <div className="flex items-center space-x-4">
+                          <Slider
+                            onValueChange={(values) => field.onChange(values[0])}
+                            defaultValue={[field.value]}
+                            max={100}
+                            step={1}
+                            className="flex-1"
+                          />
+                          <Input
+                            type="number"
+                            value={field.value}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            className="w-16"
+                          />
+                        </div>
                       </div>
                     </FormControl>
+                    
+                    {/* Small description to explain the markers */}
+                    <FormDescription>
+                      Markers on the slider show where your existing rules are set. Higher priorities take precedence over lower ones.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
