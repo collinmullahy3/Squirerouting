@@ -705,43 +705,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // SendGrid API key endpoint
-  app.get("/api/admin/sendgrid-credentials", isManager, async (req, res, next) => {
+  // Endpoint to get email settings status
+  app.get("/api/admin/email-settings", isManager, async (req, res, next) => {
     try {
-      const sendgridKeySetting = await storage.getSettingByKey("SENDGRID_API_KEY");
+      const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+      const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
       
       res.json({
-        hasApiKey: !!sendgridKeySetting?.value || !!process.env.SENDGRID_API_KEY
+        hasCredentials: !!(emailUserSetting?.value || process.env.EMAIL_USER) && 
+                     !!(emailPasswordSetting?.value || process.env.EMAIL_PASSWORD),
+        email: emailUserSetting?.value || process.env.EMAIL_USER || ''
       });
     } catch (error) {
       next(error);
     }
   });
   
-  // Update SendGrid API key
-  app.post("/api/admin/sendgrid-credentials", isManager, async (req, res, next) => {
+  // Update email settings
+  app.post("/api/admin/email-settings", isManager, async (req, res, next) => {
     try {
-      const { apiKey } = req.body;
+      const { email, password } = req.body;
       const userId = (req.user as any).id;
       
-      if (!apiKey) {
-        return res.status(400).json({ error: "SendGrid API Key is required" });
+      if (!email || !password) {
+        return res.status(400).json({ error: "Both email and password are required" });
       }
       
-      // Update the API key
+      // Update the email settings
       await storage.updateSetting(
-        "SENDGRID_API_KEY", 
-        apiKey, 
-        "system", 
+        "EMAIL_USER", 
+        email, 
+        "email", 
         userId, 
-        "SendGrid API Key for email notifications"
+        "Email account for notifications"
       );
       
-      // Initialize the email sender service
-      const { emailSender } = await import('./services/email-sender');
-      const initialized = await emailSender.initialize();
+      await storage.updateSetting(
+        "EMAIL_PASSWORD", 
+        password, 
+        "email", 
+        userId, 
+        "Email account password"
+      );
       
-      res.json({ success: true, initialized });
+      // Reinitialize the email service
+      await emailService.initialize();
+      
+      res.json({ success: true });
     } catch (error) {
       next(error);
     }

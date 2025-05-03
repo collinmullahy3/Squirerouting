@@ -86,9 +86,6 @@ export default function Sidebar({ className }: SidebarProps) {
                     <NavItem href="/email-settings" icon="mail" active={location === "/email-settings"}>
                       Email Settings
                     </NavItem>
-                    <NavItem href="/sendgrid-settings" icon="send" active={location === "/sendgrid-settings"}>
-                      SendGrid Settings
-                    </NavItem>
                   </>
                 )}
                 
