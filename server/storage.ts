@@ -116,6 +116,7 @@ export const storage = {
   },
 
   async getAgentsByLeadGroupId(groupId: number): Promise<User[]> {
+    // Get all agents and their membership status in this group
     return await db.query.users.findMany({
       where: eq(users.role, 'agent'),
       with: {
@@ -123,7 +124,7 @@ export const storage = {
           where: eq(leadGroupMembers.groupId, groupId)
         }
       }
-    }).then(users => users.filter(user => user.leadGroupMemberships.length > 0));
+    });
   },
 
   async getLeadGroupsByAgentId(agentId: number): Promise<LeadGroup[]> {

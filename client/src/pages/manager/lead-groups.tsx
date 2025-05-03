@@ -97,6 +97,12 @@ export default function LeadGroups() {
   // Fetch group members for the selected group
   const { data: groupMembers, isLoading: membersLoading } = useQuery<GroupMemberType[]>({
     queryKey: ["/api/lead-groups", selectedGroupForMembers, "members"],
+    queryFn: async () => {
+      if (!selectedGroupForMembers) return [];
+      const response = await apiRequest("GET", `/api/lead-groups/${selectedGroupForMembers}/members`);
+      console.log('Group members response:', response); // Debug log
+      return response;
+    },
     enabled: isAuthenticated && selectedGroupForMembers !== null
   });
 
@@ -129,6 +135,16 @@ export default function LeadGroups() {
   // Fetch rotation data for the selected group
   const { data: rotationData, isLoading: rotationLoading } = useQuery<RotationDataType>({
     queryKey: ["/api/lead-groups", selectedGroupForMembers, "rotation"],
+    queryFn: async () => {
+      if (!selectedGroupForMembers) return null;
+      try {
+        const response = await apiRequest("GET", `/api/lead-groups/${selectedGroupForMembers}/rotation`);
+        return response || { groupId: selectedGroupForMembers, agents: [], nextAgent: null, lastAgent: null };
+      } catch (error) {
+        console.error('Error fetching rotation data:', error);
+        return { groupId: selectedGroupForMembers, agents: [], nextAgent: null, lastAgent: null };
+      }
+    },
     enabled: isAuthenticated && selectedGroupForMembers !== null && rotationTab === "rotation"
   });
 
@@ -648,6 +664,10 @@ export default function LeadGroups() {
                 <div className="py-8 text-center">Loading agents...</div>
               ) : agents && agents.length > 0 ? (
                 <div className="max-h-[400px] overflow-y-auto">
+                  {/* Debug info - remove after testing */}
+                  <div className="text-xs mb-2 p-2 bg-slate-100 rounded dark:bg-slate-800">
+                    Group ID: {selectedGroupForMembers}, Members: {groupMembers ? groupMembers.length : 0} agents
+                  </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -658,8 +678,12 @@ export default function LeadGroups() {
                     </TableHeader>
                     <TableBody>
                       {agents.map((agent: any) => {
+                        // Check if agent is already a member of this group
                         const isMember = Array.isArray(groupMembers) && 
-                          groupMembers.some((member: any) => member.id === agent.id);
+                          groupMembers.some((member: any) => {
+                            return member.id === agent.id;
+                          });
+                          
                         return (
                           <TableRow key={agent.id}>
                             <TableCell className="font-medium">{agent.name}</TableCell>
@@ -669,7 +693,7 @@ export default function LeadGroups() {
                                 id={`agent-${agent.id}`}
                                 checked={isMember}
                                 onCheckedChange={(checked) => {
-                                  if (checked) {
+                                  if (checked === true) {
                                     handleAddAgent(agent.id);
                                   } else {
                                     handleRemoveAgent(agent.id);
