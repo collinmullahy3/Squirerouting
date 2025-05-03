@@ -56,7 +56,7 @@ export default function Sidebar({ className }: SidebarProps) {
           <div className="flex flex-col h-0 flex-1 bg-slate-800">
             <div className="flex items-center h-20 flex-shrink-0 px-4 bg-slate-900">
               <div className="flex items-center gap-3">
-                <img src="https://drive.google.com/uc?export=view&id=1tQ7g52Tgsi4pBTnBeO4Jb_rmZk9LRUEZ" alt="Squire Logo" className="h-10 w-auto" />
+                <img src="/Squire-logo.png" alt="Squire Logo" className="h-10 w-auto" />
                 <h1 className="text-2xl font-bold text-white">Squire</h1>
               </div>
             </div>
