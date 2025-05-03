@@ -700,6 +700,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // Test endpoint for direct email sending (bypassing database)
+  app.post("/api/test/direct-email", async (req, res, next) => {
+    try {
+      const { 
+        subject = "Test Real Estate Inquiry",
+        text,
+        html,
+        recipientEmail,
+        senderEmail = "michael.chen@example.com",
+        address = "1435 Franklin Street",
+        unitNumber = "502",
+      } = req.body;
+      
+      if (!recipientEmail) {
+        return res.status(400).json({ success: false, message: "Recipient email is required" });
+      }
+      
+      // Create a fake agent and lead for testing
+      const testAgent = {
+        id: 999,
+        name: "Test Agent",
+        email: recipientEmail
+      };
+      
+      const testLead = {
+        id: 999,
+        name: subject,
+        email: senderEmail,
+        phone: "(510) 555-1234",
+        address: address,
+        unitNumber: unitNumber,
+        originalEmail: html || `<p>Hello,</p><p>I noticed your listing for the loft at <strong>${address}${unitNumber ? `, Unit ${unitNumber}` : ""}</strong>. I am very interested in this property and would like to arrange a viewing.</p><p>I am looking for a place starting next month with a budget around $4000-4500 per month.</p><p>Best regards,<br>Michael Chen<br>Phone: (510) 555-1234<br>Email: <a href="mailto:${senderEmail}">${senderEmail}</a></p>`,
+        notes: text || `Hello,\n\nI noticed your listing for the loft at ${address}${unitNumber ? `, Unit ${unitNumber}` : ""}. I am very interested in this property and would like to arrange a viewing.\n\nI am looking for a place starting next month with a budget around $4000-4500 per month.\n\nBest regards,\nMichael Chen\nPhone: (510) 555-1234\nEmail: ${senderEmail}`
+      };
+      
+      console.log("Sending direct test email to:", recipientEmail);
+      // Call the email sender directly
+      const success = await emailService.sendLeadNotification(testLead as any, testAgent as any);
+      
+      res.json({ success, message: success ? "Email sent successfully" : "Failed to send email" });
+    } catch (error) {
+      console.error("Error in direct email test:", error);
+      next(error);
+    }
+  });
 
   // API endpoint to check emails manually
   app.post("/api/admin/check-emails", isManager, async (req, res, next) => {
