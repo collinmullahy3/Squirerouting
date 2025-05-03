@@ -9,6 +9,8 @@ interface LeadCardProps {
     price?: number | string;
     zipCode?: string;
     address?: string;
+    propertyUrl?: string;
+    thumbnailUrl?: string;
     status: string;
     receivedAt: string;
     assignedAgent?: {
@@ -94,6 +96,37 @@ export default function LeadCard({ lead, showActions = false, onStatusUpdate }: 
         {lead.assignedAgent && (
           <div className="mt-2 text-sm text-slate-500">
             <span className="font-medium">Assigned to:</span> {lead.assignedAgent.name}
+          </div>
+        )}
+        
+        {lead.propertyUrl && (
+          <div className="mt-3 border-t pt-3">
+            <div className="flex items-start">
+              {lead.thumbnailUrl && (
+                <div className="flex-shrink-0 mr-3">
+                  <img 
+                    src={lead.thumbnailUrl} 
+                    alt="Property" 
+                    className="h-16 w-16 object-cover rounded"
+                    onError={(e) => {
+                      // Hide image on error
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-1">Property Link:</p>
+                <a 
+                  href={lead.propertyUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary-600 hover:text-primary-800 hover:underline break-all"
+                >
+                  {lead.propertyUrl}
+                </a>
+              </div>
+            </div>
           </div>
         )}
         {showActions && onStatusUpdate && (

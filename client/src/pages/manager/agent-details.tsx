@@ -251,7 +251,7 @@ export default function AgentDetails() {
           <h2 className="text-xl font-bold">Agent Not Found</h2>
           <p className="mt-2 text-gray-600">The agent you're looking for doesn't exist.</p>
           <Button asChild className="mt-4">
-            <Link href="/manager/agents">Back to Agents</Link>
+            <Link href="/agents">Back to Agents</Link>
           </Button>
         </div>
       )}

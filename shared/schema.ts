@@ -72,6 +72,8 @@ export const leads = pgTable("leads", {
   assignedAgentId: integer("assigned_agent_id").references(() => users.id),
   originalEmail: text("original_email"),
   notes: text("notes"),
+  propertyUrl: text("property_url"),
+  thumbnailUrl: text("thumbnail_url"),
   receivedAt: timestamp("received_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
