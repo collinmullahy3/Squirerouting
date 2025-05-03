@@ -11,7 +11,10 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  Legend
+  Legend,
+  PieChart,
+  Pie,
+  Cell
 } from "recharts";
 
 import {
@@ -37,10 +40,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 export default function Performance() {
   const { isAuthenticated, user } = useAuth();
   const [timeRange, setTimeRange] = useState("30days");
+
+  // Fetch dashboard stats
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ["/api/dashboard/stats"],
+    enabled: isAuthenticated
+  });
+
+  // Fetch lead sources metrics
+  const { data: leadSources, isLoading: sourcesLoading } = useQuery({
+    queryKey: ["/api/dashboard/lead-sources"],
+    enabled: isAuthenticated
+  });
+
+  // Fetch popular properties data
+  const { data: popularProperties, isLoading: propertiesLoading } = useQuery({
+    queryKey: ["/api/dashboard/popular-properties"],
+    enabled: isAuthenticated
+  });
 
   // Fetch top agents
   const { data: topAgents, isLoading: agentsLoading } = useQuery({
@@ -48,14 +70,7 @@ export default function Performance() {
     enabled: isAuthenticated
   });
 
-  // Mock data for charts
-  const leadsByGroupData = [
-    { name: "Luxury Homes", leads: 86 },
-    { name: "Downtown Condos", leads: 72 },
-    { name: "Suburban Homes", leads: 65 },
-    { name: "New Construction", leads: 24 }
-  ];
-
+  // Monthly leads data (would come from the API in a more complete implementation)
   const monthlyLeadsData = [
     { name: "Jan", leads: 15 },
     { name: "Feb", leads: 22 },
@@ -71,16 +86,44 @@ export default function Performance() {
     { name: "Dec", leads: 45 }
   ];
 
-  const responseTimeData = [
-    { name: "Luxury Homes", avgTime: 5 },
-    { name: "Downtown Condos", avgTime: 7 },
-    { name: "Suburban Homes", avgTime: 10 },
-    { name: "New Construction", avgTime: 15 }
-  ];
+  // Colors for the pie chart
+  const COLORS = ['#6A584C', '#C9AD6A', '#3A2F28', '#1E1E1E', '#EDE8DF'];
 
   if (!isAuthenticated || (user && user.role !== "manager")) {
     return null; // Will redirect via auth provider
   }
+
+  // Calculate overall closing rate for display
+  const calculateOverallClosingRate = () => {
+    if (!leadSources || leadSources.length === 0) return 0;
+    
+    const totalLeads = leadSources.reduce((sum, source) => sum + source.total, 0);
+    const closedLeads = leadSources.reduce((sum, source) => sum + source.closed, 0);
+    
+    return totalLeads > 0 ? Math.round((closedLeads / totalLeads) * 100) : 0;
+  };
+
+  // Get the zip codes for display
+  const getTopZipCodes = () => {
+    if (!popularProperties) return [];
+    return popularProperties
+      .filter(prop => prop.zipCode)
+      .slice(0, 5);
+  };
+
+  // Get the price ranges for display
+  const getPriceRanges = () => {
+    if (!popularProperties) return [];
+    return popularProperties
+      .filter(prop => prop.priceRange && !prop.zipCode && !prop.address)
+      .map(item => ({
+        name: item.priceRange,
+        value: item.count
+      }));
+  };
+
+  const zipCodes = getTopZipCodes();
+  const priceRanges = getPriceRanges();
 
   return (
     <div className="flex-1 relative overflow-y-auto focus:outline-none">
@@ -113,9 +156,9 @@ export default function Performance() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Leads</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">247</div>
+                <div className="text-2xl font-bold">{statsLoading ? '...' : stats?.totalLeads || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-green-500">+12%</span> from previous period
+                  {!statsLoading && <span className="text-green-500">All incoming inquiries</span>}
                 </p>
               </CardContent>
             </Card>
@@ -124,20 +167,20 @@ export default function Performance() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Conversion Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">24.3%</div>
+                <div className="text-2xl font-bold">{sourcesLoading ? '...' : `${calculateOverallClosingRate()}%`}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-green-500">+2.1%</span> from previous period
+                  <span className="text-green-500">Leads marked as closed</span>
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Response Time</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Active Leads</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">8.4 min</div>
+                <div className="text-2xl font-bold">{statsLoading ? '...' : stats?.assignedLeads || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-green-500">-1.2 min</span> from previous period
+                  <span className="text-amber-500">Assigned to agents</span>
                 </p>
               </CardContent>
             </Card>
@@ -146,9 +189,9 @@ export default function Performance() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Active Agents</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">28</div>
+                <div className="text-2xl font-bold">{statsLoading ? '...' : stats?.activeAgents || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-amber-500">+0</span> from previous period
+                  <span className="text-primary">Available for leads</span>
                 </p>
               </CardContent>
             </Card>
@@ -158,24 +201,32 @@ export default function Performance() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
             <Card>
               <CardHeader>
-                <CardTitle>Leads by Group</CardTitle>
-                <CardDescription>Distribution of leads across agent groups</CardDescription>
+                <CardTitle>Lead Source Performance</CardTitle>
+                <CardDescription>Closing rates by website source</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={leadsByGroupData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="leads" fill="hsl(var(--primary))" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {sourcesLoading ? (
+                  <div className="h-80 flex items-center justify-center">Loading source data...</div>
+                ) : leadSources && leadSources.length > 0 ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={leadSources}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="source" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar name="Total Leads" dataKey="total" fill="#6A584C" />
+                        <Bar name="Closed Deals" dataKey="closed" fill="#C9AD6A" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-80 flex items-center justify-center">No source data available</div>
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -198,7 +249,8 @@ export default function Performance() {
                       <Line 
                         type="monotone" 
                         dataKey="leads" 
-                        stroke="hsl(var(--primary))" 
+                        name="Total Leads"
+                        stroke="#6A584C" 
                         activeDot={{ r: 8 }} 
                       />
                     </LineChart>
@@ -208,33 +260,78 @@ export default function Performance() {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
             <Card>
               <CardHeader>
-                <CardTitle>Response Time by Group</CardTitle>
-                <CardDescription>Average lead response time in minutes</CardDescription>
+                <CardTitle>Price Range Distribution</CardTitle>
+                <CardDescription>Leads by price range</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={responseTimeData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="avgTime" fill="hsl(var(--chart-2))" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                {propertiesLoading ? (
+                  <div className="h-80 flex items-center justify-center">Loading price data...</div>
+                ) : priceRanges && priceRanges.length > 0 ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={priceRanges}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          outerRadius={120}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {priceRanges.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-80 flex items-center justify-center">No price range data available</div>
+                )}
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
+                <CardTitle>Top ZIP Codes</CardTitle>
+                <CardDescription>Most requested locations</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {propertiesLoading ? (
+                  <div className="h-80 flex items-center justify-center">Loading location data...</div>
+                ) : zipCodes && zipCodes.length > 0 ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={zipCodes}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                        layout="vertical"
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis type="category" dataKey="zipCode" />
+                        <Tooltip />
+                        <Bar dataKey="count" name="Lead Count" fill="#3A2F28" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-80 flex items-center justify-center">No ZIP code data available</div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <Card>
+              <CardHeader>
                 <CardTitle>Top Performing Agents</CardTitle>
-                <CardDescription>Agents with the highest lead volume</CardDescription>
+                <CardDescription>Agents with the highest closing rate</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -242,9 +339,8 @@ export default function Performance() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Agent</TableHead>
-                        <TableHead>Leads</TableHead>
-                        <TableHead>Response Time</TableHead>
-                        <TableHead>Conversion Rate</TableHead>
+                        <TableHead>Closed Deals</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -267,16 +363,14 @@ export default function Performance() {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell>{agent.leadCount}</TableCell>
                             <TableCell>
-                              <div className="flex items-center">
-                                <svg className="w-4 h-4 text-green-500 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                {agent.avgResponseTimeMinutes} min
-                              </div>
+                              <div className="font-medium">{agent.closedLeadCount}</div>
                             </TableCell>
-                            <TableCell>{Math.round(Math.random() * 40 + 20)}%</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                Active
+                              </Badge>
+                            </TableCell>
                           </TableRow>
                         ))
                       ) : (
