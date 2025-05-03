@@ -251,9 +251,8 @@ const Agents = () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Username</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Groups</TableHead>
+                  <TableHead>Lead Groups</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -262,7 +261,6 @@ const Agents = () => {
                   <TableRow key={agent.id}>
                     <TableCell className="font-medium">{agent.name}</TableCell>
                     <TableCell>{agent.email}</TableCell>
-                    <TableCell>{agent.username}</TableCell>
                     <TableCell>{agent.phone || "—"}</TableCell>
                     <TableCell>
                       {agent.groups && agent.groups.length > 0 ? (
@@ -290,14 +288,14 @@ const Agents = () => {
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm">
-                              Assign Groups
+                              Manage Lead Groups
                             </Button>
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Assign Agent to Groups</DialogTitle>
+                              <DialogTitle>Assign Agent to Lead Groups</DialogTitle>
                               <DialogDescription>
-                                Select which agent groups {agent.name} should belong to.
+                                Select which lead groups {agent.name} should be assigned to receive leads from.
                               </DialogDescription>
                             </DialogHeader>
                             <AssignGroupsContent agentId={agent.id} currentGroups={agent.groups || []} />
@@ -333,11 +331,11 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  // Fetch all groups
+  // Fetch all lead groups
   const { data: groups, isLoading } = useQuery({
-    queryKey: ["/api/agent-groups"],
+    queryKey: ["/api/lead-groups"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/agent-groups");
+      const response = await apiRequest("GET", "/api/lead-groups");
       return response;
     },
   });
@@ -369,7 +367,7 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
       for (const groupId of groupsToAdd) {
         await apiRequest(
           "POST", 
-          `/api/agent-groups/${groupId}/members/${agentId}`
+          `/api/lead-groups/${groupId}/members/${agentId}`
         );
       }
       
@@ -377,14 +375,14 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
       for (const groupId of groupsToRemove) {
         await apiRequest(
           "DELETE", 
-          `/api/agent-groups/${groupId}/members/${agentId}`
+          `/api/lead-groups/${groupId}/members/${agentId}`
         );
       }
       
       // Show success message
       toast({
-        title: "Groups updated",
-        description: "The agent's group assignments have been updated.",
+        title: "Lead Groups updated",
+        description: "The agent's lead group assignments have been updated.",
       });
       
       // Refresh the agents list
