@@ -1,72 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { AlertCircle, Check, Mail, KeyRound, AlertTriangle } from 'lucide-react';
+import { Check, Mail, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Sidebar from '@/components/sidebar';
 import { Separator } from '@/components/ui/separator';
 
 export default function EmailSettings() {
-  const [emailAddress, setEmailAddress] = useState('');
-  const [emailPassword, setEmailPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const { toast } = useToast();
-
   // Query Email settings
-  const { data, isLoading, refetch } = useQuery<{ hasCredentials: boolean, email?: string }>({ 
+  const { data } = useQuery<{ hasCredentials: boolean, email?: string }>({ 
     queryKey: ['/api/admin/email-settings'],
     refetchOnWindowFocus: false,
   });
-
-  // Set up the mutation for saving
-  const { mutate: saveCredentials, isPending } = useMutation({
-    mutationFn: async (credentials: { email: string; password: string }) => {
-      return apiRequest<{ success: boolean }>(
-        'POST',
-        '/api/admin/email-settings',
-        credentials
-      );
-    },
-    onSuccess: () => {
-      toast({
-        title: "Email Credentials Saved",
-        description: "Your email credentials have been saved successfully.",
-        variant: "default",
-      });
-      refetch();
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: `Failed to save email credentials: ${error.message}`,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSave = () => {
-    if (!emailAddress.trim() || !emailPassword.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter both email address and password",
-        variant: "destructive",
-      });
-      return;
-    }
-    saveCredentials({ email: emailAddress, password: emailPassword });
-  };
-
-  // Update the email address field from data when loaded
-  useEffect(() => {
-    if (data?.email) {
-      setEmailAddress(data.email);
-    }
-  }, [data]);
 
   return (
     <div className="flex min-h-screen bg-muted/40">
@@ -97,62 +42,34 @@ export default function EmailSettings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {data?.hasCredentials && (
-                  <Alert className="bg-green-50 text-green-800 border-green-200">
-                    <Check className="h-4 w-4" />
-                    <AlertTitle>Email is configured</AlertTitle>
-                    <AlertDescription>
-                      Lead notifications will be sent to agents via email.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {!data?.hasCredentials && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Email credentials required</AlertTitle>
-                    <AlertDescription>
-                      Lead notification emails cannot be sent to agents until you add your email credentials.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="emailAddress" className="flex items-center gap-1">
-                      <Mail className="h-4 w-4" />
-                      Email Address
-                    </Label>
-                    <Input
-                      id="emailAddress"
-                      type="email"
-                      placeholder="Enter your email address"
-                      value={emailAddress}
-                      onChange={(e) => setEmailAddress(e.target.value)}
-                    />
+                <Alert className="bg-green-50 text-green-800 border-green-200">
+                  <Check className="h-4 w-4" />
+                  <AlertTitle>Email is configured</AlertTitle>
+                  <AlertDescription>
+                    <p>Lead notifications will be sent to agents via email using the <strong>{data?.email || 'squirerouting@gmail.com'}</strong> account.</p>
+                    <p className="mt-2">This email account is centrally managed by administrators.</p>
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="p-4 border rounded-md bg-muted/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Mail className="h-5 w-5 text-slate-600" />
+                    <h3 className="font-medium">Email Configuration Status</h3>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="emailPassword" className="flex items-center gap-1">
-                      <KeyRound className="h-4 w-4" />
-                      Email Password
-                    </Label>
-                    <div className="flex space-x-2">
-                      <Input
-                        id="emailPassword"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your email password"
-                        value={emailPassword}
-                        onChange={(e) => setEmailPassword(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button
-                        variant="outline"
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? "Hide" : "Show"}
-                      </Button>
+                  <div className="space-y-2 text-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      <span className="text-slate-600">Email Address:</span>
+                      <span className="font-medium">{data?.email || 'squirerouting@gmail.com'}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <span className="text-slate-600">Status:</span>
+                      <span className="font-medium text-green-600 flex items-center gap-1">
+                        <Check className="h-4 w-4" /> Active
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <span className="text-slate-600">Used for:</span>
+                      <span className="font-medium">Sending notifications & receiving leads</span>
                     </div>
                   </div>
                 </div>
@@ -173,12 +90,9 @@ export default function EmailSettings() {
                 </Alert>
               </CardContent>
               <CardFooter className="flex justify-end space-x-2">
-                <Button
-                  onClick={handleSave}
-                  disabled={isPending || !emailAddress || !emailPassword}
-                >
-                  {isPending ? "Saving..." : "Save Credentials"}
-                </Button>
+                <div className="text-sm text-muted-foreground italic">
+                  Email settings are managed by system administrators
+                </div>
               </CardFooter>
             </Card>
 
