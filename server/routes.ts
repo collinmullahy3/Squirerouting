@@ -1129,6 +1129,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear all leads (manager only)
+  app.delete("/api/admin/clear-leads", isManager, async (req, res, next) => {
+    try {
+      console.log('Admin requested to clear all leads');
+      
+      // Execute direct delete query (we don't have a storage method for this)
+      await db.delete(leads).execute();
+      
+      // Also clear the status history
+      await db.delete(leadStatusHistory).execute();
+      
+      console.log('All leads cleared by admin');
+      return res.json({ success: true, message: 'All leads cleared successfully' });
+    } catch (error) {
+      console.error('Error clearing leads:', error);
+      return res.status(500).json({ error: 'Failed to clear leads' });
+    }
+  });
+
   const httpServer = createServer(app);
   
   return httpServer;

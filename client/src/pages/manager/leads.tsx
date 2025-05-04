@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -24,6 +24,8 @@ export default function Leads() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isCheckingEmails, setIsCheckingEmails] = useState(false);
+  const [clearLeadsDialogOpen, setClearLeadsDialogOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   // Check for new emails mutation
   const checkEmailsMutation = useMutation({
@@ -50,6 +52,37 @@ export default function Leads() {
     },
   });
 
+  // Clear leads mutation
+  const clearLeadsMutation = useMutation({
+    mutationFn: async () => {
+      setIsClearing(true);
+      return await apiRequest<any>("DELETE", "/api/admin/clear-leads");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "All leads have been cleared successfully.",
+      });
+      // Refetch leads to update the list
+      refetch();
+      setClearLeadsDialogOpen(false);
+      setIsClearing(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to clear leads: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
+      });
+      setIsClearing(false);
+    },
+  });
+
+  // Handle clearing leads
+  const handleClearLeads = () => {
+    clearLeadsMutation.mutate();
+  };
+  
   // Handle checking for new emails
   const handleCheckEmails = () => {
     checkEmailsMutation.mutate();
@@ -178,10 +211,11 @@ export default function Leads() {
     setCurrentPage(Math.max(1, currentPage - 1));
   };
   
-  // Format date
+  // Format date and time
   const formatDate = (dateString: string | Date | null | undefined): string => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   // Format currency
