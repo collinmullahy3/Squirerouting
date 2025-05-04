@@ -76,8 +76,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUserById(id);
+      if (!user) {
+        console.error('User not found in deserializeUser, id:', id);
+        return done(null, false);
+      }
+      console.log('User deserialized:', { id: user.id, username: user.username, role: user.role });
       done(null, user);
     } catch (err) {
+      console.error('Error in deserializeUser:', err);
       done(err);
     }
   });
