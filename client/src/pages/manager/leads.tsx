@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ResponsiveTable } from '@/components/responsive-table';
 
 export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -354,98 +355,131 @@ export default function Leads() {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Moving Date</TableHead>
-                <TableHead>Property Link</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Received</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLeads.map((lead: Lead) => (
-                <TableRow key={lead.id} className="cursor-pointer hover:bg-gray-50" onClick={() => openLeadDetails(lead.id)}>
-                  <TableCell>{lead.email}</TableCell>
-                  <TableCell>{lead.phone || 'N/A'}</TableCell>
-                  <TableCell>{formatPrice(lead.price, lead.priceMax)}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      {lead.address ? (
-                        <span className="font-medium">{lead.address}</span>
-                      ) : lead.zipCode ? (
-                        <span>ZIP: {lead.zipCode}</span>
-                      ) : (
-                        <span className="text-gray-500">No location</span>
-                      )}
-                      
-                      {lead.unitNumber && (
-                        <span className="text-xs text-primary">Unit {lead.unitNumber}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {lead.source ? (
-                      <Badge variant="secondary">
-                        {lead.source}
-                      </Badge>
-                    ) : 'Unknown'}
-                  </TableCell>
-                  <TableCell>{lead.movingDate ? formatDate(lead.movingDate) : 'N/A'}</TableCell>
-                  <TableCell>
-                    {lead.propertyUrl ? (
-                      <a 
-                        href={lead.propertyUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline flex items-center"
-                      >
-                        {lead.thumbnailUrl && (
-                          <img 
-                            src={lead.thumbnailUrl} 
-                            alt="Property" 
-                            className="h-6 w-6 mr-2 object-cover rounded"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        )}
-                        View
-                      </a>
-                    ) : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={`
-                      ${lead.status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : ''}
-                      ${lead.status === 'assigned' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : ''}
-                      ${lead.status === 'closed' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
-                    `}>
-                      {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(lead.receivedAt)}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => { e.stopPropagation(); handleStatusUpdate(lead.id, 'closed'); }}
-                      disabled={lead.status === 'closed'}
-                    >
-                      {lead.status === 'closed' ? 'Closed' : 'Mark Closed'}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <ResponsiveTable
+          data={filteredLeads}
+          keyField="id"
+          onRowClick={(lead) => openLeadDetails(lead.id)}
+          emptyMessage="No leads found. Try adjusting your filters."
+          columns={[
+            {
+              header: "Email",
+              accessorKey: "email",
+              mobileLabel: "Email",
+              className: "max-w-[180px] truncate"
+            },
+            {
+              header: "Phone",
+              accessorKey: "phone",
+              cell: (lead) => lead.phone || "N/A",
+              mobileLabel: "Phone"
+            },
+            {
+              header: "Price",
+              accessorKey: "price",
+              cell: (lead) => formatPrice(lead.price, lead.priceMax),
+              mobileLabel: "Price"
+            },
+            {
+              header: "Location",
+              accessorKey: "address",
+              cell: (lead) => (
+                <div className="flex flex-col">
+                  {lead.address ? (
+                    <span className="font-medium">{lead.address}</span>
+                  ) : lead.zipCode ? (
+                    <span>ZIP: {lead.zipCode}</span>
+                  ) : (
+                    <span className="text-gray-500">No location</span>
+                  )}
+                  
+                  {lead.unitNumber && (
+                    <span className="text-xs text-primary">Unit {lead.unitNumber}</span>
+                  )}
+                </div>
+              ),
+              mobileLabel: "Location"
+            },
+            {
+              header: "Source",
+              accessorKey: "source",
+              cell: (lead) => lead.source ? (
+                <Badge variant="secondary">
+                  {lead.source}
+                </Badge>
+              ) : 'Unknown',
+              mobileLabel: "Source"
+            },
+            {
+              header: "Moving Date",
+              accessorKey: "movingDate",
+              cell: (lead) => lead.movingDate ? formatDate(lead.movingDate) : 'N/A',
+              mobileLabel: "Moving Date",
+              hideOnMobile: true
+            },
+            {
+              header: "Property",
+              accessorKey: "propertyUrl",
+              cell: (lead) => lead.propertyUrl ? (
+                <a 
+                  href={lead.propertyUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline flex items-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {lead.thumbnailUrl && (
+                    <img 
+                      src={lead.thumbnailUrl} 
+                      alt="Property" 
+                      className="h-6 w-6 mr-2 object-cover rounded"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  View
+                </a>
+              ) : 'N/A',
+              mobileLabel: "Property",
+              hideOnMobile: true
+            },
+            {
+              header: "Status",
+              accessorKey: "status",
+              cell: (lead) => (
+                <Badge className={`
+                  ${lead.status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : ''}
+                  ${lead.status === 'assigned' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : ''}
+                  ${lead.status === 'closed' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                `}>
+                  {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                </Badge>
+              ),
+              mobileLabel: "Status"
+            },
+            {
+              header: "Received",
+              accessorKey: "receivedAt",
+              cell: (lead) => formatDate(lead.receivedAt),
+              mobileLabel: "Received"
+            },
+            {
+              header: "Actions",
+              accessorKey: "id",
+              cell: (lead) => (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleStatusUpdate(lead.id, 'closed'); }}
+                  disabled={lead.status === 'closed'}
+                >
+                  {lead.status === 'closed' ? 'Closed' : 'Mark Closed'}
+                </Button>
+              ),
+              mobileLabel: "Actions"
+            },
+          ]}
+        />
       )}
 
       {/* Pagination */}
