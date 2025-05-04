@@ -57,24 +57,7 @@ export default function Sidebar({ className }: SidebarProps) {
             <div className="flex items-center h-20 flex-shrink-0 px-4 bg-slate-900">
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0 flex items-center justify-center">
-                  <svg className="h-12 w-12 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    {/* Oval border */}
-                    <ellipse cx="12" cy="12" rx="10" ry="8" stroke="currentColor" strokeWidth="1" />
-                    {/* Human figure */}
-                    <circle cx="12" cy="7" r="2" stroke="currentColor" strokeWidth="1" />
-                    <line x1="12" y1="9" x2="12" y2="15" stroke="currentColor" strokeWidth="1" />
-                    {/* Arms */}
-                    <line x1="12" y1="12" x2="9" y2="10" stroke="currentColor" strokeWidth="1" />
-                    <line x1="12" y1="12" x2="15" y2="10" stroke="currentColor" strokeWidth="1" />
-                    {/* Legs */}
-                    <line x1="12" y1="15" x2="10" y2="18" stroke="currentColor" strokeWidth="1" />
-                    <line x1="12" y1="15" x2="14" y2="18" stroke="currentColor" strokeWidth="1" />
-                    {/* Spear */}
-                    <line x1="15" y1="5" x2="15" y2="15" stroke="currentColor" strokeWidth="1" />
-                    <path d="M14 6L16 5L15 7" fill="currentColor" />
-                    {/* Hills */}
-                    <path d="M6 16C8 14 10 15 12 16C14 17 16 18 18 16" stroke="currentColor" strokeWidth="1" />
-                  </svg>
+                  <img src="/images/squire-logo.png" alt="Squire Logo" className="h-12 w-auto" />
                 </div>
                 <h1 className="text-2xl font-bold text-white">Squire</h1>
               </div>
