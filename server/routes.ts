@@ -562,9 +562,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const agents = await storage.getAllAgents();
       
-      // For each agent, get their groups
+      // For each agent, get their lead groups
       const agentsWithGroups = await Promise.all(agents.map(async (agent) => {
-        const groups = await storage.getGroupsByAgentId(agent.id);
+        const groups = await storage.getLeadGroupsByAgentId(agent.id);
         return {
           id: agent.id,
           name: agent.name,

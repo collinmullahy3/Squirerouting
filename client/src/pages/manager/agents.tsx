@@ -364,10 +364,6 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
   // Fetch all lead groups
   const { data: groups, isLoading } = useQuery({
     queryKey: ["/api/lead-groups"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/lead-groups");
-      return response;
-    },
   });
 
   const handleToggleGroup = (groupId: number) => {
