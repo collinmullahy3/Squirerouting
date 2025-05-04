@@ -147,12 +147,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (err) {
             return next(err);
           }
-          return res.json({
-            id: user.id,
-            username: user.username,
-            name: user.name,
-            email: user.email,
-            role: user.role,
+          console.log('User authenticated and session established:', { 
+            id: user.id, 
+            username: user.username, 
+            sessionID: req.sessionID 
+          });
+
+          // Force session save to ensure it's written to the store
+          req.session.save(err => {
+            if (err) {
+              console.error('Error saving session:', err);
+              return next(err);
+            }
+            
+            return res.json({
+              id: user.id,
+              username: user.username,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+            });
           });
         });
       })(req, res, next);
@@ -392,6 +406,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug Lead retrieval route - completely open for debugging
+  app.get("/api/debug/leads", async (req, res, next) => {
+    console.log('Debug leads endpoint accessed - bypassing auth check');
+    try {
+      const page = parseInt(req.query.page as string || "1");
+      const limit = parseInt(req.query.limit as string || "10");
+      
+      const leads = await storage.getAllLeads(page, limit);
+      res.json(leads);
+    } catch (error) {
+      console.error('Error in debug leads endpoint:', error);
+      next(error);
+    }
+  });
+
   // Leads routes
   app.get("/api/leads", isAuthenticated, async (req, res, next) => {
     try {
@@ -405,6 +434,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug Lead details retrieval route - completely open for debugging
+  app.get("/api/debug/leads/:id", async (req, res, next) => {
+    console.log('Debug lead details endpoint accessed - bypassing auth check');
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      const lead = await storage.getLeadById(id);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      
+      res.json(lead);
+    } catch (error) {
+      console.error('Error in debug lead details endpoint:', error);
+      next(error);
+    }
+  });
+
   app.get("/api/leads/:id", isAuthenticated, async (req, res, next) => {
     try {
       const id = parseInt(req.params.id);

@@ -42,14 +42,36 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await fetch("/api/auth/me", {
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const userData = await response.json();
+        // Use a retry mechanism for fetching the user to handle race conditions with session setup
+        let retries = 0;
+        const maxRetries = 3;
+        let userData = null;
+        
+        while (retries < maxRetries) {
+          const response = await fetch("/api/auth/me", {
+            credentials: "include",
+          });
+          
+          if (response.ok) {
+            userData = await response.json();
+            console.log("User authenticated:", userData.username);
+            break;
+          } else if (response.status === 401) {
+            // Wait a bit before trying again
+            console.log(`Authentication retry attempt ${retries + 1}/${maxRetries}`);
+            await new Promise(resolve => setTimeout(resolve, 800));
+            retries++;
+          } else {
+            // Other error status
+            break;
+          }
+        }
+        
+        if (userData) {
           setUser(userData);
         } else {
+          setUser(null);
+          console.log("User not authenticated");
           // If not authenticated and not on login page, redirect
           if (window.location.pathname !== "/login") {
             setLocation("/login");
@@ -57,6 +79,10 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
         }
       } catch (error) {
         console.error("Error fetching user:", error);
+        setUser(null);
+        if (window.location.pathname !== "/login") {
+          setLocation("/login");
+        }
       } finally {
         setIsLoading(false);
       }

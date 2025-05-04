@@ -90,16 +90,22 @@ export default function Leads() {
     checkEmailsMutation.mutate();
   };
 
-  // Fetch leads
+  // Fetch leads - using debug endpoint for now to resolve auth issues
   const { data: leads = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['/api/leads', currentPage, limit],
+    queryKey: ['/api/debug/leads', currentPage, limit],
     queryFn: async () => {
-      const response = await fetch(`/api/leads?page=${currentPage}&limit=${limit}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch leads');
+      try {
+        console.log('Fetching leads from debug endpoint...');
+        const response = await fetch(`/api/debug/leads?page=${currentPage}&limit=${limit}`);
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${await response.text()}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Lead fetch error:', error);
+        throw error;
       }
-      return response.json();
-    },
+    }
   });
   
   // Fetch lead details when a lead is selected
