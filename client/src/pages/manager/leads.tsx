@@ -453,21 +453,32 @@ export default function Leads() {
       {/* Pagination */}
       {!isLoading && !isError && leads.length > 0 && (
         <div className="flex justify-between items-center mt-8">
-          <Button
-            variant="outline"
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </Button>
-          <span>Page {currentPage}</span>
-          <Button
-            variant="outline"
-            onClick={handleNextPage}
-            disabled={leads.length < limit}
-          >
-            Next
-          </Button>
+          <div>
+            <Button
+              variant="outline"
+              onClick={() => setClearLeadsDialogOpen(true)}
+              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+            >
+              Clear All Leads
+            </Button>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span>Page {currentPage}</span>
+            <Button
+              variant="outline"
+              onClick={handleNextPage}
+              disabled={leads.length < limit}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
       
@@ -630,7 +641,7 @@ export default function Leads() {
                         <div className="mt-6">
                           <h3 className="font-semibold mb-3">Additional Properties</h3>
                           <div className="space-y-4">
-                            {leadDetails.notes.split('Additional property link from new inquiry:').slice(1).map((part, index) => {
+                            {leadDetails.notes.split('Additional property link from new inquiry:').slice(1).map((part: string, index: number) => {
                               // Add explicit type casting to make TypeScript happy
                               const partStr = String(part);
                               const idx = Number(index);
@@ -723,6 +734,38 @@ export default function Leads() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear Leads Confirmation Dialog */}
+      <Dialog open={clearLeadsDialogOpen} onOpenChange={setClearLeadsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Clear All Leads</DialogTitle>
+            <DialogDescription>
+              This action will permanently delete all leads in the system. This cannot be undone.
+              Are you sure you want to continue?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button 
+              variant="destructive" 
+              onClick={handleClearLeads}
+              disabled={isClearing}
+            >
+              {isClearing ? (
+                <>
+                  <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent"></span>
+                  Clearing...
+                </>
+              ) : (
+                "Yes, Clear All Leads"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
