@@ -342,25 +342,52 @@ export const storage = {
     const normalizedEmail = email.toLowerCase();
     console.log(`Looking for leads with email ${normalizedEmail} after ${windowDate}`);
     
-    // Use SQL to make a case-insensitive query
-    const result = await db.query.leads.findFirst({
-      where: and(
-        sql`LOWER(${leads.email}) = ${normalizedEmail}`,
-        gte(leads.receivedAt, windowDate)
-      ),
-      orderBy: [desc(leads.receivedAt)],
-      with: {
-        assignedAgent: true
+    try {
+      // Use SQL to make a case-insensitive query
+      const result = await db.query.leads.findFirst({
+        where: and(
+          sql`LOWER(${leads.email}) = ${normalizedEmail}`,
+          gte(leads.receivedAt, windowDate)
+        ),
+        orderBy: [desc(leads.receivedAt)],
+        with: {
+          assignedAgent: true
+        }
+      });
+      
+      if (result) {
+        console.log(`Found existing lead with ID ${result.id} for email ${normalizedEmail}`);
+      } else {
+        console.log(`No existing lead found for email ${normalizedEmail} within date window`);
       }
-    });
-    
-    if (result) {
-      console.log(`Found existing lead with ID ${result.id} for email ${normalizedEmail}`);
-    } else {
-      console.log(`No existing lead found for email ${normalizedEmail} within date window`);
+      
+      return result || null;
+    } catch (error) {
+      console.error('Error finding lead by email and window:', error);
+      
+      // Fallback to basic SQL query if there's a schema mismatch
+      try {
+        const result = await db.execute(sql`
+          SELECT id, name, email, received_at as "receivedAt", updated_at as "updatedAt"
+          FROM leads
+          WHERE LOWER(email) = ${normalizedEmail}
+          AND received_at >= ${windowDate}
+          ORDER BY received_at DESC
+          LIMIT 1
+        `);
+        
+        if (result.rows.length > 0) {
+          console.log(`Found existing lead with ID ${result.rows[0].id} for email ${normalizedEmail} (using SQL fallback)`);
+          return result.rows[0] as unknown as Lead;
+        } else {
+          console.log('No existing lead found (using SQL fallback)');
+          return null;
+        }
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError);
+        return null;
+      }
     }
-    
-    return result || null;
   },
 
   async createLead(leadData: LeadInsert): Promise<Lead> {

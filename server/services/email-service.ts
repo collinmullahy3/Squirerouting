@@ -784,7 +784,7 @@ class EmailService {
 
       // Only include fields that are in the database schema to avoid errors
       return {
-        name: subject || name, // Use the subject as the name if it exists
+        name: name, // Use the extracted name
         email: clientEmail || 'unknown@example.com',
         phone: phone || '',
         price: price ? price.toString() : null,
@@ -795,6 +795,7 @@ class EmailService {
         neighborhood: neighborhood || '',
         bedCount: bedCount,
         source: source,
+        subject: subject, // Add the subject field
         propertyUrl: propertyUrl || null,
         thumbnailUrl: thumbnailUrl || null,
         originalEmail, // Keep this field as it's in the existing database schema

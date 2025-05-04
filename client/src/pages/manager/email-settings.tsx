@@ -84,8 +84,8 @@ export default function EmailSettings() {
     <div className="flex min-h-screen bg-muted/40">
       <Sidebar />
 
-      <main className="flex-1 p-6">
-        <div className="flex flex-col gap-6 max-w-5xl mx-auto">
+      <main className="flex-1 p-6 overflow-auto">
+        <div className="flex flex-col gap-6 max-w-5xl mx-auto pb-20">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-semibold tracking-tight">Email Settings</h1>

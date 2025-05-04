@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { db } from "@db";
+import { sql } from "drizzle-orm";
 
 const app = express();
 app.use(express.json());
@@ -36,7 +38,36 @@ app.use((req, res, next) => {
   next();
 });
 
+/**
+ * Check if the database schema is up to date and add any missing columns
+ */
+async function checkAndUpdateDatabaseSchema() {
+  try {
+    // Check if 'subject' column exists in leads table
+    const columnCheckResult = await db.execute(sql`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'leads' AND column_name = 'subject'
+    `);
+
+    // If subject column doesn't exist, add it
+    if (columnCheckResult.rows.length === 0) {
+      console.log('Adding missing "subject" column to leads table...');
+      await db.execute(sql`ALTER TABLE leads ADD COLUMN subject TEXT`);
+      console.log('Subject column added successfully.');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking/updating database schema:', error);
+    return false;
+  }
+}
+
 (async () => {
+  // Check and update the database schema before starting the server
+  await checkAndUpdateDatabaseSchema();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
