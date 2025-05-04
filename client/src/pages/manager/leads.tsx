@@ -358,7 +358,6 @@ export default function Leads() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Price</TableHead>
@@ -374,7 +373,6 @@ export default function Leads() {
             <TableBody>
               {filteredLeads.map((lead: Lead) => (
                 <TableRow key={lead.id} className="cursor-pointer hover:bg-gray-50" onClick={() => openLeadDetails(lead.id)}>
-                  <TableCell className="font-medium">{lead.name}</TableCell>
                   <TableCell>{lead.email}</TableCell>
                   <TableCell>{lead.phone || 'N/A'}</TableCell>
                   <TableCell>{formatPrice(lead.price, lead.priceMax)}</TableCell>
@@ -395,7 +393,7 @@ export default function Leads() {
                   </TableCell>
                   <TableCell>
                     {lead.source ? (
-                      <Badge variant="outline" className="bg-primary bg-opacity-10 text-primary hover:bg-opacity-20 border-primary border-opacity-20">
+                      <Badge variant="outline" className="bg-primary/10 text-primary-foreground border-primary/20 hover:bg-primary/20">
                         {lead.source}
                       </Badge>
                     ) : 'Unknown'}
