@@ -282,9 +282,38 @@ const Agents = () => {
                             View Leads
                           </Link>
                         </Button>
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Edit Agent</DialogTitle>
+                              <DialogDescription>
+                                Update agent information
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4 space-y-4">
+                              <div className="flex flex-col space-y-2">
+                                <Label htmlFor="editName">Name</Label>
+                                <Input id="editName" defaultValue={agent.name} />
+                              </div>
+                              <div className="flex flex-col space-y-2">
+                                <Label htmlFor="editEmail">Email</Label>
+                                <Input id="editEmail" defaultValue={agent.email} />
+                              </div>
+                              <div className="flex flex-col space-y-2">
+                                <Label htmlFor="editPhone">Phone</Label>
+                                <Input id="editPhone" defaultValue={agent.phone || ''} />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button>Save Changes</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm">
