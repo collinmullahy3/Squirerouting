@@ -105,8 +105,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
   
   const isManager = (req: Request, res: Response, next: Function) => {
-    if (req.isAuthenticated() && req.user && (req.user as any).role === "manager") {
-      return next();
+    if (req.isAuthenticated() && req.user) {
+      console.log('Checking manager role:', { 
+        user: req.user, 
+        role: (req.user as any).role,
+        isManager: (req.user as any).role === 'manager'
+      });
+      if ((req.user as any).role === "manager") {
+        return next();
+      }
     }
     res.status(403).json({ message: "Forbidden: Manager role required" });
   };
