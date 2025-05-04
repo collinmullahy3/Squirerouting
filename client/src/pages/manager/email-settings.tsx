@@ -1,82 +1,30 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Check, Mail, AlertTriangle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Sidebar from '@/components/sidebar';
 import { Separator } from '@/components/ui/separator';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
 export default function EmailSettings() {
-  const [showAddCredentials, setShowAddCredentials] = useState(false);
+  // Removed ability to update email credentials as they are managed centrally by administrators
   const { toast } = useToast();
   
-  // Email schema for form validation
-  const emailFormSchema = z.object({
-    email: z.string().email("Please enter a valid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-  });
-
   // Query Email settings
-  const { data, refetch } = useQuery<{ hasCredentials: boolean, email?: string }>({ 
+  const { data } = useQuery<{ hasCredentials: boolean, email?: string }>({ 
     queryKey: ['/api/admin/email-settings'],
     refetchOnWindowFocus: false,
   });
   
   // Simulate Lead Form
   const [isSimulating, setIsSimulating] = useState(false);
-  
-  // Form setup
-  const form = useForm<z.infer<typeof emailFormSchema>>({    
-    resolver: zodResolver(emailFormSchema),
-    defaultValues: {
-      email: data?.email || '',
-      password: '',
-    },
-  });
-  
-  // Update email settings mutation
-  const updateEmailMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof emailFormSchema>) => {
-      return await apiRequest(
-        "POST",
-        "/api/admin/email-settings",
-        { email: values.email, password: values.password }
-      );
-    },
-    onSuccess: () => {
-      toast({
-        title: "Email Settings Updated",
-        description: "Your email credentials have been updated successfully."
-      });
-      refetch();
-      setShowAddCredentials(false);
-      form.reset();
-    },
-    onError: (error) => {
-      toast({
-        title: "Failed to Update Settings",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive",
-      });
-    },
-  });
-  
-  // Handle form submission
-  const onSubmit = (values: z.infer<typeof emailFormSchema>) => {
-    updateEmailMutation.mutate(values);
-  };
 
   // Show the status based on hasCredentials
   const hasCredentials = data?.hasCredentials;
@@ -192,79 +140,15 @@ export default function EmailSettings() {
                 </Alert>
               </CardContent>
               <CardFooter className="flex justify-end space-x-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowAddCredentials(!showAddCredentials)}
-                >
-                  {showAddCredentials ? 'Cancel' : 'Update Email Credentials'}
-                </Button>
+                <Alert className="bg-blue-50 border-blue-200 text-blue-800">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Administrator Access Only</AlertTitle>
+                  <AlertDescription>
+                    <p>Email credentials can only be configured by system administrators.</p>
+                    <p>Please contact your system administrator if you need changes to the email configuration.</p>
+                  </AlertDescription>
+                </Alert>
               </CardFooter>
-              
-              {/* Email Credentials Form */}
-              {showAddCredentials && (
-                <div className="px-6 pb-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Update Email Credentials</CardTitle>
-                      <CardDescription>
-                        Enter the email account credentials for sending notifications and receiving leads
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                          <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="email@example.com" {...field} />
-                                </FormControl>
-                                <FormDescription>
-                                  Enter the full email address to use for sending notifications and receiving leads
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email Password</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="••••••••" {...field} />
-                                </FormControl>
-                                <FormDescription>
-                                  For Gmail accounts with 2FA, use a 16-character App Password (no spaces)
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <div className="flex justify-end pt-4">
-                            <Button type="submit" disabled={updateEmailMutation.isPending}>
-                              {updateEmailMutation.isPending ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Updating...
-                                </>
-                              ) : (
-                                'Save Credentials'
-                              )}
-                            </Button>
-                          </div>
-                        </form>
-                      </Form>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
             </Card>
 
             <Card>
