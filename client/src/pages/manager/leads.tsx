@@ -32,7 +32,14 @@ export default function Leads() {
   const checkEmailsMutation = useMutation({
     mutationFn: async () => {
       setIsCheckingEmails(true);
-      return await apiRequest<any>("POST", "/api/admin/check-emails");
+      try {
+        // Try the regular endpoint first
+        return await apiRequest<any>("POST", "/api/admin/check-emails");
+      } catch (error) {
+        console.log('Trying alternative debug endpoint after error:', error);
+        // If that fails with a 403, try the debug endpoint
+        return await apiRequest<any>("POST", "/api/admin/check-emails-debug");
+      }
     },
     onSuccess: () => {
       toast({

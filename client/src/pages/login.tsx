@@ -142,7 +142,7 @@ export default function Login() {
               Demo Accounts:
             </p>
             <p className="mt-1">
-              Manager: <span className="font-medium">admin / admin123</span>
+              Manager: <span className="font-medium">manager1 / manager123</span>
             </p>
             <p>
               Agent: <span className="font-medium">emily.j / emily123</span>
