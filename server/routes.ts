@@ -661,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoint to process a simulated email for testing
   app.post("/api/admin/simulate-email", isManager, async (req, res, next) => {
     try {
-      const { subject, text, from, html } = req.body;
+      const { subject, text, from, html, source } = req.body;
       if (!subject || !text) {
         console.error('Simulate email error: Missing subject or text', { subject, text });
         return res.status(400).json({ error: "Subject and text are required" });
@@ -670,6 +670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Processing simulated email:', {
         subject,
         from: from || "test@example.com",
+        source: source || undefined,
         textLength: text?.length || 0,
         htmlLength: html?.length || 0
       });
@@ -678,7 +679,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         subject,
         text,
         html,
-        from: from || "test@example.com"
+        from: from || "test@example.com",
+        source: source // Pass the explicit source to the email processor
       });
       
       console.log('Simulated email process result:', success ? 'SUCCESS' : 'FAILED');

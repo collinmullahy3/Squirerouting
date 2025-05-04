@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -264,7 +265,8 @@ export default function EmailSettings() {
                       const simulateData = {
                         from: formData.get('from') as string,
                         subject: formData.get('subject') as string,
-                        text: formData.get('text') as string
+                        text: formData.get('text') as string,
+                        source: formData.get('source') as string
                       };
                       
                       // Send simulated email data to API
@@ -313,6 +315,26 @@ export default function EmailSettings() {
                         placeholder="Interest in property..." 
                       />
                       <p className="text-sm text-muted-foreground">Subject line of the inquiry email</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="source">Lead Source</Label>
+                      <Select name="source" defaultValue="StreetEasy.com">
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select source" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="StreetEasy.com">StreetEasy.com</SelectItem>
+                          <SelectItem value="Zillow.com">Zillow.com</SelectItem>
+                          <SelectItem value="Trulia.com">Trulia.com</SelectItem>
+                          <SelectItem value="Realtor.com">Realtor.com</SelectItem>
+                          <SelectItem value="Zumper.com">Zumper.com</SelectItem>
+                          <SelectItem value="HotPads.com">HotPads.com</SelectItem>
+                          <SelectItem value="Apartments.com">Apartments.com</SelectItem>
+                          <SelectItem value="RentHop.com">RentHop.com</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground">The website or platform this lead came from</p>
                     </div>
                     
                     <div className="space-y-2">
