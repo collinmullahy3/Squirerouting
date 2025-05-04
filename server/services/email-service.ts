@@ -381,14 +381,19 @@ class EmailService {
           }
           
           // Initialize nodemailer if not already done
-          this.nodemailer = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-              user: emailUserSetting.value,
-              pass: emailPasswordSetting.value
-            }
-          });
-          transporter = this.nodemailer;
+          try {
+            this.nodemailer = nodemailer.createTransport({
+              service: 'gmail',
+              auth: {
+                user: emailUserSetting.value,
+                pass: emailPasswordSetting.value
+              }
+            });
+            transporter = this.nodemailer;
+          } catch (transportError) {
+            console.error('Error creating nodemailer transport:', transportError);
+            return false;
+          }
         } catch (error) {
           console.error('Error initializing nodemailer for lead notification:', error);
           return false;
@@ -445,6 +450,29 @@ class EmailService {
       return true;
     } catch (error) {
       console.error(`Error sending lead notification email to agent ${agent.id}:`, error);
+      
+      // Check for specific Gmail authentication errors related to App Password requirements
+      // These typically appear when 2FA is enabled but no App Password is used
+      if (error.message?.includes('Application-specific password required') ||
+          error.message?.includes('InvalidSecondFactor') ||
+          (error.code === 'EAUTH')) {
+        console.error('Gmail authentication error: You need to set up an App Password for this account.');
+        console.error('Please follow the instructions at https://support.google.com/mail/?p=InvalidSecondFactor');
+        
+        // Try to update the system settings with a warning
+        try {
+          await storage.updateSetting(
+            'EMAIL_ERROR', 
+            'Authentication failed: An App Password is required for Gmail accounts with 2FA enabled. Go to your Google Account settings to generate an App Password specifically for this application.', 
+            'email', 
+            1, // system user ID
+            'Email sending error'
+          );
+        } catch (settingError) {
+          console.error('Failed to update email error setting:', settingError);
+        }
+      }
+      
       return false;
     }
   }

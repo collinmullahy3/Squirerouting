@@ -764,19 +764,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoint to check emails manually
   app.post("/api/admin/check-emails", isManager, async (req, res, next) => {
     try {
-      // Always show a success message - we want to use squirerouting@gmail.com
       console.log('Email service ready to receive forwarded emails. Agents should forward leads to:', emailService.forwardingEmail);
       
-      // Return success message without requiring credential verification
-      return res.json({ 
-        message: "Email service is ready. Agents can forward leads to: " + emailService.forwardingEmail,
-        forwardingEmail: emailService.forwardingEmail
-      });
+      // Try to check emails
+      const emailCheckResult = await emailService.checkEmails();
+      
+      // If the check was successful, return success message with the result
+      if (emailCheckResult) {
+        return res.json({
+          success: true,
+          message: "Email check completed successfully. Any new leads have been processed.",
+          forwardingEmail: emailService.forwardingEmail
+        });
+      } else {
+        // Email check was not successful but we still return a message about forwarding
+        return res.json({ 
+          success: false,
+          message: "Email service is ready to receive forwarded leads at: " + emailService.forwardingEmail,
+          forwardingEmail: emailService.forwardingEmail
+        });
+      }
     } catch (error) {
       console.error("Error in email check endpoint:", error);
-      // Even on error, we should return success
+      // Even on error, we should return a usable message
       res.json({ 
-        message: "Email service is ready. Agents can forward leads to: " + emailService.forwardingEmail,
+        success: false,
+        message: "Email service is ready to receive forwarded leads at: " + emailService.forwardingEmail,
         forwardingEmail: emailService.forwardingEmail
       });
     }
