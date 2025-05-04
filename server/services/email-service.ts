@@ -524,10 +524,37 @@ class EmailService {
       // Convert to lowercase to ensure proper matching
       const clientEmail = emailMatches.length > 0 ? emailMatches[0].toLowerCase() : '';
 
-      // Extract phone using regex
-      const phoneRegex = /(\+\d{1,2}\s?)?(\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}/g;
+      // Extract phone using regex - look for sequences of 7-11 digits, possibly with separators
+      // This regex will match phone numbers with various formats, focusing on digit sequences
+      const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}|\d{7,11}/g;
+      
+      // Execute the regex and get all matches
       const phoneMatches = text.match(phoneRegex) || [];
-      const phone = phoneMatches.length > 0 ? phoneMatches[0] : '';
+      
+      // Process each match to remove non-digits and check length
+      let phone = '';
+      for (const match of phoneMatches) {
+        // Remove all non-digit characters
+        const digits = match.replace(/\D/g, '');
+        // Check if we have 7-11 digits (valid phone number per requirements)
+        if (digits.length >= 7 && digits.length <= 11) {
+          // Format the phone number nicely and use it
+          phone = match;
+          break;
+        }
+      }
+      
+      // If we couldn't find a valid phone in the body, try looking in the subject line
+      if (!phone) {
+        const subjectPhoneMatches = subject.match(phoneRegex) || [];
+        for (const match of subjectPhoneMatches) {
+          const digits = match.replace(/\D/g, '');
+          if (digits.length >= 7 && digits.length <= 11) {
+            phone = match;
+            break;
+          }
+        }
+      }
 
       // Extract price range using regex
       const priceRegex = /\$[\d,]+(\.[\d]{2})?|\d{3,}k|\d+\s*million/gi;
@@ -825,20 +852,64 @@ class EmailService {
         }
       }
       
-      // Extract name - might be in the subject or from field
+      // Extract name - might be in the subject, body, or from field
       let name = '';
       
-      // Try to extract from subject line if it looks like a name
-      if (subject.includes(' ') && !subject.includes('@') && subject.length < 50) {
-        name = subject;
+      // Look for name patterns in the body first - quotes or clear identification
+      // Pattern 1: "First Name" "Last Name" format
+      const quotedNameRegex = /"([^"]+)"\s+"([^"]+)"/;
+      const quotedNameMatch = text.match(quotedNameRegex);
+      
+      // Pattern 2: Name: John Doe format
+      const namedPatternRegex = /(?:name|client|customer|renter|tenant)(?:\s+is|:|\s+-)?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i;
+      const namedPatternMatch = text.match(namedPatternRegex);
+      
+      // Pattern 3: My name is John Doe format
+      const myNameRegex = /(?:my|their|his|her)\s+name\s+is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i;
+      const myNameMatch = text.match(myNameRegex);
+      
+      // Check if we found a name in the quoted format
+      if (quotedNameMatch && quotedNameMatch.length >= 3) {
+        // Combine the first and last name
+        name = `${quotedNameMatch[1]} ${quotedNameMatch[2]}`;
+        console.log('Found name in quoted format:', name);
+      }
+      // Check if we found a name in a labeled format
+      else if (namedPatternMatch && namedPatternMatch.length >= 2) {
+        name = namedPatternMatch[1];
+        console.log('Found name in labeled format:', name);
+      }
+      // Check if we found a name in the "my name is" format
+      else if (myNameMatch && myNameMatch.length >= 2) {
+        name = myNameMatch[1];
+        console.log('Found name in "my name is" format:', name);
+      }
+      // Try to extract from subject line if it looks like a name or contains a name pattern
+      else if (subject.includes(' ') && !subject.includes('@')) {
+        // Check for "Interested in [Property]: [Name]" patterns
+        const subjectNameRegex = /(?:interested|inquiry|question)(?:\s+\w+)?(?:\s+\w+)?:\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i;
+        const subjectNameMatch = subject.match(subjectNameRegex);
+        
+        if (subjectNameMatch && subjectNameMatch.length >= 2) {
+          name = subjectNameMatch[1];
+          console.log('Found name in subject special pattern:', name);
+        }
+        // Only use the subject as name if it's reasonably short and looks like a name
+        else if (subject.length < 50 && !subject.toLowerCase().includes('interested in') && 
+                 !subject.toLowerCase().includes('inquiry') && !subject.toLowerCase().includes('question about')) {
+          name = subject;
+          console.log('Using subject as name:', name);
+        }
       } 
       // Otherwise use the sender's name if available
       else if (from.includes('<') && from.includes('>')) {
         name = from.split('<')[0].trim();
+        console.log('Using sender name:', name);
       } 
       // Fallback
       else {
         name = 'Unknown Lead';
+        console.log('No name found, using fallback');
       }
 
       // Skip emails that don't look like leads
