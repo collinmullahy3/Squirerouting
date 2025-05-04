@@ -98,6 +98,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Authentication middleware
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
+    console.log('isAuthenticated middleware called', { 
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user,
+      session: req.session
+    });
     if (req.isAuthenticated()) {
       return next();
     }
