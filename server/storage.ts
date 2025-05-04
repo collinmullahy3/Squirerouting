@@ -371,23 +371,75 @@ export const storage = {
   },
 
   async getLeadById(id: number): Promise<Lead | null> {
-    const result = await db.query.leads.findFirst({
-      where: eq(leads.id, id),
-      with: {
-        assignedAgent: true,
-        // Include new lead group relation
-        leadGroup: true,
-        // Legacy routing rule relation
-        routingRule: true,
-        statusHistory: {
-          with: {
-            agent: true
-          },
-          orderBy: desc(leadStatusHistory.createdAt)
+    try {
+      const result = await db.query.leads.findFirst({
+        where: eq(leads.id, id),
+        with: {
+          assignedAgent: true,
+          // Include new lead group relation
+          leadGroup: true,
+          // Legacy routing rule relation
+          routingRule: true,
+          statusHistory: {
+            with: {
+              agent: true
+            },
+            orderBy: desc(leadStatusHistory.createdAt)
+          }
         }
+      });
+      return result || null;
+    } catch (error) {
+      console.error('Error fetching lead by ID:', error);
+      
+      // Fallback to minimal SQL query if there's a schema mismatch
+      const result = await db.execute(sql`
+        SELECT 
+          l.id, l.name, l.email, l.phone, l.price, l.price_max as "priceMax", 
+          l.zip_code as "zipCode", l.address, l.unit_number as "unitNumber",
+          l.neighborhood, l.bed_count as "bedCount", l.source, l.status,
+          l.assigned_agent_id as "assignedAgentId", l.lead_group_id as "leadGroupId",
+          l.routing_rule_id as "routingRuleId", l.original_email as "originalEmail",
+          l.notes, l.property_url as "propertyUrl", 
+          l.thumbnail_url as "thumbnailUrl", l.moving_date as "movingDate",
+          l.received_at as "receivedAt", l.updated_at as "updatedAt",
+          u.id as "agent_id", u.name as "agent_name", u.email as "agent_email"
+        FROM leads l
+        LEFT JOIN users u ON l.assigned_agent_id = u.id
+        WHERE l.id = ${id}
+      `);
+      
+      if (result.rows.length === 0) {
+        return null;
       }
-    });
-    return result || null;
+      
+      const row = result.rows[0];
+      
+      // Fetch status history separately
+      const historyResult = await db.query.leadStatusHistory.findMany({
+        where: eq(leadStatusHistory.leadId, id),
+        with: { agent: true },
+        orderBy: desc(leadStatusHistory.createdAt)
+      });
+      
+      // Process result to match the expected Lead type
+      const lead = {
+        ...row,
+        assignedAgent: row.agent_id ? {
+          id: row.agent_id,
+          name: row.agent_name,
+          email: row.agent_email
+        } : null,
+        statusHistory: historyResult
+      };
+      
+      // Remove the raw agent fields
+      delete lead.agent_id;
+      delete lead.agent_name;
+      delete lead.agent_email;
+      
+      return lead as unknown as Lead;
+    }
   },
 
   async getAllLeads(page: number = 1, limit: number = 10): Promise<Lead[]> {
@@ -444,12 +496,36 @@ export const storage = {
   },
 
   async getLeadsByAgentId(agentId: number, page: number = 1, limit: number = 10): Promise<Lead[]> {
-    return await db.query.leads.findMany({
-      where: eq(leads.assignedAgentId, agentId),
-      orderBy: desc(leads.receivedAt),
-      limit: limit,
-      offset: (page - 1) * limit
-    });
+    try {
+      return await db.query.leads.findMany({
+        where: eq(leads.assignedAgentId, agentId),
+        orderBy: desc(leads.receivedAt),
+        limit: limit,
+        offset: (page - 1) * limit
+      });
+    } catch (error) {
+      console.error('Error fetching leads for agent:', error);
+      
+      // Fallback to minimal SQL query if there's a schema mismatch
+      const result = await db.execute(sql`
+        SELECT 
+          l.id, l.name, l.email, l.phone, l.price, l.price_max as "priceMax", 
+          l.zip_code as "zipCode", l.address, l.unit_number as "unitNumber",
+          l.neighborhood, l.bed_count as "bedCount", l.source, l.status,
+          l.assigned_agent_id as "assignedAgentId", l.lead_group_id as "leadGroupId",
+          l.routing_rule_id as "routingRuleId", l.original_email as "originalEmail",
+          l.notes, l.property_url as "propertyUrl", 
+          l.thumbnail_url as "thumbnailUrl", l.moving_date as "movingDate",
+          l.received_at as "receivedAt", l.updated_at as "updatedAt"
+        FROM leads l
+        WHERE l.assigned_agent_id = ${agentId}
+        ORDER BY l.received_at DESC
+        LIMIT ${limit} OFFSET ${(page - 1) * limit}
+      `);
+      
+      // Process the results to match the expected Lead type
+      return result.rows.map(row => row as any as Lead);
+    }
   },
 
   async updateLeadStatus(id: number, agentId: number | null, statusUpdate: LeadStatusUpdate): Promise<Lead | null> {
@@ -640,10 +716,36 @@ export const storage = {
   },
 
   async getPendingLeads(): Promise<Lead[]> {
-    return await db.query.leads.findMany({
-      where: eq(leads.status, 'pending'),
-      orderBy: asc(leads.receivedAt)
-    });
+    try {
+      return await db.query.leads.findMany({
+        where: eq(leads.status, 'pending'),
+        orderBy: asc(leads.receivedAt),
+        with: {
+          assignedAgent: true
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching pending leads:', error);
+      
+      // Fallback to minimal SQL query if there's a schema mismatch
+      const result = await db.execute(sql`
+        SELECT 
+          l.id, l.name, l.email, l.phone, l.price, l.price_max as "priceMax", 
+          l.zip_code as "zipCode", l.address, l.unit_number as "unitNumber",
+          l.neighborhood, l.bed_count as "bedCount", l.source, l.status,
+          l.assigned_agent_id as "assignedAgentId", l.lead_group_id as "leadGroupId",
+          l.routing_rule_id as "routingRuleId", l.original_email as "originalEmail",
+          l.notes, l.property_url as "propertyUrl", 
+          l.thumbnail_url as "thumbnailUrl", l.moving_date as "movingDate",
+          l.received_at as "receivedAt", l.updated_at as "updatedAt"
+        FROM leads l
+        WHERE l.status = 'pending'
+        ORDER BY l.received_at ASC
+      `);
+      
+      // Process the results to match the expected Lead type
+      return result.rows.map(row => row as any as Lead);
+    }
   },
 
   async getLeadStats(): Promise<{ 
@@ -652,55 +754,115 @@ export const storage = {
     pending: number;
     closed: number;
   }> {
-    const allLeads = await db.query.leads.findMany({
-      columns: {
-        status: true
-      }
-    });
-    
-    return {
-      total: allLeads.length,
-      assigned: allLeads.filter(l => l.status === 'assigned').length,
-      pending: allLeads.filter(l => l.status === 'pending').length,
-      closed: allLeads.filter(l => l.status === 'closed').length
-    };
+    try {
+      const allLeads = await db.query.leads.findMany({
+        columns: {
+          status: true
+        }
+      });
+      
+      return {
+        total: allLeads.length,
+        assigned: allLeads.filter(l => l.status === 'assigned').length,
+        pending: allLeads.filter(l => l.status === 'pending').length,
+        closed: allLeads.filter(l => l.status === 'closed').length
+      };
+    } catch (error) {
+      console.error('Error fetching lead stats:', error);
+      
+      // Fallback to minimal SQL query if there's a schema mismatch
+      const result = await db.execute(sql`
+        SELECT status, COUNT(*) as count
+        FROM leads
+        GROUP BY status
+      `);
+      
+      let total = 0;
+      let assigned = 0;
+      let pending = 0;
+      let closed = 0;
+      
+      result.rows.forEach(row => {
+        const count = parseInt(row.count);
+        total += count;
+        
+        if (row.status === 'assigned') assigned = count;
+        else if (row.status === 'pending') pending = count;
+        else if (row.status === 'closed') closed = count;
+      });
+      
+      return { total, assigned, pending, closed };
+    }
   },
   
   async getTopPerformingAgents(limit: number = 5): Promise<{
     agent: User;
     closedLeadCount: number;
   }[]> {
-    // Get all agents
-    const agents = await db.query.users.findMany({
-      where: eq(users.role, 'agent')
-    });
-    
-    // Get all leads and count closed ones per agent
-    const allLeads = await db.query.leads.findMany({
-      where: sql`${leads.assignedAgentId} IS NOT NULL`,
-      columns: {
-        assignedAgentId: true,
-        status: true
-      }
-    });
-    
-    // Count leads per agent
-    const agentLeadCounts = new Map<number, number>();
-    allLeads.forEach(lead => {
-      if (lead.status === 'closed' && lead.assignedAgentId) {
-        const currentCount = agentLeadCounts.get(lead.assignedAgentId) || 0;
-        agentLeadCounts.set(lead.assignedAgentId, currentCount + 1);
-      }
-    });
-    
-    // Create result
-    return agents
-      .map(agent => ({
-        agent,
-        closedLeadCount: agentLeadCounts.get(agent.id) || 0
-      }))
-      .sort((a, b) => b.closedLeadCount - a.closedLeadCount)
-      .slice(0, limit);
+    try {
+      // Get all agents
+      const agents = await db.query.users.findMany({
+        where: eq(users.role, 'agent')
+      });
+      
+      // Get all leads and count closed ones per agent
+      const allLeads = await db.query.leads.findMany({
+        where: sql`${leads.assignedAgentId} IS NOT NULL`,
+        columns: {
+          assignedAgentId: true,
+          status: true
+        }
+      });
+      
+      // Count leads per agent
+      const agentLeadCounts = new Map<number, number>();
+      allLeads.forEach(lead => {
+        if (lead.status === 'closed' && lead.assignedAgentId) {
+          const currentCount = agentLeadCounts.get(lead.assignedAgentId) || 0;
+          agentLeadCounts.set(lead.assignedAgentId, currentCount + 1);
+        }
+      });
+      
+      // Create result
+      return agents
+        .map(agent => ({
+          agent,
+          closedLeadCount: agentLeadCounts.get(agent.id) || 0
+        }))
+        .sort((a, b) => b.closedLeadCount - a.closedLeadCount)
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error fetching top performing agents:', error);
+      
+      // Fallback to SQL query
+      const agents = await db.query.users.findMany({
+        where: eq(users.role, 'agent')
+      });
+      
+      const result = await db.execute(sql`
+        SELECT l.assigned_agent_id, COUNT(*) as count
+        FROM leads l
+        WHERE l.status = 'closed' AND l.assigned_agent_id IS NOT NULL
+        GROUP BY l.assigned_agent_id
+        ORDER BY count DESC
+        LIMIT ${limit}
+      `);
+      
+      // Create a map of agent IDs to lead counts
+      const agentLeadCounts = new Map<number, number>();
+      result.rows.forEach(row => {
+        agentLeadCounts.set(parseInt(row.assigned_agent_id), parseInt(row.count));
+      });
+      
+      // Create the result
+      return agents
+        .map(agent => ({
+          agent,
+          closedLeadCount: agentLeadCounts.get(agent.id) || 0
+        }))
+        .sort((a, b) => b.closedLeadCount - a.closedLeadCount)
+        .slice(0, limit);
+    }
   },
 
   async getLeadSourceMetrics(): Promise<{
@@ -709,41 +871,67 @@ export const storage = {
     closed: number;
     closingRate: number;
   }[]> {
-    // Get all leads grouped by source
-    const allLeads = await db.query.leads.findMany({
-      columns: {
-        source: true,
-        status: true
-      }
-    });
-    
-    // Group leads by source
-    const sourceMap = new Map<string, { total: number; closed: number }>();
-    
-    allLeads.forEach(lead => {
-      const source = lead.source || 'Unknown';
+    try {
+      // Get all leads grouped by source
+      const allLeads = await db.query.leads.findMany({
+        columns: {
+          source: true,
+          status: true
+        }
+      });
       
-      if (!sourceMap.has(source)) {
-        sourceMap.set(source, { total: 0, closed: 0 });
-      }
+      // Group leads by source
+      const sourceMap = new Map<string, { total: number; closed: number }>();
       
-      const sourceData = sourceMap.get(source)!;
-      sourceData.total++;
+      allLeads.forEach(lead => {
+        const source = lead.source || 'Unknown';
+        
+        if (!sourceMap.has(source)) {
+          sourceMap.set(source, { total: 0, closed: 0 });
+        }
+        
+        const sourceData = sourceMap.get(source)!;
+        sourceData.total++;
+        
+        if (lead.status === 'closed') {
+          sourceData.closed++;
+        }
+      });
       
-      if (lead.status === 'closed') {
-        sourceData.closed++;
-      }
-    });
-    
-    // Convert map to array and calculate rates
-    return Array.from(sourceMap.entries())
-      .map(([source, data]) => ({
-        source,
-        total: data.total,
-        closed: data.closed,
-        closingRate: data.total > 0 ? Math.round((data.closed / data.total) * 100) : 0
-      }))
-      .sort((a, b) => b.total - a.total);
+      // Convert map to array and calculate rates
+      return Array.from(sourceMap.entries())
+        .map(([source, data]) => ({
+          source,
+          total: data.total,
+          closed: data.closed,
+          closingRate: data.total > 0 ? Math.round((data.closed / data.total) * 100) : 0
+        }))
+        .sort((a, b) => b.total - a.total);
+    } catch (error) {
+      console.error('Error fetching lead source metrics:', error);
+      
+      // Fallback to SQL query
+      const result = await db.execute(sql`
+        SELECT 
+          COALESCE(source, 'Unknown') as source, 
+          COUNT(*) as total,
+          SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed
+        FROM leads
+        GROUP BY source
+        ORDER BY total DESC
+      `);
+      
+      return result.rows.map(row => {
+        const total = parseInt(row.total);
+        const closed = parseInt(row.closed);
+        return {
+          source: row.source,
+          total,
+          closed,
+          closingRate: total > 0 ? Math.round((closed / total) * 100) : 0
+        };
+      });
+    }
   },
   
   async getPopularProperties(): Promise<{
@@ -752,90 +940,127 @@ export const storage = {
     priceRange: string;
     count: number;
   }[]> {
-    // Get all leads
-    const allLeads = await db.query.leads.findMany({
-      columns: {
-        address: true,
-        zipCode: true,
-        price: true,
-        priceMax: true
-      }
-    });
-    
-    // Group by zip code
-    const zipCodeMap = new Map<string, number>();
-    const addressMap = new Map<string, number>();
-    const priceRangeMap = new Map<string, number>();
-    
-    allLeads.forEach(lead => {
-      // Handle zip codes
-      if (lead.zipCode) {
-        const count = zipCodeMap.get(lead.zipCode) || 0;
-        zipCodeMap.set(lead.zipCode, count + 1);
-      }
-      
-      // Handle addresses (partial matching on key parts)
-      if (lead.address) {
-        // Extract notable parts of address (keywords like street names, neighborhoods)
-        const keywords = lead.address.split(/\s+/)
-          .filter(word => word.length > 3 && !['road', 'street', 'avenue', 'lane', 'drive', 'place', 'court'].includes(word.toLowerCase()))
-          .map(word => word.toLowerCase());
-        
-        keywords.forEach(keyword => {
-          const count = addressMap.get(keyword) || 0;
-          addressMap.set(keyword, count + 1);
-        });
-      }
-      
-      // Handle price ranges
-      let priceRange = 'Unknown';
-      
-      if (lead.price) {
-        const price = Number(lead.price);
-        const priceMax = lead.priceMax ? Number(lead.priceMax) : price;
-        
-        if (price < 200000) {
-          priceRange = 'Under $200K';
-        } else if (price < 500000) {
-          priceRange = '$200K - $500K';
-        } else if (price < 1000000) {
-          priceRange = '$500K - $1M';
-        } else {
-          priceRange = 'Over $1M';
+    try {
+      // Get all leads
+      const allLeads = await db.query.leads.findMany({
+        columns: {
+          address: true,
+          zipCode: true,
+          price: true,
+          priceMax: true
         }
+      });
+      
+      // Group by zip code
+      const zipCodeMap = new Map<string, number>();
+      const addressMap = new Map<string, number>();
+      const priceRangeMap = new Map<string, number>();
+      
+      allLeads.forEach(lead => {
+        // Handle zip codes
+        if (lead.zipCode) {
+          const count = zipCodeMap.get(lead.zipCode) || 0;
+          zipCodeMap.set(lead.zipCode, count + 1);
+        }
+        
+        // Handle addresses (partial matching on key parts)
+        if (lead.address) {
+          // Extract notable parts of address (keywords like street names, neighborhoods)
+          const keywords = lead.address.split(/\s+/)
+            .filter(word => word.length > 3 && !['road', 'street', 'avenue', 'lane', 'drive', 'place', 'court'].includes(word.toLowerCase()))
+            .map(word => word.toLowerCase());
+          
+          keywords.forEach(keyword => {
+            const count = addressMap.get(keyword) || 0;
+            addressMap.set(keyword, count + 1);
+          });
+        }
+        
+        // Handle price ranges
+        let priceRange = 'Unknown';
+        
+        if (lead.price) {
+          const price = Number(lead.price);
+          const priceMax = lead.priceMax ? Number(lead.priceMax) : price;
+          
+          if (price < 200000) {
+            priceRange = 'Under $200K';
+          } else if (price < 500000) {
+            priceRange = '$200K - $500K';
+          } else if (price < 1000000) {
+            priceRange = '$500K - $1M';
+          } else {
+            priceRange = 'Over $1M';
+          }
+        }
+        
+        const rangeCount = priceRangeMap.get(priceRange) || 0;
+        priceRangeMap.set(priceRange, rangeCount + 1);
+      });
+      
+      // Create results array
+      const results: { zipCode?: string; address?: string; priceRange: string; count: number }[] = [];
+      
+      // Add top zip codes
+      Array.from(zipCodeMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .forEach(([zipCode, count]) => {
+          results.push({ zipCode, count, priceRange: '' });
+        });
+        
+      // Add top address keywords
+      Array.from(addressMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .forEach(([address, count]) => {
+          results.push({ address, count, priceRange: '' });
+        });
+      
+      // Add price ranges
+      Array.from(priceRangeMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([priceRange, count]) => {
+          results.push({ priceRange, count });
+        });
+      
+      return results;
+    } catch (error) {
+      console.error('Error fetching popular properties:', error);
+      
+      // Fallback to SQL queries
+      const results: { zipCode?: string; address?: string; priceRange: string; count: number }[] = [];
+      
+      // Get top zip codes
+      try {
+        const zipResult = await db.execute(sql`
+          SELECT zip_code as zipCode, COUNT(*) as count
+          FROM leads
+          WHERE zip_code IS NOT NULL AND zip_code != ''
+          GROUP BY zip_code
+          ORDER BY count DESC
+          LIMIT 5
+        `);
+        
+        zipResult.rows.forEach(row => {
+          results.push({ 
+            zipCode: row.zipcode, 
+            count: parseInt(row.count), 
+            priceRange: '' 
+          });
+        });
+      } catch (e) {
+        console.error('Error fetching zip codes:', e);
       }
       
-      const rangeCount = priceRangeMap.get(priceRange) || 0;
-      priceRangeMap.set(priceRange, rangeCount + 1);
-    });
-    
-    // Create results array
-    const results: { zipCode?: string; address?: string; priceRange: string; count: number }[] = [];
-    
-    // Add top zip codes
-    Array.from(zipCodeMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .forEach(([zipCode, count]) => {
-        results.push({ zipCode, count, priceRange: '' });
+      // Get price ranges
+      const priceRanges = ['Under $200K', '$200K - $500K', '$500K - $1M', 'Over $1M', 'Unknown'];
+      priceRanges.forEach(range => {
+        results.push({ priceRange: range, count: 0 });
       });
       
-    // Add top address keywords
-    Array.from(addressMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .forEach(([address, count]) => {
-        results.push({ address, count, priceRange: '' });
-      });
-    
-    // Add price ranges
-    Array.from(priceRangeMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .forEach(([priceRange, count]) => {
-        results.push({ priceRange, count });
-      });
-    
-    return results;
+      return results;
+    }
   },
 
   // System Settings Management
