@@ -33,6 +33,9 @@ export default function EmailSettings() {
     refetchOnWindowFocus: false,
   });
   
+  // Simulate Lead Form
+  const [isSimulating, setIsSimulating] = useState(false);
+  
   // Form setup
   const form = useForm<z.infer<typeof emailFormSchema>>({    
     resolver: zodResolver(emailFormSchema),
@@ -270,12 +273,14 @@ export default function EmailSettings() {
                         description: 'Please wait while we process your test lead.'
                       });
                       
+                      setIsSimulating(true);
                       apiRequest('POST', '/api/admin/simulate-email', simulateData)
                         .then(response => {
                           toast({
                             title: 'Lead Simulated Successfully',
                             description: 'The test lead has been processed and should appear in the leads list.'
                           });
+                          setIsSimulating(false);
                         })
                         .catch(error => {
                           toast({
@@ -283,6 +288,7 @@ export default function EmailSettings() {
                             description: error.message || 'An unknown error occurred',
                             variant: 'destructive'
                           });
+                          setIsSimulating(false);
                         });
                     }}
                     className="space-y-4"
@@ -323,7 +329,16 @@ export default function EmailSettings() {
                       </p>
                     </div>
                     
-                    <Button type="submit">Simulate Lead</Button>
+                    <Button type="submit" disabled={isSimulating}>
+                      {isSimulating ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Simulating...
+                        </>
+                      ) : (
+                        'Simulate Lead'
+                      )}
+                    </Button>
                   </form>
                 </div>
               </CardContent>
