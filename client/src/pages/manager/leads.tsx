@@ -393,7 +393,7 @@ export default function Leads() {
                   </TableCell>
                   <TableCell>
                     {lead.source ? (
-                      <Badge variant="outline" className="bg-primary/10 text-primary-foreground border-primary/20 hover:bg-primary/20">
+                      <Badge variant="secondary">
                         {lead.source}
                       </Badge>
                     ) : 'Unknown'}
