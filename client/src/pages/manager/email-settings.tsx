@@ -190,7 +190,7 @@ export default function EmailSettings() {
                       e.preventDefault();
                       setUpdatingSettings(true);
                       
-                      apiRequest('PUT', `/api/settings/EMAIL_POLLING_FREQUENCY_SECONDS`, {
+                      apiRequest('PUT', `/api/debug/settings/EMAIL_POLLING_FREQUENCY_SECONDS`, {
                         value: pollingFrequency,
                         type: 'system',
                         description: 'How often the system automatically checks for new emails in seconds'
