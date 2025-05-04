@@ -329,6 +329,7 @@ export default function Leads() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Location</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead>Moving Date</TableHead>
                 <TableHead>Property Link</TableHead>
                 <TableHead>Status</TableHead>
@@ -357,6 +358,13 @@ export default function Leads() {
                         <span className="text-xs text-primary">Unit {lead.unitNumber}</span>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {lead.source ? (
+                      <Badge variant="outline" className="bg-primary bg-opacity-10 text-primary hover:bg-opacity-20 border-primary border-opacity-20">
+                        {lead.source}
+                      </Badge>
+                    ) : 'Unknown'}
                   </TableCell>
                   <TableCell>{lead.movingDate ? formatDate(lead.movingDate) : 'N/A'}</TableCell>
                   <TableCell>
