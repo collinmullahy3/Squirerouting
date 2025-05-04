@@ -358,7 +358,7 @@ export default function Leads() {
         <ResponsiveTable
           data={filteredLeads}
           keyField="id"
-          onRowClick={(lead) => openLeadDetails(lead.id)}
+          onRowClick={(lead: Lead) => openLeadDetails(lead.id)}
           emptyMessage="No leads found. Try adjusting your filters."
           columns={[
             {
