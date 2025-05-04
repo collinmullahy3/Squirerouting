@@ -424,8 +424,9 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
         description: "The agent's lead group assignments have been updated.",
       });
       
-      // Refresh the agents list - use wildcard to ensure all related queries are invalidated
-      queryClient.invalidateQueries();
+      // Refresh the agents list and lead groups to ensure all related queries are invalidated
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/lead-groups"] });
     } catch (error) {
       console.error("Error updating lead groups:", error);
       toast({
