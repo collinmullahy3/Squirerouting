@@ -257,6 +257,46 @@ export default function LeadGroups() {
       });
     },
   });
+  
+  const duplicateGroupMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest<any>("POST", `/api/lead-groups/${id}/duplicate`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lead-groups"] });
+      toast({
+        title: "Success",
+        description: "Lead group duplicated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to duplicate lead group: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest<any>("DELETE", `/api/lead-groups/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lead-groups"] });
+      toast({
+        title: "Success",
+        description: "Lead group deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete lead group: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Form submission handlers
   const onSubmit = (values: LeadGroupFormValues) => {
@@ -321,6 +361,18 @@ export default function LeadGroups() {
       groupId: selectedGroupForMembers,
       agentId
     });
+  };
+  
+  const handleDuplicateGroup = (id: number) => {
+    if (window.confirm("Are you sure you want to duplicate this lead group?")) {
+      duplicateGroupMutation.mutate(id);
+    }
+  };
+  
+  const handleDeleteGroup = (id: number) => {
+    if (window.confirm("Are you sure you want to delete this lead group? This action cannot be undone.")) {
+      deleteGroupMutation.mutate(id);
+    }
   };
 
   if (!isAuthenticated || (user && user.role !== "manager")) {
@@ -433,7 +485,29 @@ export default function LeadGroups() {
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
-                              Edit Routing Rules
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDuplicateGroup(group.id)}
+                              className="flex items-center gap-1"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                              Duplicate
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDeleteGroup(group.id)}
+                              className="flex items-center gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
                             </Button>
                           </div>
                         </TableCell>

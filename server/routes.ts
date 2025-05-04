@@ -953,6 +953,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // Duplicate a lead group with all its settings
+  app.post("/api/lead-groups/:id/duplicate", isManager, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      // Get the original group
+      const originalGroup = await storage.getLeadGroupById(id);
+      if (!originalGroup) {
+        return res.status(404).json({ message: "Lead group not found" });
+      }
+      
+      // Create a new group with similar properties
+      const newGroupData = {
+        name: `${originalGroup.name} (Copy)`,
+        description: originalGroup.description,
+        minPrice: originalGroup.minPrice,
+        maxPrice: originalGroup.maxPrice,
+        zipCodes: originalGroup.zipCodes,
+        addressPattern: originalGroup.addressPattern,
+        priority: originalGroup.priority,
+        isActive: originalGroup.isActive
+      };
+      
+      const newGroup = await storage.createLeadGroup(newGroupData);
+      
+      // Get the original group members
+      const members = await db.query.leadGroupMembers.findMany({
+        where: eq(leadGroupMembers.groupId, id)
+      });
+      
+      // Add the same members to the new group
+      for (const member of members) {
+        await storage.addAgentToLeadGroup(member.agentId, newGroup.id);
+      }
+      
+      res.status(201).json(newGroup);
+    } catch (error) {
+      next(error);
+    }
+  });
 
   app.post("/api/lead-groups/:groupId/members/:agentId", isManager, async (req, res, next) => {
     try {
