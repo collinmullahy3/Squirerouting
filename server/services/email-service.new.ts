@@ -22,22 +22,59 @@ class EmailService {
   // Process an email received via the API endpoint
   async processEmail(emailData: any): Promise<boolean> {
     try {
+      console.log('Processing email with data:', {
+        subject: emailData.subject,
+        from: emailData.from,
+        hasText: !!emailData.text,
+        hasHtml: !!emailData.html,
+        textLength: emailData.text?.length || 0
+      });
+      
       const leadData = this.extractLeadData(emailData);
       
       if (!leadData) {
-        console.log('Email could not be parsed as a lead');
+        console.error('Email could not be parsed as a lead - missing required data');
         return false;
       }
       
-      console.log('Extracted lead data:', leadData);
+      // Log full lead data for debugging
+      console.log('Extracted lead data:', {
+        name: leadData.name,
+        email: leadData.email,
+        phone: leadData.phone,
+        price: leadData.price,
+        zipCode: leadData.zipCode,
+        address: leadData.address,
+        source: leadData.source,
+        hasOriginalEmail: !!leadData.originalEmail,
+        receivedAt: leadData.receivedAt ? 'Set' : 'Not set',
+        updatedAt: leadData.updatedAt ? 'Set' : 'Not set'
+      });
       
-      // Create the lead in the database
-      const lead = await storage.createLead(leadData);
+      // Make sure required dates are set
+      if (!leadData.receivedAt) {
+        leadData.receivedAt = new Date();
+      }
+      if (!leadData.updatedAt) {
+        leadData.updatedAt = new Date();
+      }
       
-      // Route the lead to an agent
-      await leadRouter.routeLead(lead);
-      
-      return true;
+      try {  
+        // Create the lead in the database
+        console.log('Creating new lead...');
+        const lead = await storage.createLead(leadData);
+        console.log('Created lead with ID:', lead.id);
+        
+        // Route the lead to an agent
+        console.log('Routing lead to agent...');
+        const routeResult = await leadRouter.routeLead(lead);
+        console.log('Lead routing result:', routeResult ? 'SUCCESS' : 'FAILED');
+        
+        return true;
+      } catch (dbError) {
+        console.error('Database error creating or routing lead:', dbError);
+        return false; 
+      }
     } catch (error) {
       console.error('Error processing email:', error);
       return false;
@@ -121,6 +158,7 @@ class EmailService {
         return null;
       }
 
+      // Make sure to add all required fields from the Lead schema
       return {
         name,
         email: clientEmail || 'unknown@example.com',
@@ -130,6 +168,9 @@ class EmailService {
         address: address || '',
         source: 'Email',
         originalEmail,
+        // Add the subject field which seems to be required
+        subject: subject,
+        // Make sure dates are included
         receivedAt: new Date(),
         updatedAt: new Date()
       };

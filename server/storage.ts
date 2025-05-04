@@ -364,10 +364,37 @@ export const storage = {
   },
 
   async createLead(leadData: LeadInsert): Promise<Lead> {
-    const [lead] = await db.insert(leads)
-      .values(leadData)
-      .returning();
-    return lead;
+    try {
+      console.log('Creating lead with data:', {
+        name: leadData.name,
+        email: leadData.email,
+        phone: leadData.phone,
+        price: leadData.price,
+        priceMax: leadData.priceMax,
+        zipCode: leadData.zipCode,
+        address: leadData.address,
+        unitNumber: leadData.unitNumber,
+        neighborhood: leadData.neighborhood,
+        bedCount: leadData.bedCount,
+        source: leadData.source,
+        propertyUrl: leadData.propertyUrl ? 'Yes' : 'No',
+        thumbnailUrl: leadData.thumbnailUrl ? 'Yes' : 'No',
+        originalEmail: leadData.originalEmail ? 'Yes' : 'No',
+        notes: leadData.notes ? 'Yes' : 'No'
+      });
+      
+      // Create lead entry
+      const [lead] = await db.insert(leads)
+        .values(leadData)
+        .returning();
+        
+      console.log('Lead created successfully with ID:', lead.id);
+      return lead;
+    } catch (error) {
+      console.error('Failed to create lead:', error);
+      // Rethrow to handle in the calling function
+      throw error;
+    }
   },
 
   async getLeadById(id: number): Promise<Lead | null> {
