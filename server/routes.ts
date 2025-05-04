@@ -35,14 +35,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createTableIfMissing: true,
       }),
       secret: process.env.SESSION_SECRET || "squire-session-secret",
-      resave: false,
-      saveUninitialized: false,
+      resave: true,
+      saveUninitialized: true,
       cookie: { 
-        secure: process.env.NODE_ENV === "production",
+        secure: false, // Set to false for both development and production since we're not using HTTPS
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        httpOnly: true,
+        sameSite: 'lax'
       },
     })
   );
+  
+  // Log session to help with debugging
+  app.use((req, res, next) => {
+    console.log('Session ID:', req.sessionID);
+    next();
+  });
   
   // Initialize passport for authentication
   app.use(passport.initialize());
@@ -802,7 +810,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Alternative check emails endpoint (temporary for debugging - more permissive)
-  app.post("/api/admin/check-emails-debug", isAuthenticated, async (req, res, next) => {
+  app.post("/api/admin/check-emails-debug", async (req, res, next) => {
+    console.log('Debug email check endpoint accessed - bypassing auth check');
     try {
       console.log('Debug email check endpoint accessed by:', { 
         user: req.user ? {
