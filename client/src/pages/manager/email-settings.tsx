@@ -168,7 +168,25 @@ export default function EmailSettings() {
                       <li>Receiving forwarded leads from various property listing websites</li>
                     </ol>
                     <p className="mt-2">
-                      We recommend using a dedicated Gmail account like <strong>squirerouting@gmail.com</strong> for this purpose. For Gmail accounts, you'll need to create an "App Password" instead of using your regular password.
+                      We recommend using a dedicated Gmail account like <strong>squirerouting@gmail.com</strong> for this purpose.
+                    </p>
+                  </AlertDescription>
+                </Alert>
+
+                <Alert className="bg-amber-50 border-amber-200 text-amber-800 mt-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Gmail Account Security</AlertTitle>
+                  <AlertDescription>
+                    <p className="font-medium">If using a Gmail account with 2-factor authentication (2FA):</p>
+                    <ol className="list-decimal list-inside mt-2 space-y-1">
+                      <li>You <strong>must</strong> use an App Password instead of your regular Gmail password</li>
+                      <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="underline">Google Account App Passwords</a></li>
+                      <li>Select "Mail" as the app and your computer as the device</li>
+                      <li>Click "Generate" and copy the 16-character password</li>
+                      <li>Paste this App Password in the password field below</li>
+                    </ol>
+                    <p className="mt-2 text-amber-700">
+                      Without an App Password, Gmail will reject connection attempts with the error: "Application-specific password required"
                     </p>
                   </AlertDescription>
                 </Alert>
@@ -222,7 +240,7 @@ export default function EmailSettings() {
                                   <Input type="password" placeholder="••••••••" {...field} />
                                 </FormControl>
                                 <FormDescription>
-                                  For Gmail accounts, create an App Password in your Google Account settings
+                                  For Gmail accounts with 2FA, use a 16-character App Password (no spaces)
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
