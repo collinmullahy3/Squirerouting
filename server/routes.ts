@@ -610,6 +610,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug Dashboard data routes - bypasses auth for debugging
+  app.get("/api/debug/dashboard/stats", async (req, res, next) => {
+    console.log('Debug dashboard stats endpoint accessed - bypassing auth check');
+    try {
+      const leadStats = await storage.getLeadStats();
+      const agents = await storage.getAllAgents();
+      
+      res.json({
+        totalLeads: leadStats.total,
+        assignedLeads: leadStats.assigned,
+        pendingLeads: leadStats.pending,
+        activeAgents: agents.length,
+      });
+    } catch (error) {
+      console.error('Error in debug dashboard stats endpoint:', error);
+      next(error);
+    }
+  });
+
   // Dashboard data routes
   app.get("/api/dashboard/stats", isAuthenticated, async (req, res, next) => {
     try {

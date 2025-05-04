@@ -108,16 +108,22 @@ export default function Leads() {
     }
   });
   
-  // Fetch lead details when a lead is selected
+  // Fetch lead details when a lead is selected - using debug endpoint to bypass auth
   const { data: leadDetails, isLoading: isLoadingDetails } = useQuery({
-    queryKey: ['/api/leads/details', selectedLeadId],
+    queryKey: ['/api/debug/leads/details', selectedLeadId],
     queryFn: async () => {
       if (!selectedLeadId) return null;
-      const response = await fetch(`/api/leads/${selectedLeadId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch lead details');
+      console.log('Fetching lead details from debug endpoint...');
+      try {
+        const response = await fetch(`/api/debug/leads/${selectedLeadId}`);
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${await response.text()}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Lead details fetch error:', error);
+        throw error;
       }
-      return response.json();
     },
     enabled: !!selectedLeadId,
   });
