@@ -109,7 +109,7 @@ export default function Sidebar({ className }: SidebarProps) {
               <div className="p-4 mt-auto border-t border-slate-700">
                 <div className="flex items-center justify-center gap-2">
                   <div className="flex-shrink-0 flex items-center justify-center">
-                    <img src="/images/squire-logo.png" alt="Squire Logo" className="h-16 w-auto" />
+                    <img src="/squire-logo.png" alt="Squire Logo" className="h-16 w-auto" />
                   </div>
                 </div>
               </div>
