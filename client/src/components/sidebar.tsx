@@ -56,9 +56,6 @@ export default function Sidebar({ className }: SidebarProps) {
           <div className="flex flex-col h-0 flex-1 bg-slate-800">
             <div className="flex items-center h-20 flex-shrink-0 px-4 bg-slate-900">
               <div className="flex items-center gap-3">
-                <div className="flex-shrink-0 flex items-center justify-center">
-                  <img src="/images/squire-logo.png" alt="Squire Logo" className="h-12 w-auto" />
-                </div>
                 <h1 className="text-2xl font-bold text-white">Squire</h1>
               </div>
             </div>
@@ -107,6 +104,15 @@ export default function Sidebar({ className }: SidebarProps) {
                   </NavItem>
                 </div>
               </nav>
+              
+              {/* Logo at the bottom */}
+              <div className="p-4 mt-auto border-t border-slate-700">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="flex-shrink-0 flex items-center justify-center">
+                    <img src="/images/squire-logo.png" alt="Squire Logo" className="h-16 w-auto" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

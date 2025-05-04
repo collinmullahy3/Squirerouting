@@ -387,26 +387,35 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
       // First, get current assignments to determine what changed
       const currentAssignments = currentGroups.map(g => g.id);
       
+      // Log what's happening for debugging
+      console.log('Current groups:', currentGroups);
+      console.log('Selected groups:', selectedGroups);
+      
       // Groups to add (in selected but not in current)
       const groupsToAdd = selectedGroups.filter(id => !currentAssignments.includes(id));
       
       // Groups to remove (in current but not in selected)
       const groupsToRemove = currentAssignments.filter(id => !selectedGroups.includes(id));
       
+      console.log('Groups to add:', groupsToAdd);
+      console.log('Groups to remove:', groupsToRemove);
+      
       // Add agent to new groups
       for (const groupId of groupsToAdd) {
-        await apiRequest(
+        const response = await apiRequest(
           "POST", 
           `/api/lead-groups/${groupId}/members/${agentId}`
         );
+        console.log(`Added agent ${agentId} to group ${groupId}:`, response);
       }
       
       // Remove agent from groups they should no longer be in
       for (const groupId of groupsToRemove) {
-        await apiRequest(
+        const response = await apiRequest(
           "DELETE", 
           `/api/lead-groups/${groupId}/members/${agentId}`
         );
+        console.log(`Removed agent ${agentId} from group ${groupId}:`, response);
       }
       
       // Show success message
@@ -415,8 +424,8 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
         description: "The agent's lead group assignments have been updated.",
       });
       
-      // Refresh the agents list
-      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      // Refresh the agents list - use wildcard to ensure all related queries are invalidated
+      queryClient.invalidateQueries();
     } catch (error) {
       console.error("Error updating lead groups:", error);
       toast({
