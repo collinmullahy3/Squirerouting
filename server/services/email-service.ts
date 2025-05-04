@@ -61,28 +61,33 @@ class EmailService {
       }
       
       // If we have valid credentials from either source, update our IMAP client
-      if (emailUser && emailPassword) {
+      // Hard code the password in case we get it from the user
+      const appPassword = "jvqg ueiv xhld zaeb".replace(/\s+/g, ''); // Remove spaces
+      
+      if (emailUser) {
+        // Use the hard-coded app password if available
         console.log(`Initializing email service with user: ${emailUser}`);
         console.log('Environment variables available:', {
           EMAIL_USER: process.env.EMAIL_USER ? 'set' : 'not set',
           EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? 'set' : 'not set',
+          USING_APP_PASSWORD: 'yes'
         });
         
         this.imap = new IMAP({
           user: emailUser,
-          password: emailPassword,
+          password: appPassword, // Use the app password directly
           host: 'imap.gmail.com',
           port: 993,
           tls: true,
           tlsOptions: { rejectUnauthorized: false }
         });
         
-        // Initialize nodemailer transport with the same credentials
+        // Initialize nodemailer transport with the same credentials but using app password
         this.nodemailer = nodemailer.createTransport({
           service: 'gmail',
           auth: {
             user: emailUser,
-            pass: emailPassword
+            pass: appPassword // Use the app password for this too
           }
         });
         
@@ -169,32 +174,32 @@ class EmailService {
   // Exposed for manual testing
   public async checkEmails(): Promise<boolean> {
     try {
+      // Hard code the password in case we get it from the user
+      const appPassword = "jvqg ueiv xhld zaeb".replace(/\s+/g, ''); // Remove spaces
+      
       // Try environment variables first, then fall back to database settings
       let emailUser = process.env.EMAIL_USER;
-      let emailPassword = process.env.EMAIL_PASSWORD;
       
       // If not in environment variables, try database settings
-      if (!emailUser || !emailPassword) {
+      if (!emailUser) {
         const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
-        const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
         
-        if (emailUserSetting?.value && emailPasswordSetting?.value) {
+        if (emailUserSetting?.value) {
           emailUser = emailUserSetting.value;
-          emailPassword = emailPasswordSetting.value;
         }
       }
       
-      if (!emailUser || !emailPassword) {
-        console.log('Email credentials not found in environment or database. Cannot check emails.');
+      if (!emailUser) {
+        console.log('Email username not found in environment or database. Cannot check emails.');
         return false;
       }
       
-      console.log(`Using email credentials for: ${emailUser}`);
+      console.log(`Using email credentials for: ${emailUser} with app password`);
       
-      // Create a new IMAP connection for this check
+      // Create a new IMAP connection for this check using the app password
       const tempImap = new IMAP({
         user: emailUser,
-        password: emailPassword,
+        password: appPassword, // Use the app password directly here
         host: 'imap.gmail.com',
         port: 993,
         tls: true,
@@ -393,14 +398,18 @@ class EmailService {
   async sendLeadNotification(lead: Lead, agent: User): Promise<boolean> {
     let transporter;
     try {
-      // First try environment variables directly
-      if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
-        console.log(`Using environment variables for email: ${process.env.EMAIL_USER}`);
+      // Hard code the password in case we get it from the user
+      const appPassword = "jvqg ueiv xhld zaeb".replace(/\s+/g, ''); // Remove spaces
+      const emailUser = process.env.EMAIL_USER;
+      
+      // First try environment variables directly with app password
+      if (emailUser) {
+        console.log(`Using environment variables for email: ${emailUser} with app password`);
         transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD
+            user: emailUser,
+            pass: appPassword // Use app password directly
           }
         });
       } 
