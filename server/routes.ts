@@ -663,8 +663,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { subject, text, from, html } = req.body;
       if (!subject || !text) {
+        console.error('Simulate email error: Missing subject or text', { subject, text });
         return res.status(400).json({ error: "Subject and text are required" });
       }
+      
+      console.log('Processing simulated email:', {
+        subject,
+        from: from || "test@example.com",
+        textLength: text?.length || 0,
+        htmlLength: html?.length || 0
+      });
       
       const success = await emailService.processSimulatedEmail({
         subject,
@@ -673,8 +681,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         from: from || "test@example.com"
       });
       
+      console.log('Simulated email process result:', success ? 'SUCCESS' : 'FAILED');
       res.json({ success });
     } catch (error) {
+      console.error('Error in simulate-email endpoint:', error);
       next(error);
     }
   });
