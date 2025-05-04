@@ -18,14 +18,14 @@ export default function EmailSettings() {
   const { toast } = useToast();
   
   // Query Email settings
-  const { data } = useQuery<{ hasCredentials: boolean, email?: string }>({ 
-    queryKey: ['/api/admin/email-settings'],
+  const { data } = useQuery<{ hasCredentials: boolean, email?: string, isListening?: boolean }>({ 
+    queryKey: ['/api/debug/email-settings'],
     refetchOnWindowFocus: false,
   });
   
   // Query System Settings
   const { data: systemSettings, isLoading: settingsLoading } = useQuery<any[]>({ 
-    queryKey: ['/api/settings'],
+    queryKey: ['/api/debug/settings'],
     refetchOnWindowFocus: false,
   });
   

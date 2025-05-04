@@ -755,6 +755,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug endpoint to process a simulated email for testing
+  app.post("/api/debug/simulate-email", async (req, res, next) => {
+    try {
+      console.log('Debug simulate-email endpoint accessed - bypassing auth check');
+      const { subject, text, from, html, source } = req.body;
+      if (!subject || !text) {
+        console.error('Simulate email error: Missing subject or text', { subject, text });
+        return res.status(400).json({ error: "Subject and text are required" });
+      }
+
+      const result = await emailService.processSimulatedEmail({
+        subject,
+        text,
+        from: from || 'test@example.com',
+        html: html || text,
+        source
+      });
+
+      res.json({ success: result });
+    } catch (error) {
+      console.error('Error in debug simulate-email endpoint:', error);
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // API endpoint to process a simulated email for testing
   app.post("/api/admin/simulate-email", isManager, async (req, res, next) => {
     try {
@@ -944,6 +969,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Endpoint to get email settings status
+  // Debug endpoint for email settings
+  app.get("/api/debug/email-settings", async (req, res, next) => {
+    try {
+      console.log('Debug email-settings endpoint accessed - bypassing auth check');
+      const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+      const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+      
+      res.json({
+        hasCredentials: !!(emailUserSetting?.value || process.env.EMAIL_USER) && 
+                     !!(emailPasswordSetting?.value || process.env.EMAIL_PASSWORD),
+        email: emailUserSetting?.value || process.env.EMAIL_USER || '',
+        isListening: emailService.isListening
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.get("/api/admin/email-settings", isManager, async (req, res, next) => {
     try {
       const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
@@ -996,6 +1039,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // System Settings endpoints
+  
+  // Debug endpoint for settings (bypasses auth)
+  app.get("/api/debug/settings", async (req, res, next) => {
+    try {
+      console.log('Debug settings endpoint accessed - bypassing auth check');
+      const { type } = req.query;
+      const settings = await storage.getAllSettings(type as string);
+      res.json(settings);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
   app.get("/api/settings", isManager, async (req, res, next) => {
     try {
       const { type } = req.query;

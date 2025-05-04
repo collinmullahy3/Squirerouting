@@ -768,7 +768,17 @@ class EmailService {
             originalEmail,
             subject,
             notes: null,
-            movingDate: structuredData.moveInDate ? new Date(structuredData.moveInDate) : null,
+            movingDate: structuredData.moveInDate ? (() => {
+              try {
+                // Attempt to parse the date
+                const parsedDate = new Date(structuredData.moveInDate);
+                // Check if the date is valid before returning
+                return !isNaN(parsedDate.getTime()) ? parsedDate : null;
+              } catch (e) {
+                console.error('Failed to parse moving date from structured data:', e);
+                return null;
+              }
+            })() : null,
             receivedAt: new Date(),
             updatedAt: new Date()
           };
@@ -852,12 +862,50 @@ class EmailService {
         try {
           // Try to parse the date string
           const dateStr = movingDateMatches[1].trim();
-          const parsedDate = new Date(dateStr);
-          if (!isNaN(parsedDate.getTime())) {
+          // Try different date formats
+          let parsedDate;
+          
+          // First, try the standard Date constructor
+          parsedDate = new Date(dateStr);
+          
+          // Check if we have a valid date
+          if (isNaN(parsedDate.getTime())) {
+            // Try some common formats
+            const parts = dateStr.split(/[\/-]/);
+            if (parts.length === 3) {
+              // Assume MM/DD/YYYY format
+              const month = parseInt(parts[0], 10) - 1; // 0-based month
+              const day = parseInt(parts[1], 10);
+              const year = parseInt(parts[2], 10) < 100 ? 2000 + parseInt(parts[2], 10) : parseInt(parts[2], 10);
+              parsedDate = new Date(year, month, day);
+            } else {
+              // Try to extract month, day, year from text
+              const monthMatch = dateStr.match(/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i);
+              const dayMatch = dateStr.match(/\b\d{1,2}(?:st|nd|rd|th)?\b/);
+              const yearMatch = dateStr.match(/\b(20\d{2})\b/);
+              
+              if (monthMatch && dayMatch) {
+                const month = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+                  .indexOf(monthMatch[0].toLowerCase());
+                const day = parseInt(dayMatch[0].replace(/(?:st|nd|rd|th)/, ''), 10);
+                const year = yearMatch ? parseInt(yearMatch[0], 10) : new Date().getFullYear();
+                
+                if (month !== -1 && day > 0 && day <= 31) {
+                  parsedDate = new Date(year, month, day);
+                }
+              }
+            }
+          }
+          
+          // If we have a valid date now, use it
+          if (parsedDate && !isNaN(parsedDate.getTime())) {
             movingDate = parsedDate;
+            console.log('Successfully parsed moving date:', { original: dateStr, parsed: parsedDate });
+          } else {
+            console.log('Could not parse moving date:', dateStr);
           }
         } catch (e) {
-          console.log('Failed to parse moving date:', e);
+          console.error('Error parsing moving date:', e);
         }
       }
 
