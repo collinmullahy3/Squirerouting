@@ -362,7 +362,7 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
   const { toast } = useToast();
 
   // Fetch all lead groups
-  const { data: groups, isLoading } = useQuery({
+  const { data: groups, isLoading } = useQuery<any[]>({
     queryKey: ["/api/lead-groups"],
   });
 
@@ -439,7 +439,7 @@ const AssignGroupsContent = ({ agentId, currentGroups }: AssignGroupsContentProp
     <div className="py-4">
       {isLoading ? (
         <div className="py-8 text-center">Loading groups...</div>
-      ) : groups && groups.length > 0 ? (
+      ) : Array.isArray(groups) && groups.length > 0 ? (
         <>
           <div className="space-y-4 mb-6">
             {groups.map((group: any) => (
