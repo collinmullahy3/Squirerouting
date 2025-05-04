@@ -139,6 +139,7 @@ export default function LeadGroups() {
       if (!selectedGroupForMembers) return null;
       try {
         const response = await apiRequest("GET", `/api/lead-groups/${selectedGroupForMembers}/rotation`);
+        console.log('Rotation data response:', response);
         return response || { groupId: selectedGroupForMembers, agents: [], nextAgent: null, lastAgent: null };
       } catch (error) {
         console.error('Error fetching rotation data:', error);

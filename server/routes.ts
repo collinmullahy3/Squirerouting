@@ -1227,24 +1227,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get all agents in the group with their membership details
-      const agents = await db.query.users.findMany({
-        where: eq(users.role, 'agent'),
+      const agents = await db.query.leadGroupMembers.findMany({
+        where: eq(leadGroupMembers.groupId, id),
         with: {
-          leadGroupMemberships: {
-            where: eq(leadGroupMembers.groupId, id)
-          }
+          agent: true
         }
-      }).then(users => 
-        users
-          .filter(user => user.leadGroupMemberships.length > 0)
-          .map(user => ({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            avatarUrl: user.avatarUrl,
-            lastAssignment: user.leadGroupMemberships[0]?.lastAssignment || null
-          }))
+      }).then(memberships => 
+        memberships.map(membership => ({
+          id: membership.agent.id,
+          name: membership.agent.name,
+          email: membership.agent.email,
+          avatarUrl: membership.agent.avatarUrl,
+          lastAssignment: membership.lastAssignment || null
+        }))
       );
+      
+      console.log(`Found ${agents.length} agents for lead group ${id}:`, agents);
       
       // Sort agents by lastAssignment (null values first, then oldest first)
       const sortedAgents = [...agents].sort((a, b) => {
