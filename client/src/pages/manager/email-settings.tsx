@@ -23,6 +23,20 @@ export default function EmailSettings() {
     refetchOnWindowFocus: false,
   });
   
+  // Query System Settings
+  const { data: systemSettings, isLoading: settingsLoading } = useQuery<any[]>({ 
+    queryKey: ['/api/settings'],
+    refetchOnWindowFocus: false,
+  });
+  
+  // Get email polling frequency setting
+  const pollingFrequencySetting = systemSettings?.find(s => s.key === 'EMAIL_POLLING_FREQUENCY_SECONDS');
+  const pollingFrequencySeconds = pollingFrequencySetting ? parseInt(pollingFrequencySetting.value, 10) : 60;
+  
+  // State to track new polling frequency setting
+  const [pollingFrequency, setPollingFrequency] = useState<string>(pollingFrequencySeconds.toString());
+  const [updatingSettings, setUpdatingSettings] = useState(false);
+  
   // Simulate Lead Form
   const [isSimulating, setIsSimulating] = useState(false);
 
@@ -149,6 +163,92 @@ export default function EmailSettings() {
                   </AlertDescription>
                 </Alert>
               </CardFooter>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  <span>Real-time Email Checking</span>
+                </CardTitle>
+                <CardDescription>
+                  Configure how frequently the system automatically checks for new emails.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert className="bg-green-50 text-green-800 border-green-200">
+                  <Check className="h-4 w-4" />
+                  <AlertTitle>Automatic Email Checking Enabled</AlertTitle>
+                  <AlertDescription>
+                    <p>The system is automatically checking for new emails every <strong>{pollingFrequencySeconds}</strong> seconds.</p>
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-4">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      setUpdatingSettings(true);
+                      
+                      apiRequest('PUT', `/api/settings/EMAIL_POLLING_FREQUENCY_SECONDS`, {
+                        value: pollingFrequency,
+                        type: 'system',
+                        description: 'How often the system automatically checks for new emails in seconds'
+                      })
+                        .then(() => {
+                          toast({
+                            title: 'Email Polling Frequency Updated',
+                            description: `The system will now check for new emails every ${pollingFrequency} seconds.`
+                          });
+                          setUpdatingSettings(false);
+                        })
+                        .catch(error => {
+                          toast({
+                            title: 'Failed to Update Settings',
+                            description: error.message || 'An unknown error occurred',
+                            variant: 'destructive'
+                          });
+                          setUpdatingSettings(false);
+                        });
+                    }}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="pollingFrequency">Polling Frequency (seconds)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="pollingFrequency"
+                          name="pollingFrequency"
+                          type="number"
+                          min="30"
+                          max="600"
+                          value={pollingFrequency}
+                          onChange={(e) => setPollingFrequency(e.target.value)}
+                          className="w-32"
+                        />
+                        <span className="text-sm text-muted-foreground">seconds</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        How often the system should automatically check for new emails. Recommended value: 60 seconds.
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Lower values will make emails appear faster but may increase server load. Valid range: 30-600 seconds.
+                      </p>
+                    </div>
+
+                    <Button type="submit" disabled={updatingSettings}>
+                      {updatingSettings ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        'Update Frequency'
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              </CardContent>
             </Card>
 
             <Card>

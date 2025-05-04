@@ -744,11 +744,20 @@ class EmailService {
         
         if (structuredData) {
           // If parsing was successful, return the structured data
+          // Clean price/rent value if it exists
+          let price = null;
+          if (structuredData.rent) {
+            // Remove $ and commas, convert to number
+            const priceStr = structuredData.rent.toString().replace(/[$,]/g, '');
+            price = priceStr ? parseFloat(priceStr) : null;
+            console.log('Parsed rent/price value:', { original: structuredData.rent, cleaned: priceStr, parsed: price });
+          }
+          
           return {
             name: `${structuredData.firstName || ''} ${structuredData.lastName || ''}`.trim(),
             email: structuredData.email || '',
             phone: structuredData.phone || '',
-            price: structuredData.rent,
+            price: price, // Use cleaned price
             zipCode: structuredData.zipCode || '',
             address: structuredData.address || '',
             unitNumber: structuredData.unitNumber || '',
