@@ -222,8 +222,16 @@ export default function LeadGroups() {
     mutationFn: async ({ groupId, agentId }: { groupId: number; agentId: number }) => {
       return await apiRequest<any>("POST", `/api/lead-groups/${groupId}/members/${agentId}`);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate the lead group members list
       queryClient.invalidateQueries({ queryKey: ["/api/lead-groups", selectedGroupForMembers, "members"] });
+      
+      // Also invalidate agents data to refresh the agent's lead groups list
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      
+      // And invalidate the specific agent's lead groups
+      queryClient.invalidateQueries({ queryKey: ["/api/agents", variables.agentId, "lead-groups"] });
+      
       toast({
         title: "Success",
         description: "Agent added to lead group",
@@ -242,8 +250,16 @@ export default function LeadGroups() {
     mutationFn: async ({ groupId, agentId }: { groupId: number; agentId: number }) => {
       return await apiRequest<any>("DELETE", `/api/lead-groups/${groupId}/members/${agentId}`);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      // Invalidate the lead group members list
       queryClient.invalidateQueries({ queryKey: ["/api/lead-groups", selectedGroupForMembers, "members"] });
+      
+      // Also invalidate agents data to refresh the agent's lead groups list
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      
+      // And invalidate the specific agent's lead groups
+      queryClient.invalidateQueries({ queryKey: ["/api/agents", variables.agentId, "lead-groups"] });
+      
       toast({
         title: "Success",
         description: "Agent removed from lead group",
