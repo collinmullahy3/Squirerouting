@@ -45,6 +45,34 @@ class EmailService {
 
   async initialize(): Promise<boolean> {
     try {
+      // Clear any existing check interval
+      if (this.checkInterval) {
+        clearInterval(this.checkInterval);
+        this.checkInterval = null;
+      }
+      
+      // Get poll frequency setting
+      const pollingFrequencySetting = await storage.getSettingByKey('EMAIL_POLLING_FREQUENCY_SECONDS');
+      const pollingFrequencySeconds = pollingFrequencySetting ? parseInt(pollingFrequencySetting.value, 10) : 60; // Default to 60 seconds
+      const pollingFrequency = pollingFrequencySeconds * 1000; // Convert to milliseconds
+      
+      // Set up auto-polling regardless of IMAP connection success
+      console.log(`Setting up automatic email polling every ${pollingFrequencySeconds} seconds`);
+      this.checkInterval = setInterval(() => {
+        console.log('Auto-checking for new emails...');
+        this.checkEmails().catch(error => {
+          console.error('Error in automatic email check:', error);
+        });
+      }, pollingFrequency);
+      
+      // Do an initial check right away
+      setTimeout(() => {
+        console.log('Performing initial email check...');
+        this.checkEmails().catch(error => {
+          console.error('Error in initial automatic email check:', error);
+        });
+      }, 5000); // Wait 5 seconds before doing initial check
+      
       // Try to use environment variables directly first
       let emailUser = process.env.EMAIL_USER;
       let emailPassword = process.env.EMAIL_PASSWORD;
@@ -134,9 +162,11 @@ class EmailService {
     console.log('IMAP connection established successfully');
     this._isListening = true;
     
-    // Start periodic checking
+    // Do an initial check with the established connection
     this.checkNewEmails();
-    this.checkInterval = setInterval(() => this.checkNewEmails(), this.CHECK_FREQUENCY);
+    
+    // No need to set up interval here as it's already set up in initialize()
+    // This avoids duplicate polling intervals
   }
   
   private onImapError(err: Error) {
@@ -164,11 +194,9 @@ class EmailService {
     console.log('IMAP connection ended');
     this._isListening = false;
     
-    // Clear interval if it exists
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
-    }
+    // No need to clear the check interval here since our polling is now manual
+    // and independent of the IMAP connection
+    // We'll still check emails periodically even if this connection drops
   }
   
   // Exposed for manual testing

@@ -187,6 +187,12 @@ async function seed() {
         value: "7",
         type: "system",
         description: "Number of days to consider emails from the same sender as part of the same lead"
+      },
+      {
+        key: "EMAIL_POLLING_FREQUENCY_SECONDS",
+        value: "60",
+        type: "system",
+        description: "How often the system automatically checks for new emails in seconds"
       }
     ]);
     console.log("Created system settings");
