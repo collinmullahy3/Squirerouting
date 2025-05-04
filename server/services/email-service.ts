@@ -483,6 +483,7 @@ class EmailService {
     subject?: string;
     text?: string;
     html?: string;
+    source?: string;
   }): Promise<boolean> {
     // Special handling for the default test email with "123 Main Street, Unit 4B"
     if (emailContent.text && emailContent.text.includes('123 Main Street, Unit 4B')) {
@@ -739,83 +740,87 @@ class EmailService {
       });
 
       // Extract the source (website that sent the lead)
-      let source = 'Email';
+      // If an explicit source was provided (from simulated email), use it
+      let source = email.source || 'Email';
       
-      // 1. First check common portal names in the subject and text content
-      const portalKeywords = [
-        { key: 'zillow', value: 'Zillow.com' },
-        { key: 'trulia', value: 'Trulia.com' },
-        { key: 'realtor.com', value: 'Realtor.com' },
-        { key: 'redfin', value: 'Redfin.com' },
-        { key: 'apartments.com', value: 'Apartments.com' },
-        { key: 'apartment.com', value: 'Apartments.com' },
-        { key: 'apartmentlist', value: 'ApartmentList.com' },
-        { key: 'streeteasy', value: 'StreetEasy.com' },
-        { key: 'zumper', value: 'Zumper.com' },
-        { key: 'hotpads', value: 'HotPads.com' },
-        { key: 'renthop', value: 'RentHop.com' },
-        { key: 'rentals.com', value: 'Rentals.com' },
-        { key: 'rentcafe', value: 'RentCafe.com' },
-        { key: 'facebook marketplace', value: 'Facebook Marketplace' },
-        { key: 'fb marketplace', value: 'Facebook Marketplace' },
-        { key: 'craigslist', value: 'Craigslist' }
-      ];
-      
-      // Check subject and text for portal references
-      const contentToCheck = (subject + ' ' + text).toLowerCase();
-      for (const portal of portalKeywords) {
-        if (contentToCheck.includes(portal.key)) {
-          source = portal.value;
-          break;
-        }
-      }
-      
-      // 2. Check property URLs for portal domains if we haven't found a source yet
-      if (source === 'Email' && propertyUrls.length > 0) {
-        // Get the first property URL's domain
-        try {
-          const url = new URL(propertyUrls[0]);
-          const domain = url.hostname.toLowerCase();
-          
-          // Check domain against common portals
-          for (const portal of portalKeywords) {
-            if (domain.includes(portal.key.replace('.com', ''))) {
-              source = portal.value;
-              break;
-            }
-          }
-          
-          // If we still don't have a match but have a domain, use it
-          if (source === 'Email') {
-            // Clean up domain (remove www. and just keep domain.com)
-            let cleanDomain = domain.replace('www.', '');
-            // Capitalize the first letter for better presentation
-            cleanDomain = cleanDomain.charAt(0).toUpperCase() + cleanDomain.slice(1);
-            source = cleanDomain;
-          }
-        } catch (e) {
-          console.log('Error parsing property URL domain:', e);
-        }
-      }
-      
-      // 3. If we still don't have a source, check sender address domain
+      // Only try to detect the source if one wasn't explicitly provided
       if (source === 'Email') {
-        const sourceDomainRegex = /@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i;
-        const sourceDomainMatch = from.match(sourceDomainRegex);
-        if (sourceDomainMatch && sourceDomainMatch.length > 1) {
-          const domain = sourceDomainMatch[1].toLowerCase();
-          
-          // Check domain against common portals
-          for (const portal of portalKeywords) {
-            if (domain.includes(portal.key.replace('.com', ''))) {
-              source = portal.value;
-              break;
-            }
+        // 1. First check common portal names in the subject and text content
+        const portalKeywords = [
+          { key: 'zillow', value: 'Zillow.com' },
+          { key: 'trulia', value: 'Trulia.com' },
+          { key: 'realtor.com', value: 'Realtor.com' },
+          { key: 'redfin', value: 'Redfin.com' },
+          { key: 'apartments.com', value: 'Apartments.com' },
+          { key: 'apartment.com', value: 'Apartments.com' },
+          { key: 'apartmentlist', value: 'ApartmentList.com' },
+          { key: 'streeteasy', value: 'StreetEasy.com' },
+          { key: 'zumper', value: 'Zumper.com' },
+          { key: 'hotpads', value: 'HotPads.com' },
+          { key: 'renthop', value: 'RentHop.com' },
+          { key: 'rentals.com', value: 'Rentals.com' },
+          { key: 'rentcafe', value: 'RentCafe.com' },
+          { key: 'facebook marketplace', value: 'Facebook Marketplace' },
+          { key: 'fb marketplace', value: 'Facebook Marketplace' },
+          { key: 'craigslist', value: 'Craigslist' }
+        ];
+        
+        // Check subject and text for portal references
+        const contentToCheck = (subject + ' ' + text).toLowerCase();
+        for (const portal of portalKeywords) {
+          if (contentToCheck.includes(portal.key)) {
+            source = portal.value;
+            break;
           }
-          
-          // If still no match, just use the domain
-          if (source === 'Email') {
-            source = domain.charAt(0).toUpperCase() + domain.slice(1);
+        }
+        
+        // 2. Check property URLs for portal domains if we haven't found a source yet
+        if (source === 'Email' && propertyUrls.length > 0) {
+          // Get the first property URL's domain
+          try {
+            const url = new URL(propertyUrls[0]);
+            const domain = url.hostname.toLowerCase();
+            
+            // Check domain against common portals
+            for (const portal of portalKeywords) {
+              if (domain.includes(portal.key.replace('.com', ''))) {
+                source = portal.value;
+                break;
+              }
+            }
+            
+            // If we still don't have a match but have a domain, use it
+            if (source === 'Email') {
+              // Clean up domain (remove www. and just keep domain.com)
+              let cleanDomain = domain.replace('www.', '');
+              // Capitalize the first letter for better presentation
+              cleanDomain = cleanDomain.charAt(0).toUpperCase() + cleanDomain.slice(1);
+              source = cleanDomain;
+            }
+          } catch (e) {
+            console.log('Error parsing property URL domain:', e);
+          }
+        }
+        
+        // 3. If we still don't have a source, check sender address domain
+        if (source === 'Email') {
+          const sourceDomainRegex = /@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i;
+          const sourceDomainMatch = from.match(sourceDomainRegex);
+          if (sourceDomainMatch && sourceDomainMatch.length > 1) {
+            const domain = sourceDomainMatch[1].toLowerCase();
+            
+            // Check domain against common portals
+            for (const portal of portalKeywords) {
+              if (domain.includes(portal.key.replace('.com', ''))) {
+                source = portal.value;
+                break;
+              }
+            }
+            
+            // If still no match, just use the domain
+            if (source === 'Email') {
+              source = domain.charAt(0).toUpperCase() + domain.slice(1);
+            }
           }
         }
       }
