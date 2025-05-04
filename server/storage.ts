@@ -445,12 +445,38 @@ export const storage = {
   async getAllLeads(page: number = 1, limit: number = 10): Promise<Lead[]> {
     // Using drizzle's findMany to avoid specific column issues
     try {
+      // Select only specific columns that we know exist in the schema
       return await db.query.leads.findMany({
         orderBy: desc(leads.receivedAt),
         limit: limit,
         offset: (page - 1) * limit,
         with: {
           assignedAgent: true
+        },
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          price: true,
+          priceMax: true,
+          zipCode: true, 
+          address: true,
+          unitNumber: true,
+          neighborhood: true,
+          bedCount: true,
+          source: true,
+          status: true,
+          assignedAgentId: true,
+          leadGroupId: true,
+          routingRuleId: true,
+          originalEmail: true,
+          notes: true,
+          propertyUrl: true,
+          thumbnailUrl: true,
+          movingDate: true,
+          receivedAt: true,
+          updatedAt: true
         }
       });
     } catch (error) {
@@ -501,7 +527,32 @@ export const storage = {
         where: eq(leads.assignedAgentId, agentId),
         orderBy: desc(leads.receivedAt),
         limit: limit,
-        offset: (page - 1) * limit
+        offset: (page - 1) * limit,
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          price: true,
+          priceMax: true,
+          zipCode: true, 
+          address: true,
+          unitNumber: true,
+          neighborhood: true,
+          bedCount: true,
+          source: true,
+          status: true,
+          assignedAgentId: true,
+          leadGroupId: true,
+          routingRuleId: true,
+          originalEmail: true,
+          notes: true,
+          propertyUrl: true,
+          thumbnailUrl: true,
+          movingDate: true,
+          receivedAt: true,
+          updatedAt: true
+        }
       });
     } catch (error) {
       console.error('Error fetching leads for agent:', error);
@@ -722,6 +773,31 @@ export const storage = {
         orderBy: asc(leads.receivedAt),
         with: {
           assignedAgent: true
+        },
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          price: true,
+          priceMax: true,
+          zipCode: true, 
+          address: true,
+          unitNumber: true,
+          neighborhood: true,
+          bedCount: true,
+          source: true,
+          status: true,
+          assignedAgentId: true,
+          leadGroupId: true,
+          routingRuleId: true,
+          originalEmail: true,
+          notes: true,
+          propertyUrl: true,
+          thumbnailUrl: true,
+          movingDate: true,
+          receivedAt: true,
+          updatedAt: true
         }
       });
     } catch (error) {
