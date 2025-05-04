@@ -14,6 +14,12 @@ class EmailService {
   private nodemailer: any = null; // Will initialize if needed
 
   constructor() {
+    console.log('EmailService init - Environment variables check:', {
+      EMAIL_USER: process.env.EMAIL_USER ? 'found' : 'not found',
+      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? 'found' : 'not found',
+      FORWARDING_EMAIL: this.FORWARDING_EMAIL
+    });
+    
     this.imap = new IMAP({
       user: process.env.EMAIL_USER || '',
       password: process.env.EMAIL_PASSWORD || '',
@@ -39,15 +45,32 @@ class EmailService {
 
   async initialize(): Promise<boolean> {
     try {
-      // Try to get email credentials from database settings
-      const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
-      const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+      // Try to use environment variables directly first
+      let emailUser = process.env.EMAIL_USER;
+      let emailPassword = process.env.EMAIL_PASSWORD;
       
-      // If we have settings in the database, update our IMAP client
-      if (emailUserSetting?.value && emailPasswordSetting?.value) {
+      // If not in environment variables, try database settings as fallback
+      if (!emailUser || !emailPassword) {
+        const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+        const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+        
+        if (emailUserSetting?.value && emailPasswordSetting?.value) {
+          emailUser = emailUserSetting.value;
+          emailPassword = emailPasswordSetting.value;
+        }
+      }
+      
+      // If we have valid credentials from either source, update our IMAP client
+      if (emailUser && emailPassword) {
+        console.log(`Initializing email service with user: ${emailUser}`);
+        console.log('Environment variables available:', {
+          EMAIL_USER: process.env.EMAIL_USER ? 'set' : 'not set',
+          EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? 'set' : 'not set',
+        });
+        
         this.imap = new IMAP({
-          user: emailUserSetting.value,
-          password: emailPasswordSetting.value,
+          user: emailUser,
+          password: emailPassword,
           host: 'imap.gmail.com',
           port: 993,
           tls: true,
@@ -58,8 +81,8 @@ class EmailService {
         this.nodemailer = nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: emailUserSetting.value,
-            pass: emailPasswordSetting.value
+            user: emailUser,
+            pass: emailPassword
           }
         });
         
@@ -69,8 +92,8 @@ class EmailService {
         this.imap.once('end', this.onImapEnd.bind(this));
       }
     } catch (error) {
-      console.error("Error initializing email service with database settings:", error);
-      // Continue with environment variables if database settings fail
+      console.error("Error initializing email service:", error);
+      // Continue anyway so manual simulation will still work
     }
     
     console.log(`Email service ready to receive forwarded emails. Agents should forward leads to: ${this.FORWARDING_EMAIL}`);
@@ -146,19 +169,32 @@ class EmailService {
   // Exposed for manual testing
   public async checkEmails(): Promise<boolean> {
     try {
-      // Get fresh credentials
-      const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
-      const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+      // Try environment variables first, then fall back to database settings
+      let emailUser = process.env.EMAIL_USER;
+      let emailPassword = process.env.EMAIL_PASSWORD;
       
-      if (!emailUserSetting?.value || !emailPasswordSetting?.value) {
-        console.log('Email credentials not found or invalid. Cannot check emails.');
+      // If not in environment variables, try database settings
+      if (!emailUser || !emailPassword) {
+        const emailUserSetting = await storage.getSettingByKey("EMAIL_USER");
+        const emailPasswordSetting = await storage.getSettingByKey("EMAIL_PASSWORD");
+        
+        if (emailUserSetting?.value && emailPasswordSetting?.value) {
+          emailUser = emailUserSetting.value;
+          emailPassword = emailPasswordSetting.value;
+        }
+      }
+      
+      if (!emailUser || !emailPassword) {
+        console.log('Email credentials not found in environment or database. Cannot check emails.');
         return false;
       }
       
+      console.log(`Using email credentials for: ${emailUser}`);
+      
       // Create a new IMAP connection for this check
       const tempImap = new IMAP({
-        user: emailUserSetting.value,
-        password: emailPasswordSetting.value,
+        user: emailUser,
+        password: emailPassword,
         host: 'imap.gmail.com',
         port: 993,
         tls: true,
