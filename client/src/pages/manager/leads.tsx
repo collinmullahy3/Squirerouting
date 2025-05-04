@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
+import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,37 @@ export default function Leads() {
   const limit = 10; // Items per page
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [isCheckingEmails, setIsCheckingEmails] = useState(false);
+
+  // Check for new emails mutation
+  const checkEmailsMutation = useMutation({
+    mutationFn: async () => {
+      setIsCheckingEmails(true);
+      return await apiRequest<any>("POST", "/api/admin/check-emails");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Email check completed successfully. New leads may have been processed.",
+      });
+      // Refetch leads to get any new ones
+      refetch();
+      setIsCheckingEmails(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to check emails: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
+      });
+      setIsCheckingEmails(false);
+    },
+  });
+
+  // Handle checking for new emails
+  const handleCheckEmails = () => {
+    checkEmailsMutation.mutate();
+  };
 
   // Fetch leads
   const { data: leads = [], isLoading, isError, refetch } = useQuery({
@@ -198,12 +230,28 @@ export default function Leads() {
     <div className="p-8 w-full overflow-y-auto pb-20">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">All Leads</h1>
-        <Button 
-          variant="default" 
-          onClick={() => setLocation('/email-settings')}
-        >
-          Simulate Lead
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleCheckEmails}
+            disabled={isCheckingEmails}
+          >
+            {isCheckingEmails ? (
+              <>
+                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></span>
+                Checking...
+              </>
+            ) : (
+              "Check for New Emails"
+            )}
+          </Button>
+          <Button 
+            variant="default" 
+            onClick={() => setLocation('/email-settings')}
+          >
+            Simulate Lead
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
