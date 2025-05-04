@@ -106,7 +106,7 @@ export const leads = pgTable("leads", {
   // Keep legacy references for backward compatibility
   routingRuleId: integer("routing_rule_id").references(() => routingRules.id),
   originalEmail: text("original_email"),
-  originalText: text("original_text"),
+  // originalText: text("original_text"), // Commented out until migration
   subject: text("subject"),
   notes: text("notes"),
   propertyUrl: text("property_url"),

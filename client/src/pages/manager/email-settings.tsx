@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Check, Mail, AlertTriangle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Sidebar from '@/components/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -244,17 +247,84 @@ export default function EmailSettings() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Email Notification Settings</CardTitle>
+                <CardTitle>Simulate Lead</CardTitle>
                 <CardDescription>
-                  Configure email notification content and behavior
+                  Test the lead processing system by simulating an email inquiry
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    When a lead is assigned to an agent, an email notification will be sent to them with the lead details.
-                    These emails will include a Reply-To header set to the lead's email address, allowing agents to respond directly.
-                  </p>
+                <div className="space-y-6">
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const formData = new FormData(e.currentTarget);
+                      const simulateData = {
+                        from: formData.get('from') as string,
+                        subject: formData.get('subject') as string,
+                        text: formData.get('text') as string
+                      };
+                      
+                      // Send simulated email data to API
+                      toast({
+                        title: 'Processing simulated lead...',
+                        description: 'Please wait while we process your test lead.'
+                      });
+                      
+                      apiRequest('POST', '/api/admin/simulate-email', simulateData)
+                        .then(response => {
+                          toast({
+                            title: 'Lead Simulated Successfully',
+                            description: 'The test lead has been processed and should appear in the leads list.'
+                          });
+                        })
+                        .catch(error => {
+                          toast({
+                            title: 'Failed to Simulate Lead',
+                            description: error.message || 'An unknown error occurred',
+                            variant: 'destructive'
+                          });
+                        });
+                    }}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="from">From Email</Label>
+                      <Input 
+                        id="from" 
+                        name="from" 
+                        defaultValue="test@example.com" 
+                        placeholder="renter@example.com" 
+                      />
+                      <p className="text-sm text-muted-foreground">The email address of the inquiring renter</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="subject">Email Subject</Label>
+                      <Input 
+                        id="subject" 
+                        name="subject" 
+                        defaultValue="Interested in 123 Main Street, Unit 4B" 
+                        placeholder="Interest in property..." 
+                      />
+                      <p className="text-sm text-muted-foreground">Subject line of the inquiry email</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="text">Email Content</Label>
+                      <Textarea 
+                        id="text" 
+                        name="text" 
+                        className="min-h-[150px]" 
+                        defaultValue={`Hi,\n\nI'm John Smith and I'm interested in renting at 123 Main Street, Unit 4B. The listing price of $2500 is within my budget.\n\nPlease contact me at test@example.com or 555-123-4567 if this property is still available. I'm looking to move by September 1st.\n\nThanks,\nJohn`}
+                        placeholder="Enter email body here..." 
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Include details like name, phone, address, unit number, price and any other relevant information
+                      </p>
+                    </div>
+                    
+                    <Button type="submit">Simulate Lead</Button>
+                  </form>
                 </div>
               </CardContent>
             </Card>
