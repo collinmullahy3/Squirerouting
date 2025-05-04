@@ -550,6 +550,86 @@ class EmailService {
     return this.processEmail(emailContent);
   }
 
+  /**
+   * Parse structured email format with labeled fields like "First Name:" and "Last Name:"
+   */
+  private parseStructuredEmailFormat(text: string): any {
+    try {
+      // Initialize result object
+      const result: Record<string, string> = {};
+      
+      // Define common field patterns with normalized keys
+      const fieldMappings = [
+        { regex: /First\s*Name:\s*([^\n]+)/i, key: 'firstName' },
+        { regex: /Last\s*Name:\s*([^\n]+)/i, key: 'lastName' },
+        { regex: /Email\s*Address:\s*([^\n<>]+)/i, key: 'email' },
+        { regex: /Phone:\s*([^\n]+)/i, key: 'phone' },
+        { regex: /Proposed\s*Move\s*In:\s*([^\n]+)/i, key: 'moveInDate' },
+        { regex: /Rent:\s*\$?([\d,\.]+)/i, key: 'rent' },
+        { regex: /Bedrooms:\s*(\d+)/i, key: 'bedrooms' },
+        { regex: /Bathrooms:\s*(\d+(?:\.\d+)?)/i, key: 'bathrooms' },
+        { regex: /Address:\s*([^\n]+)/i, key: 'address' },
+        { regex: /City:\s*([^\n]+)/i, key: 'city' },
+        { regex: /State:\s*([^\n]+)/i, key: 'state' },
+        { regex: /Zip\s*Code:\s*([^\n]+)/i, key: 'zipCode' },
+        { regex: /Unit\s*Number:\s*([^\n]+)/i, key: 'unitNumber' },
+        { regex: /Property\s*URL:\s*([^\n]+)/i, key: 'propertyUrl' },
+        { regex: /Source:\s*([^\n]+)/i, key: 'source' }
+      ];
+      
+      // Extract unit number from address if it contains a # symbol
+      const addressWithUnitRegex = /Address:\s*([^#]+)#([^\n,]+)/i;
+      const addressWithUnitMatch = text.match(addressWithUnitRegex);
+      if (addressWithUnitMatch && addressWithUnitMatch.length >= 3) {
+        result['address'] = addressWithUnitMatch[1].trim();
+        result['unitNumber'] = addressWithUnitMatch[2].trim();
+      }
+      
+      // Check for address with unit pattern like "123 Main St #5H"
+      const addressWithHashUnitRegex = /Address:\s*([^\n]+\s+#\w+)/i;
+      const addressWithHashUnitMatch = text.match(addressWithHashUnitRegex);
+      if (addressWithHashUnitMatch && addressWithHashUnitMatch.length >= 2) {
+        const parts = addressWithHashUnitMatch[1].split('#');
+        if (parts.length >= 2) {
+          result['address'] = parts[0].trim();
+          result['unitNumber'] = '#' + parts[1].trim();
+        }
+      }
+      
+      // Apply all field mappings
+      for (const mapping of fieldMappings) {
+        const match = text.match(mapping.regex);
+        if (match && match.length > 1) {
+          let value = match[1].trim();
+          
+          // Clean email field if it contains HTML
+          if (mapping.key === 'email' && value.includes('<a href="mailto:')) {
+            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+            const emailMatches = value.match(emailRegex);
+            if (emailMatches && emailMatches.length > 0) {
+              value = emailMatches[0];
+            }
+          }
+          
+          result[mapping.key] = value;
+        }
+      }
+      
+      console.log('Structured data parsing result:', result);
+      
+      // Return null if we don't have enough data
+      if (!result.firstName && !result.lastName && !result.email && !result.phone) {
+        console.log('Not enough data found in structured format');
+        return null;
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error parsing structured email:', error);
+      return null;
+    }
+  }
+  
   private extractLeadData(email: any): LeadInsert | null {
     console.log('Extracting lead data from email:', {
       subject: email.subject,
@@ -562,6 +642,50 @@ class EmailService {
       const subject = email.subject || '';
       const from = email.from?.text || email.from || '';
       const originalEmail = email.html || email.text || '';
+      
+      // First, check if the email follows a structured format like:
+      // Consumer Information:
+      // First Name: John
+      // Last Name: Doe
+      // Email Address: john@example.com
+      // Phone: (123) 456-7890
+      // etc.
+      
+      const hasStructuredFormat = text.includes('Consumer Information:') || 
+                                text.includes('Property Information:') ||
+                                text.includes('First Name:') ||
+                                text.includes('Last Name:') ||
+                                text.includes('Email Address:') ||
+                                (text.includes('Rent:') && text.includes('Bedrooms:'));
+                                
+      // If we have a structured format, use a dedicated parser for it
+      if (hasStructuredFormat) {
+        console.log('Detected structured email format, using dedicated parser');
+        const structuredData = this.parseStructuredEmailFormat(text);
+        
+        if (structuredData) {
+          // If parsing was successful, return the structured data
+          return {
+            name: `${structuredData.firstName || ''} ${structuredData.lastName || ''}`.trim(),
+            email: structuredData.email || '',
+            phone: structuredData.phone || '',
+            price: structuredData.rent,
+            zipCode: structuredData.zipCode || '',
+            address: structuredData.address || '',
+            unitNumber: structuredData.unitNumber || '',
+            bedCount: structuredData.bedrooms ? parseInt(structuredData.bedrooms) : null,
+            propertyUrl: structuredData.propertyUrl || null,
+            thumbnailUrl: null,  // Usually not included in structured emails
+            source: structuredData.source || 'Email',
+            originalEmail,
+            subject,
+            notes: null,
+            movingDate: structuredData.moveInDate ? new Date(structuredData.moveInDate) : null,
+            receivedAt: new Date(),
+            updatedAt: new Date()
+          };
+        }
+      }
 
       // Extract email using regex
       const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;

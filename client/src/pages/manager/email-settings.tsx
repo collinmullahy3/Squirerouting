@@ -240,6 +240,39 @@ export default function EmailSettings() {
                     </div>
                     
                     <div className="space-y-2">
+                      <Label htmlFor="emailFormat">Email Format</Label>
+                      <Select name="emailFormat" defaultValue="freeform" onValueChange={(value) => {
+                        const textarea = document.getElementById('text') as HTMLTextAreaElement;
+                        if (value === 'structured') {
+                          textarea.value = `Consumer Information:\nFirst Name: John\nLast Name: Smith\nEmail Address: test@example.com\nPhone: 555-123-4567\n\nProperty Information:\nAddress: 123 Main Street\nUnit Number: 4B\nRent: $2500\nBedrooms: 2\nBathrooms: 1\nProposed Move In: September 1st\nSource: StreetEasy.com\n\nAdditional Notes:\nI'm very interested in this property and would like to schedule a viewing as soon as possible.`;
+                        } else {
+                          textarea.value = `Hi,\n\nI'm John Smith and I'm interested in renting at 123 Main Street, Unit 4B. The listing price of $2500 is within my budget.\n\nPlease contact me at test@example.com or 555-123-4567 if this property is still available. I'm looking to move by September 1st.\n\nThanks,\nJohn`;
+                        }
+                      }}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select email format" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="freeform">Freeform Email</SelectItem>
+                          <SelectItem value="structured">Structured Format</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground">Choose between freeform text or a structured format with labeled fields</p>
+                      
+                      <Alert className="mt-2 bg-blue-50 border-blue-200 text-blue-800">
+                        <AlertTitle>About Structured Format</AlertTitle>
+                        <AlertDescription>
+                          <p>The structured format uses clearly labeled fields in specific sections:</p>
+                          <ul className="list-disc list-inside mt-1 space-y-1">
+                            <li><strong>Consumer Information:</strong> Details about the potential renter</li>
+                            <li><strong>Property Information:</strong> Details about the property of interest</li>
+                          </ul>
+                          <p className="mt-1">This format is commonly used by real estate websites when forwarding leads.</p>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                    
+                    <div className="space-y-2">
                       <Label htmlFor="text">Email Content</Label>
                       <Textarea 
                         id="text" 
