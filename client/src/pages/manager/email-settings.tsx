@@ -278,7 +278,7 @@ export default function EmailSettings() {
                       });
                       
                       setIsSimulating(true);
-                      apiRequest('POST', '/api/admin/simulate-email', simulateData)
+                      apiRequest('POST', '/api/debug/simulate-email', simulateData)
                         .then(response => {
                           toast({
                             title: 'Lead Simulated Successfully',
