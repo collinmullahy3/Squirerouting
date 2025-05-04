@@ -391,14 +391,56 @@ export const storage = {
   },
 
   async getAllLeads(page: number = 1, limit: number = 10): Promise<Lead[]> {
-    return await db.query.leads.findMany({
-      orderBy: desc(leads.receivedAt),
-      limit: limit,
-      offset: (page - 1) * limit,
-      with: {
-        assignedAgent: true
-      }
-    });
+    // Using drizzle's findMany to avoid specific column issues
+    try {
+      return await db.query.leads.findMany({
+        orderBy: desc(leads.receivedAt),
+        limit: limit,
+        offset: (page - 1) * limit,
+        with: {
+          assignedAgent: true
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      
+      // Fallback to minimal SQL query if there's a schema mismatch
+      const result = await db.execute(sql`
+        SELECT 
+          l.id, l.name, l.email, l.phone, l.price, l.price_max as "priceMax", 
+          l.zip_code as "zipCode", l.address, l.unit_number as "unitNumber",
+          l.neighborhood, l.bed_count as "bedCount", l.source, l.status,
+          l.assigned_agent_id as "assignedAgentId", l.lead_group_id as "leadGroupId",
+          l.routing_rule_id as "routingRuleId", l.original_email as "originalEmail",
+          l.notes, l.property_url as "propertyUrl", 
+          l.thumbnail_url as "thumbnailUrl", l.moving_date as "movingDate",
+          l.received_at as "receivedAt", l.updated_at as "updatedAt",
+          u.id as "agent_id", u.name as "agent_name", u.email as "agent_email"
+        FROM leads l
+        LEFT JOIN users u ON l.assigned_agent_id = u.id
+        ORDER BY l.received_at DESC
+        LIMIT ${limit} OFFSET ${(page - 1) * limit}
+      `);
+      
+      // Process the results to match the expected Lead type
+      return result.rows.map(row => {
+        const lead = {
+          ...row,
+          assignedAgent: row.agent_id ? {
+            id: row.agent_id,
+            name: row.agent_name,
+            email: row.agent_email
+          } : null
+        };
+        
+        // Remove the raw agent fields
+        delete lead.agent_id;
+        delete lead.agent_name;
+        delete lead.agent_email;
+        
+        return lead as any as Lead;
+      });
+    }
   },
 
   async getLeadsByAgentId(agentId: number, page: number = 1, limit: number = 10): Promise<Lead[]> {
