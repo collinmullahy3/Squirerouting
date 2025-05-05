@@ -316,7 +316,8 @@ class EmailService {
                   from: parsed.from?.text,
                   subject: parsed.subject,
                   text: parsed.text,
-                  html: parsed.html
+                  html: parsed.html,
+                  date: parsed.date // Include the original received date
                 });
                 
                 // Mark as read
@@ -772,14 +773,18 @@ class EmailService {
               try {
                 // Attempt to parse the date
                 const parsedDate = new Date(structuredData.moveInDate);
-                // Check if the date is valid before returning
-                return !isNaN(parsedDate.getTime()) ? parsedDate : null;
+                // Check if the date is valid before returning, and strip time component
+                if (!isNaN(parsedDate.getTime())) {
+                  return new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+                }
+                return null;
               } catch (e) {
                 console.error('Failed to parse moving date from structured data:', e);
                 return null;
               }
             })() : null,
-            receivedAt: new Date(),
+            // Use the email's date if available, otherwise use current time
+            receivedAt: email.date ? new Date(email.date) : new Date(),
             updatedAt: new Date()
           };
         }
@@ -899,8 +904,9 @@ class EmailService {
           
           // If we have a valid date now, use it
           if (parsedDate && !isNaN(parsedDate.getTime())) {
-            movingDate = parsedDate;
-            console.log('Successfully parsed moving date:', { original: dateStr, parsed: parsedDate });
+            // Create a new date with only the year, month, and day (no time)
+            movingDate = new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+            console.log('Successfully parsed moving date:', { original: dateStr, parsed: movingDate });
           } else {
             console.log('Could not parse moving date:', dateStr);
           }
@@ -912,6 +918,7 @@ class EmailService {
       // Extract zip code using regex (US format)
       const zipRegex = /\b\d{5}(-\d{4})?\b/g;
       const zipMatches = text.match(zipRegex) || [];
+      // Only use the zip code itself without any additional text
       const zipCode = zipMatches.length > 0 ? zipMatches[0] : '';
 
       // Extract address - this is more complex and may require NLP
@@ -1241,6 +1248,10 @@ class EmailService {
       }
 
       // Only include fields that are in the database schema to avoid errors
+      // Use the email's date if available, otherwise use current time
+      const emailDate = email.date ? new Date(email.date) : new Date();
+      const receivedDate = !isNaN(emailDate.getTime()) ? emailDate : new Date();
+      
       return {
         name: name, // Use the extracted name
         email: clientEmail || 'unknown@example.com',
@@ -1259,7 +1270,7 @@ class EmailService {
         originalEmail, // Keep this field as it's in the existing database schema
         notes: notes || null,
         movingDate,
-        receivedAt: new Date(),
+        receivedAt: receivedDate,
         updatedAt: new Date()
       };
     } catch (error) {
