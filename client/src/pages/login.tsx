@@ -139,13 +139,7 @@ export default function Login() {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-muted-foreground text-center w-full">
             <p>
-              Demo Accounts:
-            </p>
-            <p className="mt-1">
-              Manager: <span className="font-medium">manager1 / manager123</span>
-            </p>
-            <p>
-              Agent: <span className="font-medium">emily.j / emily123</span>
+              Please contact your administrator for account credentials
             </p>
           </div>
         </CardFooter>
