@@ -231,6 +231,13 @@ export default function Leads() {
     const date = new Date(dateString);
     return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
+  
+  // Format date only (no time) for moving dates
+  const formatDateOnly = (dateString: string | Date | null | undefined): string => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
 
   // Format currency
   const formatPrice = (price: number | string | null | undefined, priceMax?: number | string | null): string => {
@@ -425,7 +432,7 @@ export default function Leads() {
             {
               header: "Moving Date",
               accessorKey: "movingDate",
-              cell: (lead) => lead.movingDate ? formatDate(lead.movingDate) : 'N/A',
+              cell: (lead) => lead.movingDate ? formatDateOnly(lead.movingDate) : 'N/A',
               mobileLabel: "Moving Date",
               hideOnMobile: true
             },
@@ -552,7 +559,7 @@ export default function Leads() {
                     <div><span className="font-semibold">Assigned To:</span> {leadDetails.assignedAgent.name}</div>
                   )}
                   <div><span className="font-semibold">Received:</span> {formatDate(leadDetails.receivedAt)}</div>
-                  <div><span className="font-semibold">Moving Date:</span> {leadDetails.movingDate ? formatDate(leadDetails.movingDate) : 'N/A'}</div>
+                  <div><span className="font-semibold">Moving Date:</span> {leadDetails.movingDate ? formatDateOnly(leadDetails.movingDate) : 'N/A'}</div>
                   <div><span className="font-semibold">Routing Rule:</span> {leadDetails.routingRule ? leadDetails.routingRule.name : 'Manual Assignment'}</div>
                 </div>
               </DialogHeader>
@@ -612,7 +619,7 @@ export default function Leads() {
                       <div className="grid grid-cols-2 gap-4 mt-4">
                         <div>
                           <h3 className="font-semibold mb-2">Moving Date</h3>
-                          <p>{leadDetails.movingDate ? formatDate(leadDetails.movingDate) : 'Not specified'}</p>
+                          <p>{leadDetails.movingDate ? formatDateOnly(leadDetails.movingDate) : 'Not specified'}</p>
                         </div>
                         <div>
                           <h3 className="font-semibold mb-2">Source</h3>
