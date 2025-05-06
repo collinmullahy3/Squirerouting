@@ -571,13 +571,6 @@ class EmailService {
         throw new Error('Subject and text are required');
       }
       
-      // Ensure we add the current dates to the emailContent object
-      emailContent = {
-        ...emailContent,
-        receivedAt: new Date(),
-        updatedAt: new Date()
-      };
-
       console.log('Processing simulated email:', {
         subject: emailContent.subject,
         from: emailContent.from || 'test@example.com',
@@ -585,24 +578,130 @@ class EmailService {
         textLength: emailContent.text.length,
         htmlLength: emailContent.html?.length || 0
       });
-
-      return await this.processEmail(emailContent);
+      
+      // Create a properly formatted email object similar to what would be received from IMAP
+      const formattedEmail = {
+        subject: emailContent.subject,
+        from: emailContent.from,
+        text: emailContent.text, 
+        html: emailContent.html || '',
+        source: emailContent.source,
+        receivedAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      // Extract lead data from the email
+      const leadData = await this.extractLeadData(formattedEmail);
+      
+      // Process the extracted lead data
+      const result = await this.processEmail(leadData);
+      
+      console.log('Simulated email process result:', result ? 'SUCCESS' : 'FAILURE');
+      return result;
     } catch (error) {
       console.error('Error processing simulated email:', error);
       return false;
     }
   }
 
-  private extractLeadData(email: any): Promise<any> {
-    // TODO: Implement lead data extraction from email
-    // For now, just create a placeholder lead
-    return Promise.resolve({
-      name: email.subject,
-      email: email.from,
-      receivedAt: new Date(),
-      updatedAt: new Date(),
-      originalEmail: email.html || email.text
-    });
+  private async extractLeadData(email: any): Promise<any> {
+    try {
+      // Extract basic information from the email
+      const fromEmail = typeof email.from === 'string' ? email.from : 
+                      email.from?.text || 
+                      (email.from?.value && email.from.value[0]?.address) || 
+                      'unknown@example.com';
+      
+      const subject = email.subject || '';
+      const text = email.text || '';
+      const html = email.html || '';
+      
+      console.log(`Extracting lead data from email with subject: "${subject}"`);      
+      
+      // Use template parser to extract structured data
+      // First, try to use the template parser which is more efficient
+      const { parseEmailWithTemplates } = await import('./template-parser');
+      let leadData = await parseEmailWithTemplates(text || html, subject, fromEmail);
+      
+      // If template parsing failed, fallback to AI parsing if needed
+      if (!leadData && process.env.USE_AI_FALLBACK === 'true') {
+        console.log('Template parsing failed, falling back to AI parsing');
+        const { parseEmailWithAI } = await import('./ai-parser');
+        leadData = await parseEmailWithAI(text || html, subject);
+      }
+      
+      // If both parsing methods failed, create a minimal lead record
+      if (!leadData) {
+        console.log('All parsing methods failed, creating minimal lead record');
+        leadData = {
+          name: subject,
+          email: fromEmail,
+          source: email.source || this.detectSourceFromEmail(fromEmail, subject, text)
+        };
+      }
+      
+      // Ensure we have the required fields
+      return {
+        ...leadData,
+        originalEmail: text || html,
+        subject: subject,
+        receivedAt: email.receivedAt || new Date(),
+        updatedAt: email.updatedAt || new Date(),
+      };
+      
+    } catch (error) {
+      console.error('Error in extractLeadData:', error);
+      // Return minimal data in case of error
+      return {
+        name: email.subject || 'Unknown',
+        email: typeof email.from === 'string' ? email.from : 
+               email.from?.text || 
+               (email.from?.value && email.from.value[0]?.address) || 
+               'unknown@example.com',
+        originalEmail: email.text || email.html || '',
+        subject: email.subject || '',
+        receivedAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+  }
+  
+  private detectSourceFromEmail(fromEmail: string, subject: string, content: string): string | null {
+    // Simple source detection based on email domain
+    const domainMap: {[key: string]: string} = {
+      'zumper.com': 'Zumper',
+      'zillow.com': 'Zillow',
+      'streeteasy.com': 'StreetEasy',
+      'apartments.com': 'Apartments.com',
+      'myspacenyc.com': 'MySpace NYC',
+      'hotpads.com': 'HotPads',
+      'renthop.com': 'RentHop',
+      'trulia.com': 'Trulia',
+      'nooklyn.com': 'Nooklyn',
+      'realtor.com': 'Realtor.com',
+      'cazamio.com': 'Cazamio'
+    };
+    
+    // Check if domain is in our map
+    for (const [domain, source] of Object.entries(domainMap)) {
+      if (fromEmail.toLowerCase().includes(domain)) {
+        return source;
+      }
+    }
+    
+    // Check content for keyword markers
+    const contentLower = (content || '').toLowerCase();
+    const subjectLower = (subject || '').toLowerCase();
+    
+    if (subjectLower.includes('zumper') || contentLower.includes('zumper')) {
+      return 'Zumper';
+    } else if (subjectLower.includes('zillow') || contentLower.includes('zillow')) {
+      return 'Zillow';
+    } else if (subjectLower.includes('property inquiry') || contentLower.includes('property inquiry')) {
+      return 'Property Inquiry';
+    }
+    
+    return null;
   }
 }
 

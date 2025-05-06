@@ -1840,10 +1840,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const success = await emailService.checkEmails();
       res.json({ 
         success, 
-        message: success ? 'Email check initiated successfully' : 'Email check failed' 
+        message: success ? 'Email check completed successfully. Any new leads have been processed.' : 'Email check failed',
+        forwardingEmail: emailService.forwardingEmail
       });
     } catch (error) {
       console.error('Error checking emails:', error);
+      next(error);
+    }
+  });
+  
+  // Admin endpoint to process a test email
+  app.post("/api/admin/simulate-email", isManager, async (req, res, next) => {
+    try {
+      console.log('Admin requested to simulate an email');
+      
+      // Extract the email content from the request body
+      const { from, subject, text, html, source } = req.body;
+      
+      if (!from || !subject) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Missing required email fields (from, subject)' 
+        });
+      }
+      
+      // Simulate processing an email
+      const result = await emailService.processSimulatedEmail({
+        from,
+        subject,
+        text: text || '',
+        html: html || '',
+        source: source || null
+      });
+      
+      res.json({ 
+        success: result, 
+        message: result ? 'Test email processed successfully' : 'Failed to process test email'
+      });
+    } catch (error) {
+      console.error('Error processing test email:', error);
       next(error);
     }
   });

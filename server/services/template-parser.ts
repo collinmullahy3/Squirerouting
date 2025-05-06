@@ -217,6 +217,7 @@ function extractSourceSpecificData(
   
   // Extract name patterns
   const namePatterns = [
+    /(?:name|contact)s?:?\s+([a-zA-Z]+(\s[a-zA-Z]+){0,3})/i,   // "Name: Jane Smith"
     /(?:my name is|this is)\s+([a-zA-Z]+(\s[a-zA-Z]+){0,3})/i,  // "My name is Jane Smith"
     /(?:from|by)\s+([a-zA-Z]+(\s[a-zA-Z]+){0,3})/i,            // "From Jane Smith"
     /([a-zA-Z]+(\s[a-zA-Z]+){0,3})\s+(?:is interested|would like)/i // "Jane Smith is interested"
@@ -228,6 +229,7 @@ function extractSourceSpecificData(
       data.name = match[1].trim();
       break;
     }
+  }
   }
   
   // Email address extraction and filtering
