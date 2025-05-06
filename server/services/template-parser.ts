@@ -577,7 +577,138 @@ function extractSourceSpecificData(
       break;
       
     case 'Zillow':
-      // Zillow-specific extraction
+      // Specialized Zillow parser with more reliable extraction
+      console.log('Processing Zillow email format');
+      
+      // Extract contact name
+      const nameRegex = /From:\s*([^\n]+)/i;
+      const nameMatch = emailContent.match(nameRegex);
+      if (nameMatch && nameMatch[1]) {
+        data.name = nameMatch[1].trim();
+      }
+      
+      // Extract email with multiple patterns
+      const emailRegexes = [
+        /Email:\s*([^\n]+)/i,
+        /Reply to:\s*([^\n]+)/i,
+        /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi
+      ];
+      
+      let foundEmail = false;
+      for (const regex of emailRegexes) {
+        const emailMatch = emailContent.match(regex);
+        if (emailMatch && emailMatch[1]) {
+          // Filter out Zillow domains
+          const email = emailMatch[1].trim().toLowerCase();
+          if (!email.includes('zillow.com')) {
+            data.email = email;
+            foundEmail = true;
+            break;
+          }
+        }
+      }
+      
+      // If still no email found, try a general extraction approach
+      if (!foundEmail) {
+        const allEmails = emailContent.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi) || [];
+        const validEmails = allEmails.filter(email => !email.includes('zillow.com'));
+        if (validEmails.length > 0) {
+          data.email = validEmails[0].toLowerCase();
+        }
+      }
+      
+      // Add a fallback email if nothing is found
+      if (!data.email) {
+        // Generate a pseudorandom value for email based on timestamp and content
+        // Just to ensure we have an email for deduplication
+        const timestamp = Date.now().toString();
+        const pseudoUniqueId = timestamp.substring(timestamp.length - 8);
+        data.email = `lead_${pseudoUniqueId}@example.com`;
+      }
+      
+      // Extract phone
+      const phoneRegexes = [
+        /Phone:\s*([^\n]+)/i,
+        /Ph(?:one)?\s*#?:\s*([^\n]+)/i,
+        /\(?(\d{3})\)?[-. ]?(\d{3})[-. ]?(\d{4})/
+      ];
+      
+      for (const regex of phoneRegexes) {
+        const phoneMatch = emailContent.match(regex);
+        if (phoneMatch) {
+          if (phoneMatch.length === 4) { // Captured area code, prefix, and line number separately
+            data.phone = `${phoneMatch[1]}-${phoneMatch[2]}-${phoneMatch[3]}`;
+          } else if (phoneMatch[1]) {
+            const phoneRaw = phoneMatch[1].trim();
+            const digitsOnly = phoneRaw.replace(/\D/g, '');
+            if (digitsOnly.length === 10) {
+              data.phone = `${digitsOnly.slice(0,3)}-${digitsOnly.slice(3,6)}-${digitsOnly.slice(6)}`;
+            } else {
+              data.phone = phoneRaw;
+            }
+          }
+          break;
+        }
+      }
+      
+      // Extract property address
+      const addressRegexes = [
+        /Property:\s*([^\n]+)/i,
+        /inquiry(?:.*?)(?:for|at|on)\s+([^\n,.]+(?:[,.][^\n,.]+){1,3})/i,
+        /(?:at|for|property)\s+([^,]+,[^,]+,[^,]+)/i
+      ];
+      
+      for (const regex of addressRegexes) {
+        const addressMatch = emailContent.match(regex);
+        if (addressMatch && addressMatch[1]) {
+          data.address = addressMatch[1].trim();
+          break;
+        }
+      }
+      
+      // If no address yet, try extracting from subject
+      if (!data.address && subject.includes('Zillow:')) {
+        const subjectAddressMatch = subject.match(/Zillow:\s*([^\n]+)/);
+        if (subjectAddressMatch && subjectAddressMatch[1]) {
+          data.address = subjectAddressMatch[1].trim();
+        }
+      }
+      
+      // Extract unit number if present in address
+      if (data.address) {
+        const unitMatch = data.address.match(/#([A-Za-z0-9-]+)/);
+        if (unitMatch && unitMatch[1]) {
+          data.unitNumber = unitMatch[1];
+        }
+      }
+      
+      // Extract price range
+      const priceRangeRegex = /(?:budget|price range|price|rent)(?:\s+is)?\s*(?:of)?\s*\$?(\d[\d,.]+)(?:\s*-\s*\$?(\d[\d,.]+))?/i;
+      const priceRangeMatch = emailContent.match(priceRangeRegex);
+      if (priceRangeMatch) {
+        if (priceRangeMatch[1]) {
+          const minPrice = parsePrice(priceRangeMatch[1]);
+          if (minPrice) {
+            data.price = minPrice;
+          }
+          
+          if (priceRangeMatch[2]) {
+            const maxPrice = parsePrice(priceRangeMatch[2]);
+            if (maxPrice) {
+              data.priceMax = maxPrice;
+            }
+          }
+        }
+      }
+      
+      // Extract zip code
+      const zipCodeRegex = /\b(\d{5})\b/;
+      const zipCodeMatch = emailContent.match(zipCodeRegex);
+      if (zipCodeMatch && zipCodeMatch[1]) {
+        data.zipCode = zipCodeMatch[1];
+      }
+      
+      // Extract Zillow URLs
       const zillowUrlRegex = /(https:\/\/www\.zillow\.com\/[^\s"]+)/i;
       const zillowUrlMatch = emailContent.match(zillowUrlRegex);
       if (zillowUrlMatch && zillowUrlMatch[1]) {
@@ -590,6 +721,25 @@ function extractSourceSpecificData(
       if (zillowImgMatch && zillowImgMatch[1]) {
         data.thumbnailUrl = zillowImgMatch[1];
       }
+      
+      // Ensure we always have a name (required field in the database)
+      if (!data.name) {
+        // Use subject as fallback name if we didn't parse one
+        if (subject.includes('Zillow:')) {
+          data.name = subject;
+        } else {
+          data.name = 'Lead from Zillow';
+        }
+      }
+      
+      console.log('Zillow parser extracted:', {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        zipCode: data.zipCode,
+        price: data.price
+      });
       break;
       
     case 'MySpace NYC':
