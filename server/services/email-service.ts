@@ -1010,16 +1010,43 @@ class EmailService {
       if (templateParsedData && (templateParsedData.email || templateParsedData.phone)) {
         console.log('Template parser successfully extracted data');
         
-        // Return the parsed data with original email content
-        return {
-          ...templateParsedData,
+        // Create a proper lead insertion object with all required fields
+        const leadData: LeadInsert = {
+          name: templateParsedData.name || 'Unknown',
+          email: templateParsedData.email || 'unknown@example.com',
+          phone: templateParsedData.phone || null,
+          price: templateParsedData.price || null,
+          priceMax: templateParsedData.priceMax || null,
+          zipCode: templateParsedData.zipCode || null,
+          address: templateParsedData.address || null,
+          unitNumber: templateParsedData.unitNumber || null,
+          neighborhood: templateParsedData.neighborhood || null,
+          bedCount: templateParsedData.bedCount || null,
+          source: templateParsedData.source || detectedSource,
           originalEmail,
           subject,
-          // Make sure we use the detected source if template parsing didn't find one
-          source: templateParsedData.source || detectedSource,
+          propertyUrl: templateParsedData.propertyUrl || null,
+          thumbnailUrl: templateParsedData.thumbnailUrl || null,
+          notes: templateParsedData.notes || null,
           receivedAt: new Date(),
           updatedAt: new Date()
-        } as LeadInsert;
+        };
+        
+        console.log('Extracted lead data:', {
+          name: leadData.name,
+          email: leadData.email,
+          phone: leadData.phone,
+          price: leadData.price,
+          zipCode: leadData.zipCode,
+          address: leadData.address,
+          source: leadData.source,
+          propertyUrl: leadData.propertyUrl,
+          thumbnailUrl: leadData.thumbnailUrl,
+          receivedAt: leadData.receivedAt,
+          updatedAt: leadData.updatedAt
+        });
+        
+        return leadData;
       }
       
       console.log('Template parser could not extract data, falling back to AI parser as backup');
@@ -1037,16 +1064,41 @@ class EmailService {
             // If successful, store the pattern for this source
             await this.storeSourceParsingPattern(detectedSource, aiParsedData);
             
-            // Use the result from AI parsing with original email content
-            return {
-              ...aiParsedData,
+            // Create a proper lead insertion object with all required fields
+            const leadData: LeadInsert = {
+              name: aiParsedData.name || 'Unknown',
+              email: aiParsedData.email || 'unknown@example.com',
+              phone: aiParsedData.phone || null,
+              price: aiParsedData.price || null,
+              priceMax: aiParsedData.priceMax || null,
+              zipCode: aiParsedData.zipCode || null,
+              address: aiParsedData.address || null,
+              unitNumber: aiParsedData.unitNumber || null,
+              neighborhood: aiParsedData.neighborhood || null,
+              bedCount: aiParsedData.bedCount || null,
+              source: aiParsedData.source || detectedSource,
               originalEmail,
               subject,
-              // Make sure we use the detected source if AI didn't find one
-              source: aiParsedData.source || detectedSource,
+              propertyUrl: aiParsedData.propertyUrl || null,
+              thumbnailUrl: aiParsedData.thumbnailUrl || null,
+              notes: aiParsedData.notes || null,
               receivedAt: new Date(),
               updatedAt: new Date()
             };
+            
+            console.log('AI extracted lead data:', {
+              name: leadData.name,
+              email: leadData.email,
+              phone: leadData.phone,
+              price: leadData.price,
+              zipCode: leadData.zipCode,
+              address: leadData.address,
+              source: leadData.source,
+              receivedAt: leadData.receivedAt,
+              updatedAt: leadData.updatedAt
+            });
+            
+            return leadData;
           }
           console.log('AI parser also failed to extract valid data, falling back to traditional parser');
         } catch (aiError) {
