@@ -178,7 +178,7 @@ export default function ManagerDashboard() {
               title="Active Agents"
               value={statsLoading ? "..." : stats?.activeAgents || 0}
               icon="users"
-              href="/agent-groups"
+              href="/agents"
               linkText="View all agents"
               color="primary"
             />
@@ -268,7 +268,7 @@ export default function ManagerDashboard() {
                   </div>
                   <div className="mt-4">
                     <Button variant="default" size="sm" asChild>
-                      <a href="/agent-groups">Create New Group</a>
+                      <a href="/lead-groups">Create New Group</a>
                     </Button>
                   </div>
                 </CardContent>
