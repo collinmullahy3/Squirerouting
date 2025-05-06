@@ -676,9 +676,47 @@ function extractSourceSpecificData(
       
       // Extract unit number if present in address
       if (data.address) {
-        const unitMatch = data.address.match(/#([A-Za-z0-9-]+)/);
-        if (unitMatch && unitMatch[1]) {
-          data.unit_number = unitMatch[1]; // Use snake_case to match database column
+        // Look for common unit number patterns: #2B, Unit 2B, Apt 2B, etc.
+        // Also look for unit at the end of address like "789 Broadway 3C"
+        const unitPatterns = [
+          /#([A-Za-z0-9-]+)/,
+          /Unit\s+([A-Za-z0-9-]+)/i,
+          /Apt\s+([A-Za-z0-9-]+)/i,
+          /Apartment\s+([A-Za-z0-9-]+)/i,
+          /Suite\s+([A-Za-z0-9-]+)/i,
+          /\s+([A-Za-z0-9-]{1,4})\s*,/, // Matches units followed by comma
+          /\s+([A-Za-z0-9-]{1,4})$/ // Matches units at end of string like "789 Broadway 3C"
+        ];
+        
+        // First try standard patterns
+        let unitFound = false;
+        for (const pattern of unitPatterns) {
+          const unitMatch = data.address.match(pattern);
+          if (unitMatch && unitMatch[1]) {
+            data.unitNumber = unitMatch[1]; // Match field name in LeadInsert type
+            unitFound = true;
+            break;
+          }
+        }
+        
+        // If we didn't find a unit through patterns, check if the address ends with a unit number
+        if (!unitFound) {
+          // Extract last segment of address without special characters
+          const addressParts = data.address.trim().split(/\s+/);
+          const lastPart = addressParts[addressParts.length - 1];
+          
+          // Check if last part looks like a unit (mix of letters and numbers, 1-4 chars)
+          if (/^[A-Za-z0-9-]{1,4}$/.test(lastPart) && /[0-9]/.test(lastPart)) {
+            data.unitNumber = lastPart;
+            // Also remove the unit from the address to avoid duplication
+            data.address = addressParts.slice(0, -1).join(' ');
+            unitFound = true;
+          }
+        }
+        
+        // For TypeScript compatibility with the database schema
+        if (unitFound && data.unitNumber) {
+          data['unit_number'] = data.unitNumber;
         }
       }
       
