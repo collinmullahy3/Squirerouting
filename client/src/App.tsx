@@ -41,6 +41,7 @@ const ProtectedRoute = ({ component: Component, ...rest }: { component: React.FC
   
   // If not authenticated, redirect to login
   if (!user) {
+    console.log('Protected route - redirecting to login');
     setLocation('/login');
     return null;
   }

@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        console.log('Attempting to fetch user data from /api/auth/me');
         // Use a retry mechanism for fetching the user to handle race conditions with session setup
         let retries = 0;
         const maxRetries = 3;
@@ -51,6 +52,8 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
           const response = await fetch("/api/auth/me", {
             credentials: "include",
           });
+          
+          console.log(`Auth check response: ${response.status}`);
           
           if (response.ok) {
             userData = await response.json();
@@ -63,6 +66,7 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
             retries++;
           } else {
             // Other error status
+            console.log(`Unexpected error status: ${response.status}`);
             break;
           }
         }
@@ -74,6 +78,7 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
           console.log("User not authenticated");
           // If not authenticated and not on login page, redirect
           if (window.location.pathname !== "/login") {
+            console.log('Not authenticated - redirecting to login');
             setLocation("/login");
           }
         }
