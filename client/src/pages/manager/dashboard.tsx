@@ -49,8 +49,9 @@ export default function ManagerDashboard() {
 
   // Fetch lead source metrics
   const { data: leadSources = [], isLoading: leadSourcesLoading } = useQuery({
-    queryKey: ["/api/dashboard/lead-sources"],
+    queryKey: ["/api/debug/dashboard/lead-sources"],
     queryFn: async () => {
+      console.log('Fetching lead sources from debug endpoint...');
       try {
         const response = await fetch(`/api/debug/dashboard/lead-sources`);
         if (!response.ok) {

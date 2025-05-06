@@ -215,6 +215,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Debug endpoint for auth - does not require authentication
+  app.get("/api/debug/auth/me", (req, res) => {
+    console.log('Debug auth endpoint accessed', {
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user,
+      sessionID: req.sessionID,
+      session: req.session
+    });
+    
+    if (req.isAuthenticated() && req.user) {
+      const user = req.user as any;
+      res.json({
+        isAuthenticated: true,
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      });
+    } else {
+      res.json({
+        isAuthenticated: false,
+        message: "User not authenticated",
+        sessionID: req.sessionID
+      });
+    }
+  });
+  
   // Agent Group routes
   app.get("/api/agent-groups", isAuthenticated, async (req, res, next) => {
     try {
@@ -1325,6 +1353,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const groups = await storage.getAllLeadGroups();
       res.json(groups);
     } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Debug endpoint for lead groups (bypasses auth for testing)
+  app.get("/api/debug/lead-groups", async (req, res, next) => {
+    console.log('Debug lead groups endpoint accessed - bypassing auth check');
+    try {
+      const groups = await storage.getAllLeadGroups();
+      res.json(groups);
+    } catch (error) {
+      console.error('Error in debug lead groups endpoint:', error);
       next(error);
     }
   });
