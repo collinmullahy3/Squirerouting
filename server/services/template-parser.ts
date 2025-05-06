@@ -294,29 +294,79 @@ function extractSourceSpecificData(
   }
   
   // Unit/Apartment number extraction
-  const unitPatterns = [
-    // Unit/apt label followed by number/letter - most specific
-    /(?:unit|apt|apartment)\s*(?:#|number|no)?\s*[:#]?\s*([a-zA-Z0-9-]+)\b/i,
-    // Unit/apt label with identifier
-    /(?:unit|apt|apartment)\s+([a-zA-Z0-9-]+)\b/i,
-    // Hash symbol with unit identifier
-    /#\s*([a-zA-Z0-9-]+)\b/i,
-    // Address with "Unit X" pattern
-    /(?:street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd)(?:[.,\s]+)(?:unit|apt|apartment|suite|ste)?\s+([a-zA-Z0-9-]+)\b/i,
-    // Number followed by a letter at the end of an address line
-    /\d+\s+[^,]+,?\s+([a-zA-Z0-9-]{1,4})\s*,/i
-  ];
+  // First, specific search for patterns like "Unit 5B" in the text
+  const specificUnitPattern = /\b(?:unit|apt|apartment|suite|ste|#)\s*([a-zA-Z0-9-]{1,5})\b/i;
+  const unitInAddressPattern = /\b(\d+[a-zA-Z](?:-\d+)?)(?:\s|$|,)/i; // Like "5B" or "22A" standalone
   
-  for (const pattern of unitPatterns) {
-    const match = emailContent.match(pattern);
-    if (match && match[1]) {
-      // Skip results that are clearly not unit numbers (common false positives)
-      const nonUnitKeywords = ['in', 'at', 'near', 'by', 'from', 'to', 'the', 'for', 'with'];
-      if (nonUnitKeywords.includes(match[1].toLowerCase())) {
-        continue;
+  // Look for unit number in subject line first - often most reliable
+  const subjectUnitMatch = subject.match(specificUnitPattern);
+  if (subjectUnitMatch && subjectUnitMatch[1]) {
+    const unitCandidate = subjectUnitMatch[1].trim();
+    // Filter common false positives
+    const nonUnitKeywords = ['in', 'at', 'near', 'by', 'from', 'to', 'the', 'for', 'with'];
+    if (!nonUnitKeywords.includes(unitCandidate.toLowerCase())) {
+      data.unitNumber = unitCandidate;
+    }
+  } else {
+    // Then look in the email content with multiple pattern approaches
+    const unitPatterns = [
+      // Unit/apt label followed by number/letter - most specific
+      /(?:unit|apt|apartment)\s*(?:#|number|no)?\s*[:#]?\s*([a-zA-Z0-9-]{1,5})\b/i,
+      // Reference to an address with unit/apt specified
+      /(?:located at|at|on)\s+[^,]+,?\s+(?:unit|apt|apartment|suite|ste|#)\s+([a-zA-Z0-9-]{1,5})\b/i,
+      // Unit/apt label with identifier
+      /(?:unit|apt|apartment|suite|ste)\s+([a-zA-Z0-9-]{1,5})\b/i,
+      // Hash symbol with unit identifier
+      /#\s*([a-zA-Z0-9-]{1,5})\b/i,
+      // Address with "Unit X" pattern
+      /(?:street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd)(?:[.,\s]+)(?:unit|apt|apartment|suite|ste|#)?\s+([a-zA-Z0-9-]{1,5})\b/i,
+      // Common pattern: address with apartment designator after comma
+      /\d+\s+[^,]+,[\s\n]*(?:unit|apt|apartment|suite|ste|#)?\s*([a-zA-Z0-9-]{1,5})\b/i
+    ];
+    
+    // Try each pattern in order of specificity
+    let unitFound = false;
+    for (const pattern of unitPatterns) {
+      const match = emailContent.match(pattern);
+      if (match && match[1]) {
+        const unitCandidate = match[1].trim();
+        // Skip results that are clearly not unit numbers (common false positives)
+        const nonUnitKeywords = ['in', 'at', 'near', 'by', 'from', 'to', 'the', 'for', 'with'];
+        if (!nonUnitKeywords.includes(unitCandidate.toLowerCase())) {
+          data.unitNumber = unitCandidate;
+          unitFound = true;
+          break;
+        }
       }
-      data.unitNumber = match[1].trim();
-      break;
+    }
+    
+    // If still no unit found, look for standalone unit numbers like "5B" in context
+    if (!unitFound) {
+      // Try to find unit patterns near address references
+      const addressContexts = [
+        /(?:\d+\s+[a-zA-Z]+\s+(?:street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd|place|pl|court|ct|terrace|ter|lane|ln))[^\n.]*?([0-9][a-zA-Z]|[a-zA-Z][0-9])[^\n.]*/i,
+        /apartment\s+in\s+[^\n.]*?([0-9][a-zA-Z]|[a-zA-Z][0-9])/i
+      ];
+      
+      for (const pattern of addressContexts) {
+        const match = emailContent.match(pattern);
+        if (match && match[1]) {
+          data.unitNumber = match[1].trim();
+          break;
+        }
+      }
+    }
+  }
+  
+  // If we found a unitNumber, make sure it passes final validation
+  if (data.unitNumber) {
+    // Unit numbers should generally be short (1-5 characters) and often contain both letters and numbers
+    if (data.unitNumber.length > 5) {
+      // Probably not a valid unit number
+      data.unitNumber = null;
+    } else if (['in', 'at', 'near', 'by', 'from', 'to', 'the', 'for', 'with'].includes(data.unitNumber.toLowerCase())) {
+      // These are common false positives
+      data.unitNumber = null;
     }
   }
   
