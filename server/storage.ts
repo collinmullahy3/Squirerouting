@@ -12,6 +12,7 @@ import {
   leads,
   leadStatusHistory,
   systemSettings,
+  parsingPatterns,
   settingTypeEnum,
   // Types
   type User,
@@ -30,10 +31,109 @@ import {
   type AgentGroup,
   type AgentGroupInsert,
   type RoutingRule,
-  type RoutingRuleInsert
+  type RoutingRuleInsert,
+  // Parsing pattern types
+  type ParsingPattern,
+  type ParsingPatternInsert
 } from "@shared/schema";
 
 export const storage = {
+  /**
+   * Store a parsing pattern for a specific source
+   */
+  async storeParsingPattern(patternData: ParsingPatternInsert): Promise<ParsingPattern> {
+    try {
+      // Check if a pattern already exists for this source
+      const existingPattern = await db
+        .select()
+        .from(parsingPatterns)
+        .where(eq(parsingPatterns.source, patternData.source))
+        .limit(1);
+        
+      if (existingPattern.length > 0) {
+        // Update existing pattern
+        const [updated] = await db
+          .update(parsingPatterns)
+          .set({
+            pattern: patternData.pattern,
+            patternType: patternData.patternType || 'ai',
+            successCount: existingPattern[0].successCount + 1,
+            lastUsed: new Date(),
+            updatedAt: new Date()
+          })
+          .where(eq(parsingPatterns.id, existingPattern[0].id))
+          .returning();
+          
+        return updated;
+      } else {
+        // Create new pattern
+        const [pattern] = await db
+          .insert(parsingPatterns)
+          .values({
+            ...patternData,
+            successCount: 1,
+            lastUsed: new Date()
+          })
+          .returning();
+          
+        return pattern;
+      }
+    } catch (error) {
+      console.error('Error storing parsing pattern:', error);
+      throw error;
+    }
+  },
+  
+  /**
+   * Get parsing pattern by source
+   */
+  async getParsingPatternBySource(source: string): Promise<ParsingPattern | null> {
+    try {
+      const patterns = await db
+        .select()
+        .from(parsingPatterns)
+        .where(eq(parsingPatterns.source, source))
+        .limit(1);
+        
+      return patterns.length > 0 ? patterns[0] : null;
+    } catch (error) {
+      console.error('Error getting parsing pattern:', error);
+      return null;
+    }
+  },
+  
+  /**
+   * Get all parsing patterns
+   */
+  async getAllParsingPatterns(): Promise<ParsingPattern[]> {
+    try {
+      return await db
+        .select()
+        .from(parsingPatterns)
+        .orderBy(desc(parsingPatterns.successCount));
+    } catch (error) {
+      console.error('Error getting all parsing patterns:', error);
+      return [];
+    }
+  },
+  
+  /**
+   * Update parsing pattern success count
+   */
+  async incrementParsingPatternSuccessCount(id: number): Promise<void> {
+    try {
+      await db
+        .update(parsingPatterns)
+        .set({
+          successCount: sql`${parsingPatterns.successCount} + 1`,
+          lastUsed: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(parsingPatterns.id, id));
+    } catch (error) {
+      console.error('Error updating parsing pattern success count:', error);
+    }
+  },
   // LEAD GROUPS (NEW UNIFIED SCHEMA)
   async createLeadGroup(groupData: LeadGroupInsert): Promise<LeadGroup> {
     const [group] = await db.insert(leadGroups)

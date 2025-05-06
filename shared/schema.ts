@@ -7,6 +7,7 @@ import { z } from "zod";
 export const userRoleEnum = pgEnum('user_role', ['manager', 'agent']);
 export const leadStatusEnum = pgEnum('lead_status', ['pending', 'assigned', 'closed']);
 export const settingTypeEnum = pgEnum('setting_type', ['email', 'notification', 'system']);
+export const parsingPatternTypeEnum = pgEnum('parsing_pattern_type', ['regex', 'ai']);
 
 // Users table (managers and agents)
 export const users = pgTable("users", {
@@ -135,6 +136,18 @@ export const leadStatusHistory = pgTable("lead_status_history", {
   status: leadStatusEnum("status").notNull(),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Parsing patterns table - stores learned patterns for lead sources
+export const parsingPatterns = pgTable("parsing_patterns", {
+  id: serial("id").primaryKey(),
+  source: text("source").notNull().unique(), // The source website or email sender
+  pattern: text("pattern").notNull(), // JSON string containing the pattern data
+  patternType: parsingPatternTypeEnum("pattern_type").default('ai').notNull(),
+  successCount: integer("success_count").default(0).notNull(),
+  lastUsed: timestamp("last_used"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Relations
@@ -282,6 +295,11 @@ export const leadStatusUpdateSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const parsingPatternInsertSchema = createInsertSchema(parsingPatterns, {
+  source: (schema) => schema.min(2, "Source name must be at least 2 characters"),
+  pattern: (schema) => schema.min(2, "Pattern must not be empty"),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UserInsert = z.infer<typeof userInsertSchema>;
@@ -308,3 +326,6 @@ export type LeadInsert = z.infer<typeof leadInsertSchema>;
 
 export type LeadStatusHistory = typeof leadStatusHistory.$inferSelect;
 export type LeadStatusUpdate = z.infer<typeof leadStatusUpdateSchema>;
+
+export type ParsingPattern = typeof parsingPatterns.$inferSelect;
+export type ParsingPatternInsert = z.infer<typeof parsingPatternInsertSchema>;

@@ -1053,6 +1053,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Parsing patterns management
+  app.get("/api/parsing-patterns", isManager, async (req, res) => {
+    try {
+      const patterns = await storage.getAllParsingPatterns();
+      return res.json({ success: true, patterns });
+    } catch (error) {
+      console.error('Error getting parsing patterns', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  });
+  
+  app.get("/api/parsing-patterns/:source", isManager, async (req, res) => {
+    try {
+      const { source } = req.params;
+      const pattern = await storage.getParsingPatternBySource(source);
+      if (!pattern) {
+        return res.status(404).json({ success: false, error: 'Pattern not found' });
+      }
+      return res.json({ success: true, pattern });
+    } catch (error) {
+      console.error('Error getting parsing pattern', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  });
+  
+  app.post("/api/parsing-patterns", isManager, async (req, res) => {
+    try {
+      const patternData = req.body;
+      const pattern = await storage.storeParsingPattern(patternData);
+      return res.json({ success: true, pattern });
+    } catch (error) {
+      console.error('Error creating parsing pattern', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  });
+  
   app.get("/api/settings", isManager, async (req, res, next) => {
     try {
       const { type } = req.query;

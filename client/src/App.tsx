@@ -19,6 +19,7 @@ import AgentDetails from "@/pages/manager/agent-details";
 import Performance from "@/pages/manager/performance";
 import LeadGroups from "@/pages/manager/lead-groups";
 import EmailSettings from "@/pages/manager/email-settings";
+import ParsingPatterns from "@/pages/manager/parsing-patterns";
 // Using EmailSettings instead of SendGridSettings
 import Leads from "@/pages/manager/leads";
 
@@ -66,6 +67,7 @@ const Router = () => {
             <Route path="/agents/:id" component={(props: any) => <ProtectedRoute component={AgentDetails} {...props} />} />
             <Route path="/performance" component={(props: any) => <ProtectedRoute component={Performance} {...props} />} />
             <Route path="/email-settings" component={(props: any) => <ProtectedRoute component={EmailSettings} {...props} />} />
+            <Route path="/parsing-patterns" component={(props: any) => <ProtectedRoute component={ParsingPatterns} {...props} />} />
             <Route path="/sendgrid-settings" component={(props: any) => <ProtectedRoute component={EmailSettings} {...props} />} />
             
             {/* Agent Routes - Protected */}
