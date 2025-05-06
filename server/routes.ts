@@ -1832,6 +1832,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // Admin endpoint to manually check emails
+  app.post("/api/admin/check-emails", isManager, async (req, res, next) => {
+    try {
+      console.log('Admin requested to check emails manually');
+      const success = await emailService.checkEmails();
+      res.json({ 
+        success, 
+        message: success ? 'Email check initiated successfully' : 'Email check failed' 
+      });
+    } catch (error) {
+      console.error('Error checking emails:', error);
+      next(error);
+    }
+  });
 
   const httpServer = createServer(app);
   
