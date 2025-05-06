@@ -740,10 +740,16 @@ function extractSourceSpecificData(
       }
       
       // Extract zip code
-      const zipCodeRegex = /\b(\d{5})\b/;
+      // Look for NY zip codes in the message (e.g., "New York, NY 10022")
+      const zipCodeRegex = /NY\s+(\d{5})|New York,?\s+NY\s+(\d{5})|\b(\d{5})\b/;
       const zipCodeMatch = emailContent.match(zipCodeRegex);
-      if (zipCodeMatch && zipCodeMatch[1]) {
-        data.zip_code = zipCodeMatch[1]; // Use snake_case to match database column
+      if (zipCodeMatch) {
+        // Get the first capturing group that matched
+        const zipCode = zipCodeMatch[1] || zipCodeMatch[2] || zipCodeMatch[3];
+        if (zipCode) {
+          data.zipCode = zipCode; // Match field name in LeadInsert type
+          data['zip_code'] = zipCode; // Also assign to snake_case field for DB compatibility
+        }
       }
       
       // Extract Zillow URLs
