@@ -1511,7 +1511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Sort agents by lastAssignment (null values first, then oldest first)
       const sortedAgents = [...agents].sort((a, b) => {
-        if (!a.lastAssignment && !b.lastAssignment) return 0;
+        if (!a.lastAssignment && !b.lastAssignment) return a.name.localeCompare(b.name);
         if (!a.lastAssignment) return -1;
         if (!b.lastAssignment) return 1;
         return new Date(a.lastAssignment).getTime() - new Date(b.lastAssignment).getTime();
