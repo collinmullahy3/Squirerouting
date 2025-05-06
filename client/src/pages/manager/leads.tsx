@@ -58,7 +58,8 @@ export default function Leads() {
   const clearLeadsMutation = useMutation({
     mutationFn: async () => {
       setIsClearing(true);
-      return await apiRequest<any>("DELETE", "/api/admin/clear-leads");
+      // Use the new API endpoint that includes session regeneration
+      return await apiRequest<any>("POST", "/api/admin/clear-all-leads");
     },
     onSuccess: () => {
       toast({
@@ -332,6 +333,12 @@ export default function Leads() {
             onClick={() => setLocation('/email-settings')}
           >
             Simulate Lead
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={() => setClearLeadsDialogOpen(true)}
+          >
+            Reset Database
           </Button>
         </div>
       </div>
