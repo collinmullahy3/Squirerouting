@@ -183,9 +183,9 @@ export default function DebugDashboard() {
   
   // Create lead status data from stats
   const leadStatusData = [
-    { name: "Assigned", value: stats?.assignedLeads || 0, color: "#3b82f6" },
-    { name: "Pending", value: stats?.pendingLeads || 0, color: "#f59e0b" },
-    { name: "Closed", value: stats?.closedLeads || 0, color: "#8b5cf6" }
+    { name: "Assigned", value: stats?.assigned || 0, color: "#3b82f6" },
+    { name: "Pending", value: stats?.pending || 0, color: "#f59e0b" },
+    { name: "Closed", value: stats?.closed || 0, color: "#8b5cf6" }
   ];
 
   // Lead source data from the API
@@ -232,7 +232,7 @@ export default function DebugDashboard() {
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Total Leads"
-              value={statsLoading ? "..." : stats?.totalLeads || 0}
+              value={statsLoading ? "..." : stats?.total || 0}
               icon="user"
               href="/leads"
               linkText="View all leads"
@@ -240,7 +240,7 @@ export default function DebugDashboard() {
             />
             <StatCard
               title="Assigned Leads"
-              value={statsLoading ? "..." : stats?.assignedLeads || 0}
+              value={statsLoading ? "..." : stats?.assigned || 0}
               icon="check-circle"
               href="/leads"
               linkText="View assignment details"
@@ -248,7 +248,7 @@ export default function DebugDashboard() {
             />
             <StatCard
               title="Pending Leads"
-              value={statsLoading ? "..." : stats?.pendingLeads || 0}
+              value={statsLoading ? "..." : stats?.pending || 0}
               icon="clock"
               href="/leads"
               linkText="View pending leads"
@@ -256,7 +256,7 @@ export default function DebugDashboard() {
             />
             <StatCard
               title="Closed Leads"
-              value={statsLoading ? "..." : stats?.closedLeads || 0}
+              value={statsLoading ? "..." : stats?.closed || 0}
               icon="check-square"
               href="/leads"
               linkText="View closed leads"
