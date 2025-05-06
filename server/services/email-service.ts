@@ -196,31 +196,81 @@ class EmailService {
   
   private checkNewEmailsWithConnection(imapConnection: any, callback?: () => void) {
     try {
-      // Try to open the 'myspace' label/folder first
-      imapConnection.openBox('[Gmail]/MySpace', false, (err: any, mailbox: any) => {
+      // Log and list available mailboxes for debugging
+      imapConnection.getBoxes((err: any, boxes: any) => {
         if (err) {
-          // If 'myspace' label doesn't exist, try the standard 'MySpace' label
-          imapConnection.openBox('MySpace', false, (labelErr: any, labelMailbox: any) => {
-            if (labelErr) {
-              // If neither exists, fall back to INBOX but log a warning
-              console.log('MySpace label not found, checking INBOX instead. Please create a MySpace label.');
-              imapConnection.openBox('INBOX', false, (inboxErr: any, inboxMailbox: any) => {
-                if (inboxErr) {
-                  console.error('Error opening inbox:', inboxErr);
-                  if (callback) callback();
-                  return;
-                }
-                this.searchUnreadEmails(imapConnection, callback);
-              });
-            } else {
-              // Label found, search for unread emails
-              this.searchUnreadEmails(imapConnection, callback);
+          console.error('Error getting mailboxes:', err);
+        } else {
+          console.log('Available mailboxes (names only):', Object.keys(boxes));
+          // Look for any labels containing 'myspace' (case insensitive)
+          const mailboxNames = Object.keys(boxes);
+          const myspaceLabels = mailboxNames.filter(name => 
+            name.toLowerCase().includes('myspace') || 
+            name.toLowerCase().includes('my space'));
+          
+          if (myspaceLabels.length > 0) {
+            console.log('Found potential myspace labels:', myspaceLabels);
+          }
+          
+          // Check for nested mailboxes too
+          Object.keys(boxes).forEach(key => {
+            if (boxes[key].children) {
+              const nestedNames = Object.keys(boxes[key].children);
+              console.log(`Nested mailboxes in ${key}:`, nestedNames);
+              
+              const nestedMyspace = nestedNames.filter(name => 
+                name.toLowerCase().includes('myspace') || 
+                name.toLowerCase().includes('my space'));
+              
+              if (nestedMyspace.length > 0) {
+                console.log(`Found potential myspace labels in ${key}:`, nestedMyspace);
+              }
             }
           });
-        } else {
-          // Gmail path found, search for unread emails
-          this.searchUnreadEmails(imapConnection, callback);
         }
+        
+        // Based on our discovery, the Myspace label exists, so let's try that first
+        imapConnection.openBox('Myspace', false, (err: any, mailbox: any) => {
+          if (err) {
+            console.log('Error opening Myspace label, trying alternative spellings...');
+            // Try alternative spellings
+            imapConnection.openBox('myspace', false, (err1: any) => {
+              if (err1) {
+                imapConnection.openBox('MySpace', false, (err2: any) => {
+                  if (err2) {
+                    // Try Gmail path
+                    imapConnection.openBox('[Gmail]/Myspace', false, (err3: any) => {
+                      if (err3) {
+                        // As a last resort, check INBOX
+                        console.log('No myspace label found with any spelling, checking INBOX instead');
+                        imapConnection.openBox('INBOX', false, (inboxErr: any) => {
+                          if (inboxErr) {
+                            console.error('Error opening inbox:', inboxErr);
+                            if (callback) callback();
+                            return;
+                          }
+                          this.searchUnreadEmails(imapConnection, callback);
+                        });
+                      } else {
+                        console.log('Found [Gmail]/Myspace label');
+                        this.searchUnreadEmails(imapConnection, callback);
+                      }
+                    });
+                  } else {
+                    console.log('Found MySpace label');
+                    this.searchUnreadEmails(imapConnection, callback);
+                  }
+                });
+              } else {
+                console.log('Found myspace label');
+                this.searchUnreadEmails(imapConnection, callback);
+              }
+            });
+          } else {
+            console.log('Found Myspace label - searching for unread emails');
+            this.searchUnreadEmails(imapConnection, callback);
+          }
+        });
       });
     } catch (error) {
       console.error('Error in checkNewEmailsWithConnection:', error);
