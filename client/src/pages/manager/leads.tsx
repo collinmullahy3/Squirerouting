@@ -142,34 +142,30 @@ export default function Leads() {
     setTimeout(() => setSelectedLeadId(null), 300);
   };
 
-  // Status update handler
-  const handleStatusUpdate = async (leadId: number, status: string) => {
-    try {
-      // Implement status update logic here
-      await fetch(`/api/leads/${leadId}/status`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status,
-        }),
-      });
-
-      // Refetch leads to update the list
+  // Status update mutation
+  const updateLeadStatusMutation = useMutation({
+    mutationFn: async ({ leadId, status }: { leadId: number; status: string }) => {
+      return await apiRequest('POST', `/api/leads/${leadId}/status`, { status });
+    },
+    onSuccess: () => {
       refetch();
-
       toast({
         title: 'Lead status updated',
-        description: `Lead status has been updated to ${status}`,
+        description: 'Lead status has been updated successfully',
       });
-    } catch (error) {
+    },
+    onError: (error) => {
       toast({
         title: 'Error updating lead status',
-        description: 'An error occurred while updating the lead status',
+        description: `Failed to update lead status: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
       });
-    }
+    },
+  });
+
+  // Status update handler
+  const handleStatusUpdate = (leadId: number, status: string) => {
+    updateLeadStatusMutation.mutate({ leadId, status });
   };
 
   // Define lead interface
@@ -502,16 +498,45 @@ export default function Leads() {
               hideOnMobile: true
             },
             {
+              header: "Assigned Agent",
+              accessorKey: "assignedAgent.name",
+              cell: (lead) => lead.assignedAgent ? lead.assignedAgent.name : 'Not assigned',
+              mobileLabel: "Assigned Agent"
+            },
+            {
               header: "Status",
               accessorKey: "status",
               cell: (lead) => (
-                <Badge className={`
-                  ${lead.status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : ''}
-                  ${lead.status === 'assigned' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : ''}
-                  ${lead.status === 'closed' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
-                `}>
-                  {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={`
+                    ${lead.status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : ''}
+                    ${lead.status === 'assigned' ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' : ''}
+                    ${lead.status === 'closed' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                  `}>
+                    {lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
+                  </Badge>
+                  <Select 
+                    defaultValue={lead.status}
+                    onValueChange={(value) => {
+                      handleStatusUpdate(lead.id, value);
+                    }}
+                    onOpenChange={(open) => {
+                      // No need to stop propagation here
+                    }}
+                  >
+                    <SelectTrigger 
+                      className="w-[110px] h-8"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <SelectValue placeholder="Change status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="assigned">Assigned</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               ),
               mobileLabel: "Status"
             },
@@ -521,21 +546,7 @@ export default function Leads() {
               cell: (lead) => formatDate(lead.receivedAt),
               mobileLabel: "Received"
             },
-            {
-              header: "Actions",
-              accessorKey: "id",
-              cell: (lead) => (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); handleStatusUpdate(lead.id, 'closed'); }}
-                  disabled={lead.status === 'closed'}
-                >
-                  {lead.status === 'closed' ? 'Closed' : 'Mark Closed'}
-                </Button>
-              ),
-              mobileLabel: "Actions"
-            },
+
           ]}
         />
       )}
