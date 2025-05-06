@@ -1248,9 +1248,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid ID" });
       }
       
-      const success = await storage.deleteLeadGroup(id);
+      const result = await storage.deleteLeadGroup(id);
       
-      res.json({ success });
+      if (!result.success && result.errorMessage) {
+        return res.status(400).json({ 
+          success: false, 
+          message: result.errorMessage 
+        });
+      }
+      
+      res.json({ success: result.success });
     } catch (error) {
       next(error);
     }
