@@ -631,6 +631,104 @@ class EmailService {
   }
 
   /**
+   * Store parsing patterns by source for future use
+   */
+  private async storeSourceParsingPattern(source: string, parsedData: any): Promise<void> {
+    try {
+      // Check if we already have a setting for this source
+      const settingKey = `PARSING_PATTERN_${source.replace(/\s+/g, '_').toUpperCase()}`;
+      const existingSetting = await storage.getSettingByKey(settingKey);
+      
+      // Create a parsing pattern object with the fields we successfully extracted
+      const patternData = {
+        source,
+        fields: Object.keys(parsedData).filter(key => {
+          // Only include fields that had valid data
+          const value = parsedData[key];
+          return value !== null && value !== undefined && value !== '';
+        }),
+        updatedAt: new Date().toISOString()
+      };
+      
+      if (existingSetting) {
+        // Update existing setting
+        await storage.updateSetting(
+          settingKey,
+          JSON.stringify(patternData),
+          'system',
+          1,  // System user ID
+          `AI parsing pattern for ${source}`
+        );
+        console.log(`Updated parsing pattern for source: ${source}`);
+      } else {
+        // Create new setting
+        await storage.updateSetting(
+          settingKey,
+          JSON.stringify(patternData),
+          'system',
+          1,  // System user ID
+          `AI parsing pattern for ${source}`
+        );
+        console.log(`Created new parsing pattern for source: ${source}`);
+      }
+    } catch (error) {
+      console.error('Error storing source parsing pattern:', error);
+      // Non-critical error, don't throw
+    }
+  }
+
+  /**
+   * Helper function to detect the likely source of the lead based on common patterns in the email
+   */
+  private detectLeadSource(text: string, subject: string, from: string): string {
+    // Convert to lowercase for easier matching
+    const lowerText = text.toLowerCase();
+    const lowerSubject = subject.toLowerCase();
+    const lowerFrom = from.toLowerCase();
+    
+    // Check for common real estate websites in the text or subject
+    if (lowerText.includes('zillow') || lowerSubject.includes('zillow')) {
+      return 'Zillow';
+    } else if (lowerText.includes('trulia') || lowerSubject.includes('trulia')) {
+      return 'Trulia';
+    } else if (lowerText.includes('streeteasy') || lowerSubject.includes('streeteasy')) {
+      return 'StreetEasy';
+    } else if (lowerText.includes('apartments.com') || lowerSubject.includes('apartments.com')) {
+      return 'Apartments.com';
+    } else if (lowerText.includes('realtor.com') || lowerSubject.includes('realtor.com')) {
+      return 'Realtor.com';
+    } else if (lowerText.includes('hotpads') || lowerSubject.includes('hotpads')) {
+      return 'HotPads';
+    } else if (lowerText.includes('myspacenyc') || lowerSubject.includes('myspacenyc') || lowerFrom.includes('myspacenyc')) {
+      return 'MySpaceNYC';
+    }
+    
+    // Look for email domains from major providers
+    if (lowerFrom.includes('@zillow.com')) {
+      return 'Zillow';
+    } else if (lowerFrom.includes('@trulia.com')) {
+      return 'Trulia';
+    } else if (lowerFrom.includes('@streeteasy.com')) {
+      return 'StreetEasy';
+    } else if (lowerFrom.includes('@apartments.com')) {
+      return 'Apartments.com';
+    } else if (lowerFrom.includes('@realtor.com')) {
+      return 'Realtor.com';
+    } else if (lowerFrom.includes('@hotpads.com')) {
+      return 'HotPads';
+    }
+    
+    // Check for structured email patterns
+    if (lowerText.includes('consumer information:') || lowerText.includes('property information:')) {
+      // This appears to be a standard industry template
+      return 'Real Estate Listing';
+    }
+    
+    // Default
+    return 'Email';
+  }
+
+  /**
    * Parse structured email format with labeled fields like "First Name:" and "Last Name:"
    */
   private parseStructuredEmailFormat(text: string): any {
@@ -771,6 +869,104 @@ class EmailService {
     }
   }
   
+  /**
+   * Helper function to detect the likely source of the lead based on common patterns in the email
+   */
+  private detectLeadSource(text: string, subject: string, from: string): string {
+    // Convert to lowercase for easier matching
+    const lowerText = text.toLowerCase();
+    const lowerSubject = subject.toLowerCase();
+    const lowerFrom = from.toLowerCase();
+    
+    // Check for common real estate websites in the text or subject
+    if (lowerText.includes('zillow') || lowerSubject.includes('zillow')) {
+      return 'Zillow';
+    } else if (lowerText.includes('trulia') || lowerSubject.includes('trulia')) {
+      return 'Trulia';
+    } else if (lowerText.includes('streeteasy') || lowerSubject.includes('streeteasy')) {
+      return 'StreetEasy';
+    } else if (lowerText.includes('apartments.com') || lowerSubject.includes('apartments.com')) {
+      return 'Apartments.com';
+    } else if (lowerText.includes('realtor.com') || lowerSubject.includes('realtor.com')) {
+      return 'Realtor.com';
+    } else if (lowerText.includes('hotpads') || lowerSubject.includes('hotpads')) {
+      return 'HotPads';
+    } else if (lowerText.includes('myspacenyc') || lowerSubject.includes('myspacenyc') || lowerFrom.includes('myspacenyc')) {
+      return 'MySpaceNYC';
+    }
+    
+    // Look for email domains from major providers
+    if (lowerFrom.includes('@zillow.com')) {
+      return 'Zillow';
+    } else if (lowerFrom.includes('@trulia.com')) {
+      return 'Trulia';
+    } else if (lowerFrom.includes('@streeteasy.com')) {
+      return 'StreetEasy';
+    } else if (lowerFrom.includes('@apartments.com')) {
+      return 'Apartments.com';
+    } else if (lowerFrom.includes('@realtor.com')) {
+      return 'Realtor.com';
+    } else if (lowerFrom.includes('@hotpads.com')) {
+      return 'HotPads';
+    }
+    
+    // Check for structured email patterns
+    if (lowerText.includes('consumer information:') || lowerText.includes('property information:')) {
+      // This appears to be a standard industry template
+      return 'Real Estate Listing';
+    }
+    
+    // Default
+    return 'Email';
+  }
+  
+  /**
+   * Store parsing patterns by source for future use
+   */
+  private async storeSourceParsingPattern(source: string, parsedData: any): Promise<void> {
+    try {
+      // Check if we already have a setting for this source
+      const settingKey = `PARSING_PATTERN_${source.replace(/\s+/g, '_').toUpperCase()}`;
+      const existingSetting = await storage.getSettingByKey(settingKey);
+      
+      // Create a parsing pattern object with the fields we successfully extracted
+      const patternData = {
+        source,
+        fields: Object.keys(parsedData).filter(key => {
+          // Only include fields that had valid data
+          const value = parsedData[key];
+          return value !== null && value !== undefined && value !== '';
+        }),
+        updatedAt: new Date().toISOString()
+      };
+      
+      if (existingSetting) {
+        // Update existing setting
+        await storage.updateSetting(
+          settingKey,
+          JSON.stringify(patternData),
+          'system',
+          1,  // System user ID
+          `AI parsing pattern for ${source}`
+        );
+        console.log(`Updated parsing pattern for source: ${source}`);
+      } else {
+        // Create new setting
+        await storage.updateSetting(
+          settingKey,
+          JSON.stringify(patternData),
+          'system',
+          1,  // System user ID
+          `AI parsing pattern for ${source}`
+        );
+        console.log(`Created new parsing pattern for source: ${source}`);
+      }
+    } catch (error) {
+      console.error('Error storing source parsing pattern:', error);
+      // Non-critical error, don't throw
+    }
+  }
+  
   private async extractLeadData(email: any): Promise<LeadInsert | null> {
     console.log('Extracting lead data from email:', {
       subject: email.subject,
@@ -778,125 +974,51 @@ class EmailService {
       hasHtml: !!email.html
     });
     try {
-      // Simple pattern matching for lead information
+      // Get email content
       const text = email.text || '';
       const subject = email.subject || '';
       const from = email.from?.text || email.from || '';
       const originalEmail = email.html || email.text || '';
       
-      // First, check if the email follows a structured format like:
-      // Consumer Information:
-      // First Name: John
-      // Last Name: Doe
-      // Email Address: john@example.com
-      // Phone: (123) 456-7890
-      // etc.
+      // Detect the likely source of this lead based on email content
+      const detectedSource = this.detectLeadSource(text, subject, from);
+      console.log(`Detected likely lead source: ${detectedSource}`);
       
+      // Check for structured format to use appropriate parsing strategy
       const hasStructuredFormat = text.includes('Consumer Information:') || 
                                 text.includes('Property Information:') ||
                                 text.includes('First Name:') ||
                                 text.includes('Last Name:') ||
                                 text.includes('Email Address:') ||
                                 (text.includes('Rent:') && text.includes('Bedrooms:'));
-                                
-      // If we have a structured format, use a dedicated parser for it
-      if (hasStructuredFormat) {
-        console.log('Detected structured email format, using dedicated parser');
-        const structuredData = this.parseStructuredEmailFormat(text);
+      
+      // STEP 1: Always try AI parsing first for all emails as requested
+      console.log('Using AI parser for all emails as requested');
+      
+      try {
+        // Call the AI parser with email content
+        const aiParsedData = await parseEmailWithAI(text, subject);
         
-        // Check if structured parser produced valid results
-        let hasValidStructuredData = false;
-        if (structuredData) {
-          // Check if we have at least an email or phone number
-          hasValidStructuredData = Boolean(structuredData.email && structuredData.email.includes('@')) || 
-                                Boolean(structuredData.phone && structuredData.phone.length >= 7);
-        }
-
-        if (hasValidStructuredData) {
-          // If parsing was successful, return the structured data
-          // Clean price/rent value if it exists
-          let price = null;
-          if (structuredData.rent) {
-            // Remove $ and commas, convert to number
-            const priceStr = structuredData.rent.toString().replace(/[$,]/g, '');
-            price = priceStr ? parseFloat(priceStr) : null;
-            console.log('Parsed rent/price value:', { original: structuredData.rent, cleaned: priceStr, parsed: price });
-          }
+        if (aiParsedData && (aiParsedData.email || aiParsedData.phone)) {
+          console.log('AI successfully parsed the email');
           
+          // If successful, store the pattern for this source
+          await this.storeSourceParsingPattern(detectedSource, aiParsedData);
+          
+          // Use the result from AI parsing with original email content
           return {
-            name: `${structuredData.firstName || ''} ${structuredData.lastName || ''}`.trim(),
-            email: structuredData.email || '',
-            phone: structuredData.phone || '',
-            price: price, // Use cleaned price
-            zipCode: structuredData.zipCode || '',
-            address: structuredData.address || '',
-            unitNumber: structuredData.unitNumber || '',
-            bedCount: structuredData.bedrooms ? parseInt(structuredData.bedrooms) : null,
-            propertyUrl: structuredData.propertyUrl || null,
-            thumbnailUrl: null,  // Usually not included in structured emails
-            source: structuredData.source || 'Email',
+            ...aiParsedData,
             originalEmail,
             subject,
-            notes: null,
-            movingDate: structuredData.moveInDate ? (() => {
-              try {
-                // Attempt to parse the date
-                const parsedDate = new Date(structuredData.moveInDate);
-                // Check if the date is valid before returning
-                return !isNaN(parsedDate.getTime()) ? parsedDate : null;
-              } catch (e) {
-                console.error('Failed to parse moving date from structured data:', e);
-                return null;
-              }
-            })() : null,
+            // Make sure we use the detected source if AI didn't find one
+            source: aiParsedData.source || detectedSource,
             receivedAt: new Date(),
             updatedAt: new Date()
           };
-        } else {
-          // If structured parsing failed or produced invalid data, try AI parsing
-          console.log('Structured parser failed to extract valid data, trying AI parser');
-          try {
-            const aiParsedData = await parseEmailWithAI(text, subject);
-            if (aiParsedData && (aiParsedData.email || aiParsedData.phone)) {
-              console.log('AI successfully parsed the email');
-              // Ensure the AI result has the original email content
-              return {
-                ...aiParsedData,
-                originalEmail,
-                subject,
-                receivedAt: new Date(),
-                updatedAt: new Date()
-              };
-            }
-            // If AI parsing also failed, continue with the regular parsing logic
-            console.log('AI parser failed to extract valid data, falling back to traditional parser');
-          } catch (aiError) {
-            console.error('Error using AI parser:', aiError);
-            // Continue with the regular parsing logic
-          }
         }
-      } else {
-        // For non-structured emails, try AI parsing first
-        console.log('No structured format detected, trying AI parser first');
-        try {
-          const aiParsedData = await parseEmailWithAI(text, subject);
-          if (aiParsedData && (aiParsedData.email || aiParsedData.phone)) {
-            console.log('AI successfully parsed the email');
-            // Ensure the AI result has the original email content
-            return {
-              ...aiParsedData,
-              originalEmail,
-              subject,
-              receivedAt: new Date(),
-              updatedAt: new Date()
-            };
-          }
-          // If AI parsing failed, continue with the regular parsing logic
-          console.log('AI parser failed to extract valid data, falling back to traditional parser');
-        } catch (aiError) {
-          console.error('Error using AI parser:', aiError);
-          // Continue with the regular parsing logic
-        }
+        console.log('AI parser failed to extract valid data, falling back to traditional parser');
+      } catch (aiError) {
+        console.error('Error using AI parser:', aiError);
       }
 
       // Extract email using regex
