@@ -121,11 +121,26 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
     }
   }, [isLoading, user, setLocation]);
 
-  const logout = () => {
-    setUser(null);
-    // Clear any cached data
-    queryClient.clear();
-    setLocation("/login");
+  const logout = async () => {
+    try {
+      // Call the server logout endpoint
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      // Clear client-side state
+      setUser(null);
+      // Clear any cached data
+      queryClient.clear();
+      setLocation("/login");
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if server logout fails, clear local state
+      setUser(null);
+      queryClient.clear();
+      setLocation("/login");
+    }
   };
 
   return (
