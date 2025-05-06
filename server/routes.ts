@@ -12,7 +12,8 @@ import {
   users,
   leadGroupMembers,
   leads,
-  leadStatusHistory
+  leadStatusHistory,
+  LeadGroupInsert
 } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";

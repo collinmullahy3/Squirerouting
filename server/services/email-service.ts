@@ -675,22 +675,83 @@ class EmailService {
         }
       }
       
-      // Apply all field mappings
-      for (const mapping of fieldMappings) {
-        const match = text.match(mapping.regex);
-        if (match && match.length > 1) {
-          let value = match[1].trim();
-          
-          // Clean email field if it contains HTML
-          if (mapping.key === 'email' && value.includes('<a href="mailto:')) {
-            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-            const emailMatches = value.match(emailRegex);
-            if (emailMatches && emailMatches.length > 0) {
-              value = emailMatches[0];
+      // Split text into lines to better handle field labels that appear multiple times
+      const lines = text.split(/\r?\n/);
+      let currentKey = '';
+      
+      // First pass: Extract fields by finding field labels at the start of each line
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Skip empty lines
+        if (!line) continue;
+        
+        // Check if this line contains a field label
+        let foundMapping = false;
+        for (const mapping of fieldMappings) {
+          // Check if line starts with the field label (case insensitive)
+          const labelPattern = new RegExp(`^${mapping.regex.source.split('\\s*')[0]}\\s*:`, 'i');
+          if (labelPattern.test(line)) {
+            foundMapping = true;
+            currentKey = mapping.key;
+            
+            // Extract the value after the label
+            const labelSplit = line.split(':');
+            if (labelSplit.length > 1) {
+              const value = labelSplit.slice(1).join(':').trim();
+              
+              // For email specifically, make sure we extract just the email address
+              if (mapping.key === 'email') {
+                const emailMatch = value.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
+                if (emailMatch && emailMatch.length > 0) {
+                  // Only set the email value if we don't already have one or if this one seems more valid
+                  if (!result[mapping.key] || emailMatch[0].includes('@')) {
+                    result[mapping.key] = emailMatch[0];
+                  }
+                } else {
+                  // No valid email address found in this value
+                  if (!result[mapping.key]) {
+                    result[mapping.key] = value;
+                  }
+                }
+              } else {
+                // Only override the value if it's not already set or if it's currently empty
+                if (!result[mapping.key] || result[mapping.key] === '') {
+                  result[mapping.key] = value;
+                }
+              }
             }
+            break;
           }
-          
-          result[mapping.key] = value;
+        }
+        
+        // If this wasn't a field label, it might be a continuation of the previous field
+        if (!foundMapping && currentKey && !line.includes(':')) {
+          // Append this line to the current field value
+          if (result[currentKey]) {
+            result[currentKey] += ' ' + line;
+          }
+        }
+      }
+      
+      // Fall back to regex pattern matching for fields we haven't found yet
+      for (const mapping of fieldMappings) {
+        if (!result[mapping.key]) {
+          const match = text.match(mapping.regex);
+          if (match && match.length > 1) {
+            let value = match[1].trim();
+            
+            // Handle special case for email extraction
+            if (mapping.key === 'email' && value.includes('<a href="mailto:')) {
+              const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+              const emailMatches = value.match(emailRegex);
+              if (emailMatches && emailMatches.length > 0) {
+                value = emailMatches[0];
+              }
+            }
+            
+            result[mapping.key] = value;
+          }
         }
       }
       
