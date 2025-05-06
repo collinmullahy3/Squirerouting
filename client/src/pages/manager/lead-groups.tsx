@@ -318,10 +318,14 @@ export default function LeadGroups() {
         description: "Lead group deleted successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      // Check if the error has a response with a message
+      const errorMessage = error.response?.data?.message || 
+                          (error instanceof Error ? error.message : "Unknown error");
+      
       toast({
         title: "Error",
-        description: `Failed to delete lead group: ${error instanceof Error ? error.message : "Unknown error"}`,
+        description: `Failed to delete lead group: ${errorMessage}`,
         variant: "destructive",
       });
     },

@@ -258,8 +258,35 @@ export default function Leads() {
     return formattedMin;
   };
   
-  // Get a human-readable description of rule matching criteria
-  const getMatchCriteria = (rule: any) => {
+  // Format criteria for lead groups
+  const formatLeadGroupCriteria = (group: any) => {
+    if (!group) return 'No criteria defined';
+    
+    const criteria = [];
+    
+    if (group.minPrice && group.maxPrice) {
+      criteria.push(`Price: ${formatPrice(group.minPrice)} to ${formatPrice(group.maxPrice)}`);
+    } else if (group.minPrice) {
+      criteria.push(`Price: From ${formatPrice(group.minPrice)}`);
+    } else if (group.maxPrice) {
+      criteria.push(`Price: Up to ${formatPrice(group.maxPrice)}`);
+    }
+    
+    if (group.zipCodes && group.zipCodes.length > 0) {
+      criteria.push(`ZIP codes: ${group.zipCodes.join(', ')}`);
+    }
+    
+    if (group.addressPattern) {
+      criteria.push(`Address contains: ${group.addressPattern}`);
+    }
+    
+    return criteria.length > 0 ? criteria.join(' | ') : 'No specific criteria';
+  };
+  
+  // Format criteria for routing rules (legacy)
+  const formatRoutingRuleCriteria = (rule: any) => {
+    if (!rule) return 'No criteria defined';
+    
     const criteria = [];
     
     if (rule.minPrice && rule.maxPrice) {
@@ -564,7 +591,7 @@ export default function Leads() {
                   )}
                   <div><span className="font-semibold">Received:</span> {formatDate(leadDetails.receivedAt)}</div>
                   <div><span className="font-semibold">Moving Date:</span> {leadDetails.movingDate ? formatDateOnly(leadDetails.movingDate) : 'N/A'}</div>
-                  <div><span className="font-semibold">Routing Rule:</span> {leadDetails.routingRule ? leadDetails.routingRule.name : 'Manual Assignment'}</div>
+                  <div><span className="font-semibold">Lead Group:</span> {leadDetails.leadGroup ? leadDetails.leadGroup.name : (leadDetails.routingRule ? leadDetails.routingRule.name : 'Manual Assignment')}</div>
                 </div>
               </DialogHeader>
 
@@ -631,22 +658,42 @@ export default function Leads() {
                         </div>
                       </div>
                       
-                      {leadDetails.routingRule && (
+                      {(leadDetails.leadGroup || leadDetails.routingRule) && (
                         <div className="mt-4 p-3 bg-slate-50 rounded-md border">
-                          <h3 className="font-semibold mb-2">Routing Information</h3>
+                          <h3 className="font-semibold mb-2">Lead Routing Information</h3>
                           <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <span className="text-gray-500">Rule:</span> {leadDetails.routingRule.name}
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Agent Group:</span> {leadDetails.routingRule.group ? leadDetails.routingRule.group.name : 'Unknown'}
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Priority:</span> {leadDetails.routingRule.priority}
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Match Criteria:</span> {getMatchCriteria(leadDetails.routingRule)}
-                            </div>
+                            {leadDetails.leadGroup && (
+                              <>
+                                <div>
+                                  <span className="text-gray-500">Lead Group:</span> {leadDetails.leadGroup.name}
+                                  {!leadDetails.leadGroup.isActive && (
+                                    <Badge variant="outline" className="ml-2 bg-red-100 text-red-800">Inactive</Badge>
+                                  )}
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Priority:</span> {leadDetails.leadGroup.priority}
+                                </div>
+                                <div className="col-span-2">
+                                  <span className="text-gray-500">Match Criteria:</span> {formatLeadGroupCriteria(leadDetails.leadGroup)}
+                                </div>
+                              </>
+                            )}
+                            {!leadDetails.leadGroup && leadDetails.routingRule && (
+                              <>
+                                <div>
+                                  <span className="text-gray-500">Legacy Rule:</span> {leadDetails.routingRule.name}
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Agent Group:</span> {leadDetails.routingRule.group ? leadDetails.routingRule.group.name : 'Unknown'}
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Priority:</span> {leadDetails.routingRule.priority}
+                                </div>
+                                <div>
+                                  <span className="text-gray-500">Match Criteria:</span> {formatRoutingRuleCriteria(leadDetails.routingRule)}
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}

@@ -180,30 +180,31 @@ export const storage = {
 
   async deleteLeadGroup(id: number): Promise<{ success: boolean; errorMessage?: string }> {
     try {
-      // Check if there are any leads assigned to this group
-      const assignedLeads = await db.query.leads.findMany({
-        where: eq(leads.leadGroupId, id),
-        limit: 1 // Just need to know if any exist
-      });
+      // Instead of hard-deleting, just mark the group as inactive and update its name
+      // to indicate it's been deleted
+      const [updated] = await db.update(leadGroups)
+        .set({
+          isActive: false,
+          name: sql`CONCAT(${leadGroups.name}, ' (Deleted)')`,
+          updatedAt: new Date()
+        })
+        .where(eq(leadGroups.id, id))
+        .returning();
       
-      if (assignedLeads.length > 0) {
-        return { 
-          success: false, 
-          errorMessage: `Cannot delete lead group: ${assignedLeads.length} leads are assigned to this group. Please reassign or delete these leads first.`
+      if (!updated) {
+        return {
+          success: false,
+          errorMessage: `Lead group with ID ${id} not found`
         };
       }
       
-      // Delete all members from this group first
+      // Remove all members from this group as it's now inactive
       await db.delete(leadGroupMembers)
         .where(eq(leadGroupMembers.groupId, id));
-        
-      // Then delete the group itself
-      await db.delete(leadGroups)
-        .where(eq(leadGroups.id, id));
-        
+      
       return { success: true };
     } catch (error) {
-      console.error("Error deleting lead group:", error);
+      console.error("Error soft-deleting lead group:", error);
       return { 
         success: false,
         errorMessage: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -289,6 +290,8 @@ export const storage = {
     // Create a more complex query with all conditions
     const result = await baseQuery
       .where(eq(leadGroups.isActive, true))
+      // Exclude groups that have been soft-deleted (name ends with '(Deleted)')
+      .where(sql`${leadGroups.name} NOT LIKE '%(Deleted)'`)
       .where(lead.price ? 
         sql`(${leadGroups.minPrice} IS NULL OR ${leadGroups.minPrice} <= ${parseFloat(lead.price)})` : 
         sql`TRUE`)
