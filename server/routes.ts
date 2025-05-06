@@ -778,6 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalLeads: leadStats.total,
         assignedLeads: leadStats.assigned,
         pendingLeads: leadStats.pending,
+        closedLeads: leadStats.closed,
         activeAgents: agents.length,
       });
     } catch (error) {
@@ -796,6 +797,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalLeads: leadStats.total,
         assignedLeads: leadStats.assigned,
         pendingLeads: leadStats.pending,
+        closedLeads: leadStats.closed,
         activeAgents: agents.length,
       });
     } catch (error) {
@@ -824,6 +826,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sources = await storage.getLeadSourceMetrics();
       res.json(sources);
     } catch (error) {
+      next(error);
+    }
+  });
+  
+  app.get("/api/debug/dashboard/lead-sources", async (req, res, next) => {
+    console.log('Debug lead sources endpoint accessed - bypassing auth check');
+    try {
+      const sources = await storage.getLeadSourceMetrics();
+      res.json(sources);
+    } catch (error) {
+      console.error('Error in debug lead sources endpoint:', error);
       next(error);
     }
   });

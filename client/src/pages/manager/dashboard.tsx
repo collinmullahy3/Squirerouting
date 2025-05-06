@@ -47,7 +47,40 @@ export default function ManagerDashboard() {
     }
   });
 
-  // We no longer fetch top agents as requested
+  // Fetch lead source metrics
+  const { data: leadSources = [], isLoading: leadSourcesLoading } = useQuery({
+    queryKey: ["/api/dashboard/lead-sources"],
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/debug/dashboard/lead-sources`);
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${await response.text()}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Lead sources fetch error:', error);
+        return []; // Return empty array on error
+      }
+    }
+  });
+
+  // Fetch lead groups using debug endpoint to bypass auth issues
+  const { data: leadGroups = [], isLoading: leadGroupsLoading } = useQuery({
+    queryKey: ["/api/debug/lead-groups"],
+    queryFn: async () => {
+      console.log('Fetching lead groups from debug endpoint...');
+      try {
+        const response = await fetch(`/api/debug/lead-groups`);
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${await response.text()}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Lead groups fetch error:', error);
+        return []; // Return empty array on error
+      }
+    }
+  });
 
   // Define lead interface to fix type issues
   interface Lead {
@@ -110,19 +143,26 @@ export default function ManagerDashboard() {
     }
   };
   
-  // Placeholder data for charts
-  const groupPerformanceData = [
-    { name: "Luxury Homes", leads: 86 },
-    { name: "Downtown Condos", leads: 72 },
-    { name: "Suburban Homes", leads: 65 },
-    { name: "New Construction", leads: 24 }
-  ];
+  // Transform lead groups into chart data format
+  const groupPerformanceData = leadGroupsLoading || !leadGroups.length 
+    ? []
+    : leadGroups
+        .filter(group => group.isActive !== false) // Only include active groups
+        .map(group => ({
+          id: group.id,
+          name: group.name,
+          leads: group.leads?.length || 0,
+          agents: group.members?.length || 0,
+          isActive: group.isActive !== false
+        }))
+        .sort((a, b) => b.leads - a.leads)
+        .slice(0, 5); // Only show top 5 groups
   
+  // Create lead status data from stats
   const leadStatusData = [
     { name: "Assigned", value: stats?.assignedLeads || 0, color: "#3b82f6" },
     { name: "Pending", value: stats?.pendingLeads || 0, color: "#f59e0b" },
-    { name: "Contacted", value: 45, color: "#10b981" },
-    { name: "Closed", value: 15, color: "#8b5cf6" }
+    { name: "Closed", value: stats?.closedLeads || 0, color: "#8b5cf6" }
   ];
 
   if (!isAuthenticated) {
@@ -245,24 +285,38 @@ export default function ManagerDashboard() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-slate-200">
-                        {groupPerformanceData.map((group, index) => (
-                          <tr key={group.name}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm font-medium text-slate-900">{group.name}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-slate-900">{index === 0 ? 8 : index === 1 ? 6 : index === 2 ? 10 : 4}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-slate-900">{group.leads}</div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Badge className={index < 3 ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}>
-                                {index < 3 ? "Active" : "Paused"}
-                              </Badge>
+                        {leadGroupsLoading ? (
+                          <tr>
+                            <td colSpan={4} className="px-6 py-4 text-center">
+                              <div className="text-sm text-slate-500">Loading lead groups...</div>
                             </td>
                           </tr>
-                        ))}
+                        ) : groupPerformanceData.length > 0 ? (
+                          groupPerformanceData.map((group) => (
+                            <tr key={group.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-slate-900">{group.name}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-slate-900">{group.agents}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm text-slate-900">{group.leads}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge className={group.isActive ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}>
+                                  {group.isActive ? "Active" : "Paused"}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4} className="px-6 py-4 text-center">
+                              <div className="text-sm text-slate-500">No lead groups found</div>
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -325,6 +379,67 @@ export default function ManagerDashboard() {
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Lead Sources Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-medium">Lead Sources Performance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Source
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Total
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Closed
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Closing Rate
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                      {leadSourcesLoading ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">Loading lead sources...</div>
+                          </td>
+                        </tr>
+                      ) : leadSources.length > 0 ? (
+                        leadSources.map((source: any) => (
+                          <tr key={source.source}>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm font-medium text-slate-900">{source.source}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{source.total}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{source.closed}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{source.closingRate}%</div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">No lead sources found</div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
