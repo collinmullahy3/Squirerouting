@@ -39,6 +39,138 @@ import {
 
 export const storage = {
   /**
+   * Gets a list of buildings with the most leads
+   */
+  async getPopularBuildings(limit: number = 10): Promise<{
+    address: string;
+    leadsCount: number;
+    unitRequests?: number;
+  }[]> {
+    try {
+      // Get all leads with addresses
+      const allLeads = await db.query.leads.findMany({
+        columns: {
+          address: true,
+          unitNumber: true
+        },
+        where: sql`${leads.address} IS NOT NULL AND ${leads.address} != ''`
+      });
+      
+      // Group by building/address
+      const buildingMap = new Map<string, { total: number, units: Set<string> }>();
+      
+      allLeads.forEach(lead => {
+        if (lead.address) {
+          if (!buildingMap.has(lead.address)) {
+            buildingMap.set(lead.address, { 
+              total: 0, 
+              units: new Set<string>() 
+            });
+          }
+          
+          const buildingData = buildingMap.get(lead.address)!;
+          buildingData.total++;
+          
+          // Track unique unit numbers
+          if (lead.unitNumber) {
+            buildingData.units.add(lead.unitNumber);
+          }
+        }
+      });
+      
+      // Create results
+      return [...buildingMap.entries()]
+        .map(([address, data]) => ({
+          address,
+          leadsCount: data.total,
+          unitRequests: data.units.size
+        }))
+        .sort((a, b) => b.leadsCount - a.leadsCount)
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting popular buildings:', error);
+      return [];
+    }
+  },
+  
+  /**
+   * Gets a list of agents with their lead counts
+   */
+  async getLeadsPerAgent(): Promise<{
+    agent: {
+      id: number;
+      name: string;
+    };
+    totalLeads: number;
+    closedLeads: number;
+    pendingLeads: number;
+  }[]> {
+    try {
+      // Get all agents
+      const agents = await db.query.users.findMany({
+        where: eq(users.role, 'agent'),
+        columns: {
+          id: true,
+          name: true
+        }
+      });
+      
+      // Get all leads and group by agent
+      const allLeads = await db.query.leads.findMany({
+        where: sql`${leads.assignedAgentId} IS NOT NULL`,
+        columns: {
+          assignedAgentId: true,
+          status: true
+        }
+      });
+      
+      // Count leads per agent by status
+      const agentLeadStats = new Map<number, { total: number, closed: number, pending: number }>();
+      
+      // Initialize all agents with zero counts
+      agents.forEach(agent => {
+        agentLeadStats.set(agent.id, { total: 0, closed: 0, pending: 0 });
+      });
+      
+      // Count leads
+      allLeads.forEach(lead => {
+        if (lead.assignedAgentId) {
+          const stats = agentLeadStats.get(lead.assignedAgentId);
+          
+          if (stats) {
+            stats.total++;
+            
+            if (lead.status === 'closed') {
+              stats.closed++;
+            } else if (lead.status === 'pending') {
+              stats.pending++;
+            }
+          }
+        }
+      });
+      
+      // Create result
+      return agents
+        .map(agent => {
+          const stats = agentLeadStats.get(agent.id) || { total: 0, closed: 0, pending: 0 };
+          return {
+            agent: {
+              id: agent.id,
+              name: agent.name
+            },
+            totalLeads: stats.total,
+            closedLeads: stats.closed,
+            pendingLeads: stats.pending
+          };
+        })
+        .sort((a, b) => b.totalLeads - a.totalLeads);
+    } catch (error) {
+      console.error('Error getting leads per agent:', error);
+      return [];
+    }
+  },
+
+  /**
    * Store a parsing pattern for a specific source
    */
   async storeParsingPattern(patternData: ParsingPatternInsert): Promise<ParsingPattern> {

@@ -904,6 +904,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get buildings with most leads
+  app.get("/api/dashboard/popular-buildings", isAuthenticated, async (req, res, next) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const buildings = await storage.getPopularBuildings(limit);
+      res.json(buildings);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Debug version without auth
+  app.get("/api/debug/dashboard/popular-buildings", async (req, res, next) => {
+    console.log('Debug popular buildings endpoint accessed - bypassing auth check');
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const buildings = await storage.getPopularBuildings(limit);
+      res.json(buildings);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Get leads per agent
+  app.get("/api/dashboard/leads-per-agent", isAuthenticated, async (req, res, next) => {
+    try {
+      const agentLeads = await storage.getLeadsPerAgent();
+      res.json(agentLeads);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Debug version without auth
+  app.get("/api/debug/dashboard/leads-per-agent", async (req, res, next) => {
+    console.log('Debug leads per agent endpoint accessed - bypassing auth check');
+    try {
+      const agentLeads = await storage.getLeadsPerAgent();
+      res.json(agentLeads);
+    } catch (error) {
+      next(error);
+    }
+  });
+  
   // Manual trigger for routing pending leads (for testing or scheduling)
   app.post("/api/admin/process-pending-leads", isManager, async (req, res, next) => {
     try {
