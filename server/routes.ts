@@ -1143,10 +1143,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/lead-groups", isManager, async (req, res, next) => {
     try {
-      const groupData = leadGroupInsertSchema.parse(req.body);
+      console.log('Creating lead group with data:', req.body);
+      
+      // Handle numeric fields properly
+      const formData = {
+        ...req.body,
+        // Convert empty strings to null for optional numeric fields
+        minPrice: req.body.minPrice === '' ? null : req.body.minPrice,
+        maxPrice: req.body.maxPrice === '' ? null : req.body.maxPrice,
+        // Ensure priority is a number
+        priority: typeof req.body.priority === 'string' ? parseInt(req.body.priority) : req.body.priority
+      };
+      
+      const groupData = leadGroupInsertSchema.parse(formData);
       const group = await storage.createLeadGroup(groupData);
       res.status(201).json(group);
     } catch (error) {
+      console.error('Error creating lead group:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
@@ -1161,7 +1174,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid ID" });
       }
       
-      const groupData = leadGroupInsertSchema.parse(req.body);
+      console.log('Updating lead group with data:', req.body);
+      
+      // Handle numeric fields properly
+      const formData = {
+        ...req.body,
+        // Convert empty strings to null for optional numeric fields
+        minPrice: req.body.minPrice === '' ? null : req.body.minPrice,
+        maxPrice: req.body.maxPrice === '' ? null : req.body.maxPrice,
+        // Ensure priority is a number
+        priority: typeof req.body.priority === 'string' ? parseInt(req.body.priority) : req.body.priority
+      };
+      
+      const groupData = leadGroupInsertSchema.parse(formData);
       const updatedGroup = await storage.updateLeadGroup(id, groupData);
       
       if (!updatedGroup) {
@@ -1170,6 +1195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(updatedGroup);
     } catch (error) {
+      console.error('Error updating lead group:', error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
@@ -1206,15 +1232,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Lead group not found" });
       }
       
+      console.log('Original group to duplicate:', originalGroup);
+      console.log('minPrice type:', typeof originalGroup.minPrice);
+      console.log('maxPrice type:', typeof originalGroup.maxPrice);
+      console.log('priority type:', typeof originalGroup.priority);
+      
       // Create a new group with similar properties
-      const newGroupData = {
+      const newGroupData: Partial<LeadGroupInsert> = {
         name: `${originalGroup.name} (Copy)`,
         description: originalGroup.description,
-        minPrice: originalGroup.minPrice,
-        maxPrice: originalGroup.maxPrice,
+        // Explicitly cast to number or null
+        minPrice: originalGroup.minPrice ? Number(originalGroup.minPrice) : null,
+        maxPrice: originalGroup.maxPrice ? Number(originalGroup.maxPrice) : null,
         zipCodes: originalGroup.zipCodes,
         addressPattern: originalGroup.addressPattern,
-        priority: originalGroup.priority,
+        priority: Number(originalGroup.priority),
         isActive: originalGroup.isActive
       };
       

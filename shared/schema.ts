@@ -245,6 +245,9 @@ export const userLoginSchema = z.object({
 export const leadGroupInsertSchema = createInsertSchema(leadGroups, {
   name: (schema) => schema.min(2, "Group name must be at least 2 characters"),
   priority: (schema) => schema.min(1, "Priority must be between 1-20").max(20, "Priority must be between 1-20"),
+  // Ensure numeric fields are properly coerced
+  minPrice: (schema) => z.coerce.number().optional(),
+  maxPrice: (schema) => z.coerce.number().optional(),
 });
 
 // Legacy schemas

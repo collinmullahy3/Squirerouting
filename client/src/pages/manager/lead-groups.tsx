@@ -171,8 +171,13 @@ export default function LeadGroups() {
       const formattedData = {
         ...data,
         zipCodes: data.zipCodes ? data.zipCodes.split(",").map(zip => zip.trim()).filter(Boolean) : undefined,
+        // Convert numeric fields explicitly
+        minPrice: data.minPrice !== undefined ? Number(data.minPrice) : undefined,
+        maxPrice: data.maxPrice !== undefined ? Number(data.maxPrice) : undefined,
+        priority: Number(data.priority)
       };
       
+      console.log('Creating lead group with data:', formattedData);
       return await apiRequest<any>("POST", "/api/lead-groups", formattedData);
     },
     onSuccess: () => {
@@ -184,6 +189,7 @@ export default function LeadGroups() {
       });
     },
     onError: (error) => {
+      console.error('Error creating lead group:', error);
       toast({
         title: "Error",
         description: `Failed to create lead group: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -198,8 +204,13 @@ export default function LeadGroups() {
       const formattedData = {
         ...data,
         zipCodes: data.zipCodes ? data.zipCodes.split(",").map(zip => zip.trim()).filter(Boolean) : undefined,
+        // Convert numeric fields explicitly
+        minPrice: data.minPrice !== undefined ? Number(data.minPrice) : undefined,
+        maxPrice: data.maxPrice !== undefined ? Number(data.maxPrice) : undefined,
+        priority: Number(data.priority)
       };
       
+      console.log('Updating lead group with data:', formattedData);
       return await apiRequest<any>("PUT", `/api/lead-groups/${id}`, formattedData);
     },
     onSuccess: () => {
@@ -211,6 +222,7 @@ export default function LeadGroups() {
       });
     },
     onError: (error) => {
+      console.error('Error updating lead group:', error);
       toast({
         title: "Error",
         description: `Failed to update lead group: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -605,7 +617,7 @@ export default function LeadGroups() {
                             {...field} 
                             type="number" 
                             placeholder="Min price" 
-                            value={field.value === undefined ? '' : field.value}
+                            value={field.value === undefined || field.value === null ? '' : field.value}
                           />
                         </FormControl>
                         <FormDescription>Leave blank for no minimum</FormDescription>
@@ -624,7 +636,7 @@ export default function LeadGroups() {
                             {...field} 
                             type="number" 
                             placeholder="Max price" 
-                            value={field.value === undefined ? '' : field.value}
+                            value={field.value === undefined || field.value === null ? '' : field.value}
                           />
                         </FormControl>
                         <FormDescription>Leave blank for no maximum</FormDescription>
