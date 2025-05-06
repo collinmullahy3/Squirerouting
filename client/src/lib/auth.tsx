@@ -49,25 +49,21 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
         let userData = null;
         
         while (retries < maxRetries) {
-          const response = await fetch("/api/auth/me", {
-            credentials: "include",
-          });
-          
-          console.log(`Auth check response: ${response.status}`);
-          
-          if (response.ok) {
-            userData = await response.json();
+          try {
+            userData = await apiRequest('GET', '/api/auth/me');
             console.log("User authenticated:", userData.username);
             break;
-          } else if (response.status === 401) {
-            // Wait a bit before trying again
-            console.log(`Authentication retry attempt ${retries + 1}/${maxRetries}`);
-            await new Promise(resolve => setTimeout(resolve, 800));
-            retries++;
-          } else {
-            // Other error status
-            console.log(`Unexpected error status: ${response.status}`);
-            break;
+          } catch (err) {
+            if (err instanceof Error && err.message.includes('401')) {
+              // Wait a bit before trying again
+              console.log(`Authentication retry attempt ${retries + 1}/${maxRetries}`);
+              await new Promise(resolve => setTimeout(resolve, 800));
+              retries++;
+            } else {
+              // Other error status
+              console.log(`Unexpected error: ${err}`);
+              break;
+            }
           }
         }
         
@@ -128,16 +124,15 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
 
   const logout = async () => {
     try {
+      console.log('Logging out user...');
       // Call the server logout endpoint
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
+      await apiRequest('POST', '/api/auth/logout');
       
       // Clear client-side state
       setUser(null);
       // Clear any cached data
       queryClient.clear();
+      console.log('Redirecting to login page after logout');
       setLocation("/login");
     } catch (error) {
       console.error('Logout error:', error);

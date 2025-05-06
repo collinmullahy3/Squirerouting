@@ -50,6 +50,8 @@ export default function Login() {
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
     try {
+      console.log('Attempting login with credentials:', { username: data.username });
+      
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -59,11 +61,16 @@ export default function Login() {
         credentials: "include"
       });
       
+      console.log('Login response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error("Login failed. Please check your credentials.");
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Login error response:', errorData);
+        throw new Error(errorData.message || "Login failed. Please check your credentials.");
       }
       
       const user = await response.json();
+      console.log('Login successful, user data received:', { id: user.id, username: user.username, role: user.role });
       setUser(user);
       
       toast({
@@ -73,8 +80,10 @@ export default function Login() {
 
       // Redirect based on user role
       if (user.role === "manager") {
+        console.log('Redirecting manager to dashboard');
         setLocation("/");
       } else {
+        console.log('Redirecting agent to my-leads');
         setLocation("/my-leads");
       }
     } catch (error) {
