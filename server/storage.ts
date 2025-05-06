@@ -914,9 +914,24 @@ export const storage = {
       }
 
       // For moving date, prefer the new one if the old one doesn't exist
-      const movingDate = newData.movingDate && !existingLead.movingDate 
-        ? newData.movingDate 
-        : existingLead.movingDate;
+      // Ensure movingDate is properly converted to a Date object if it exists
+      let movingDate = null;
+      
+      if (newData.movingDate && !existingLead.movingDate) {
+        // Convert string date or ensure Date object
+        movingDate = typeof newData.movingDate === 'string' 
+          ? new Date(newData.movingDate) 
+          : newData.movingDate instanceof Date 
+            ? newData.movingDate 
+            : null;
+      } else if (existingLead.movingDate) {
+        // Use existing date, ensuring it's a Date object
+        movingDate = typeof existingLead.movingDate === 'string'
+          ? new Date(existingLead.movingDate)
+          : existingLead.movingDate instanceof Date
+            ? existingLead.movingDate
+            : null;
+      }
 
       console.log('Updating lead with new inquiry data:', {
         id,

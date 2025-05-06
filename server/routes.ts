@@ -447,13 +447,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { content, subject, from, source } = req.body;
       
       if (!content) {
-        return res.status(400).json({ success: false, message: "Missing email content" });
+        return res.status(400).json({ error: "Missing email content" });
       }
       
       // Import the email service to use its processSimulatedEmail method
       const { emailService } = await import('./services/email-service');
       
-      // Create the simulated email object
+      // Create the simulated email object with required fields
       const simulatedEmail = {
         text: content,
         subject: subject || 'Simulated Email Subject',
@@ -468,11 +468,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result) {
         res.json({ success: true, message: "Email processed successfully" });
       } else {
-        res.status(500).json({ success: false, message: "Failed to process email" });
+        res.status(500).json({ error: "Failed to process email" });
       }
     } catch (error) {
       console.error('Error processing simulated email:', error);
-      return res.status(500).json({ success: false, message: "Error processing simulated email", error: error.message });
+      return res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
     }
   });
   

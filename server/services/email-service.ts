@@ -560,11 +560,20 @@ class EmailService {
     source?: string;
   }): Promise<boolean> {
     try {
+      // Check if we have the required fields
+      if (!emailContent.subject || !emailContent.text) {
+        console.log('Simulate email error: Missing subject or text', {
+          subject: emailContent.subject,
+          text: emailContent.text
+        });
+        throw new Error('Subject and text are required');
+      }
+
       console.log('Processing simulated email:', {
         subject: emailContent.subject,
         from: emailContent.from || 'test@example.com',
         source: emailContent.source || undefined,
-        textLength: emailContent.text?.length || 0,
+        textLength: emailContent.text.length,
         htmlLength: emailContent.html?.length || 0
       });
 
