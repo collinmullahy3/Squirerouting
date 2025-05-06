@@ -716,7 +716,7 @@ function extractSourceSpecificData(
         
         // For TypeScript compatibility with the database schema
         if (unitFound && data.unitNumber) {
-          data['unit_number'] = data.unitNumber;
+          (data as any)['unit_number'] = data.unitNumber;
         }
       }
       
@@ -748,7 +748,7 @@ function extractSourceSpecificData(
         const zipCode = zipCodeMatch[1] || zipCodeMatch[2] || zipCodeMatch[3];
         if (zipCode) {
           data.zipCode = zipCode; // Match field name in LeadInsert type
-          data['zip_code'] = zipCode; // Also assign to snake_case field for DB compatibility
+          (data as any)['zip_code'] = zipCode; // Use type assertion for DB compatibility
         }
       }
       
@@ -781,7 +781,7 @@ function extractSourceSpecificData(
         email: data.email,
         phone: data.phone,
         address: data.address,
-        zip_code: data.zip_code,
+        zipCode: data.zipCode,
         price: data.price
       });
       break;
