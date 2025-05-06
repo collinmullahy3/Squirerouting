@@ -64,6 +64,42 @@ export default function ManagerDashboard() {
       }
     }
   });
+  
+  // Fetch popular buildings data
+  const { data: popularBuildings = [], isLoading: buildingsLoading } = useQuery({
+    queryKey: ["/api/debug/dashboard/popular-buildings"],
+    queryFn: async () => {
+      console.log('Fetching popular buildings from debug endpoint...');
+      try {
+        const response = await fetch(`/api/debug/dashboard/popular-buildings`);
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${await response.text()}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Popular buildings fetch error:', error);
+        return []; // Return empty array on error
+      }
+    }
+  });
+  
+  // Fetch leads per agent
+  const { data: leadsPerAgent = [], isLoading: agentLeadsLoading } = useQuery({
+    queryKey: ["/api/debug/dashboard/leads-per-agent"],
+    queryFn: async () => {
+      console.log('Fetching leads per agent from debug endpoint...');
+      try {
+        const response = await fetch(`/api/debug/dashboard/leads-per-agent`);
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: ${await response.text()}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Leads per agent fetch error:', error);
+        return []; // Return empty array on error
+      }
+    }
+  });
 
   // Fetch lead groups using debug endpoint to bypass auth issues
   const { data: leadGroups = [], isLoading: leadGroupsLoading } = useQuery({
@@ -436,6 +472,127 @@ export default function ManagerDashboard() {
                         <tr>
                           <td colSpan={4} className="px-4 py-3 text-center">
                             <div className="text-sm text-slate-500">No lead sources found</div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Buildings with Most Leads and Leads per Agent */}
+          <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {/* Buildings with Most Leads */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-medium">Buildings with Most Leads</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-hidden">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Building Address
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Lead Count
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Unit Requests
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                      {buildingsLoading ? (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">Loading buildings data...</div>
+                          </td>
+                        </tr>
+                      ) : popularBuildings.length > 0 ? (
+                        popularBuildings.map((building: any, index: number) => (
+                          <tr key={index}>
+                            <td className="px-4 py-3 whitespace-normal break-words">
+                              <div className="text-sm font-medium text-slate-900">{building.address}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{building.leadsCount}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{building.unitRequests || 0}</div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">No building data available</div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Leads per Agent */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base font-medium">Leads per Agent</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-hidden">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Agent Name
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Total Leads
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Closed Leads
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Closing Rate
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                      {agentLeadsLoading ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">Loading agent data...</div>
+                          </td>
+                        </tr>
+                      ) : leadsPerAgent.length > 0 ? (
+                        leadsPerAgent.map((agentData: any, index: number) => (
+                          <tr key={index}>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm font-medium text-slate-900">{agentData.agent.name}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{agentData.totalLeads}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{agentData.closedLeads}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">
+                                {agentData.totalLeads > 0 ? Math.round((agentData.closedLeads / agentData.totalLeads) * 100) : 0}%
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">No agent data available</div>
                           </td>
                         </tr>
                       )}
