@@ -765,7 +765,7 @@ export const storage = {
         hasNewEmail: Boolean(newData.originalEmail)
       });
 
-      // Update the lead record
+      // Update the lead record - making sure to include ALL AI-parsed fields
       const [updatedLead] = await db.update(leads)
         .set({
           price: updatedPrice,
@@ -779,6 +779,12 @@ export const storage = {
           zipCode: existingLead.zipCode || newData.zipCode || null,
           propertyUrl: newData.propertyUrl && !existingLead.propertyUrl ? newData.propertyUrl : existingLead.propertyUrl,
           thumbnailUrl: newData.thumbnailUrl && !existingLead.thumbnailUrl ? newData.thumbnailUrl : existingLead.thumbnailUrl,
+          // Add additional fields from AI parser that were previously missing
+          unitNumber: newData.unitNumber || existingLead.unitNumber || null,
+          bedCount: newData.bedCount || existingLead.bedCount || null,
+          neighborhood: newData.neighborhood || existingLead.neighborhood || null,
+          source: newData.source || existingLead.source || null,
+          subject: newData.subject || existingLead.subject || null,
           updatedAt: new Date()
         })
         .where(eq(leads.id, id))

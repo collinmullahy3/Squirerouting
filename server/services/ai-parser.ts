@@ -31,6 +31,7 @@ export async function parseEmailWithAI(emailContent: string, subject: string): P
     - Bed Count (numeric value only)
     - Rent/Price (numeric value only, without $ or commas)
     - Zip Code (just the zip code without other text)
+    - Neighborhood (if available)
     - Moving Date (if available)
     - Source Website (e.g., Zillow, Trulia, etc.)
     - Property URL (if available)
