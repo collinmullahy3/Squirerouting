@@ -103,27 +103,34 @@ export default function Performance() {
     return totalLeads > 0 ? Math.round((closedLeads / totalLeads) * 100) : 0;
   };
 
-  // Get the zip codes for display
-  const getTopZipCodes = () => {
+  // Get buildings with most leads
+  const getPopularBuildings = () => {
     if (!popularProperties) return [];
     return popularProperties
-      .filter(prop => prop.zipCode)
+      .filter(prop => prop.address)
+      .map(building => ({
+        address: building.address,
+        leadsCount: building.count,
+        unitRequests: 1 // Default to 1 for now, can be updated if we track this data
+      }))
       .slice(0, 5);
   };
 
-  // Get the price ranges for display
-  const getPriceRanges = () => {
-    if (!popularProperties) return [];
-    return popularProperties
-      .filter(prop => prop.priceRange && !prop.zipCode && !prop.address)
-      .map(item => ({
-        name: item.priceRange,
-        value: item.count
-      }));
+  // Get leads per agent data
+  const getLeadsPerAgent = () => {
+    if (!topAgents) return [];
+    return topAgents.map(agent => ({
+      agent: {
+        id: agent.id,
+        name: agent.name
+      },
+      totalLeads: agent.leadCount || 0,
+      closedLeads: agent.closedLeadCount || 0
+    }));
   };
 
-  const zipCodes = getTopZipCodes();
-  const priceRanges = getPriceRanges();
+  const popularBuildings = getPopularBuildings();
+  const leadsPerAgent = getLeadsPerAgent();
 
   return (
     <div className="flex-1 relative overflow-y-auto focus:outline-none">
@@ -260,69 +267,124 @@ export default function Performance() {
             </Card>
           </div>
 
+          {/* Buildings with Most Leads */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
             <Card>
               <CardHeader>
-                <CardTitle>Price Range Distribution</CardTitle>
-                <CardDescription>Leads by price range</CardDescription>
+                <CardTitle>Buildings with Most Leads</CardTitle>
+                <CardDescription>Properties generating the most interest</CardDescription>
               </CardHeader>
               <CardContent>
-                {propertiesLoading ? (
-                  <div className="h-80 flex items-center justify-center">Loading price data...</div>
-                ) : priceRanges && priceRanges.length > 0 ? (
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={priceRanges}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={true}
-                          outerRadius={120}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {priceRanges.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="h-80 flex items-center justify-center">No price range data available</div>
-                )}
+                <div className="overflow-hidden">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Building Address
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Lead Count
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Unit Requests
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                      {propertiesLoading ? (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">Loading buildings data...</div>
+                          </td>
+                        </tr>
+                      ) : popularBuildings.length > 0 ? (
+                        popularBuildings.map((building: any, index: number) => (
+                          <tr key={index}>
+                            <td className="px-4 py-3 whitespace-normal break-words">
+                              <div className="text-sm font-medium text-slate-900">{building.address}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{building.leadsCount}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{building.unitRequests || 0}</div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">No building data available</div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
+            
+            {/* Leads per Agent */}
             <Card>
               <CardHeader>
-                <CardTitle>Top ZIP Codes</CardTitle>
-                <CardDescription>Most requested locations</CardDescription>
+                <CardTitle>Leads per Agent</CardTitle>
+                <CardDescription>Lead distribution among agents</CardDescription>
               </CardHeader>
               <CardContent>
-                {propertiesLoading ? (
-                  <div className="h-80 flex items-center justify-center">Loading location data...</div>
-                ) : zipCodes && zipCodes.length > 0 ? (
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={zipCodes}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        layout="vertical"
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis type="category" dataKey="zipCode" />
-                        <Tooltip />
-                        <Bar dataKey="count" name="Lead Count" fill="#3A2F28" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="h-80 flex items-center justify-center">No ZIP code data available</div>
-                )}
+                <div className="overflow-hidden">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Agent Name
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Total Leads
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Closed Leads
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Closing Rate
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                      {propertiesLoading ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">Loading agent data...</div>
+                          </td>
+                        </tr>
+                      ) : leadsPerAgent && leadsPerAgent.length > 0 ? (
+                        leadsPerAgent.map((agentData: any, index: number) => (
+                          <tr key={index}>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm font-medium text-slate-900">{agentData.agent.name}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{agentData.totalLeads}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">{agentData.closedLeads}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="text-sm text-slate-900">
+                                {agentData.totalLeads > 0 ? Math.round((agentData.closedLeads / agentData.totalLeads) * 100) : 0}%
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-3 text-center">
+                            <div className="text-sm text-slate-500">No agent data available</div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           </div>
