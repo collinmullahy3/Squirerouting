@@ -456,27 +456,123 @@ function extractSourceSpecificData(
   // Source-specific extraction patterns
   switch (source) {
     case 'Zumper':
-      // Zumper-specific extraction
-      if (!data.bedCount && emailContent.includes('bedroom')) {
-        const bedRegex = /(\d+)\s*bedroom/i;
-        const bedMatch = emailContent.match(bedRegex);
-        if (bedMatch && bedMatch[1]) {
-          data.bedCount = parseInt(bedMatch[1]);
+      // Specialized Zumper email format handling
+      if (emailContent.includes('Contact Details:')) {
+        // This is a structured Zumper email with clear sections
+        console.log('Processing structured Zumper email');
+        
+        // Extract contact name
+        const nameMatch = emailContent.match(/Name:\s*([^\n]+)/);
+        if (nameMatch && nameMatch[1]) {
+          data.name = nameMatch[1].trim();
         }
-      }
-      
-      // Zumper often includes property URLs
-      const zumperUrlRegex = /(https:\/\/www\.zumper\.com\/[^\s"]+)/i;
-      const zumperUrlMatch = emailContent.match(zumperUrlRegex);
-      if (zumperUrlMatch && zumperUrlMatch[1]) {
-        data.propertyUrl = zumperUrlMatch[1];
-      }
-      
-      // Zumper image regex
-      const zumperImgRegex = /(https:\/\/img\.zumpercdn\.com\/[^\s"]+)/i;
-      const zumperImgMatch = emailContent.match(zumperImgRegex);
-      if (zumperImgMatch && zumperImgMatch[1]) {
-        data.thumbnailUrl = zumperImgMatch[1];
+
+        // Extract email (being careful to get tenant's email, not Zumper's)
+        const emailMatch = emailContent.match(/Email:\s*([^\n]+)/);
+        if (emailMatch && emailMatch[1] && !emailMatch[1].includes('@zumper.com')) {
+          data.email = emailMatch[1].trim().toLowerCase();
+        }
+        
+        // Extract phone
+        const phoneMatch = emailContent.match(/Phone:\s*([^\n]+)/);
+        if (phoneMatch && phoneMatch[1]) {
+          // Clean up phone format: either keep just digits or standardize format
+          const phoneRaw = phoneMatch[1].trim();
+          const digitsOnly = phoneRaw.replace(/\D/g, '');
+          if (digitsOnly.length === 10) {
+            // Format as XXX-XXX-XXXX for consistency
+            data.phone = `${digitsOnly.slice(0,3)}-${digitsOnly.slice(3,6)}-${digitsOnly.slice(6)}`;
+          } else {
+            data.phone = phoneRaw;
+          }
+        }
+        
+        // Extract budget/price
+        const budgetMatch = emailContent.match(/Budget:\s*\$?([\d,.]+)/);
+        if (budgetMatch && budgetMatch[1]) {
+          data.price = budgetMatch[1].replace(/[^\d.]/g, ''); // Remove non-digits except decimal
+        }
+        
+        // Extract property address from the subject line or content
+        const addressSubjectMatch = subject.match(/inquiry for (.+?)(?:,|$|\n)/);
+        if (addressSubjectMatch && addressSubjectMatch[1]) {
+          data.address = addressSubjectMatch[1].trim();
+          
+          // Check for unit number in the address
+          const unitMatch = data.address.match(/#([\w-]+)/);
+          if (unitMatch && unitMatch[1]) {
+            data.unitNumber = unitMatch[1];
+          }
+        } else {
+          // Try to find address in content
+          const propertyMatch = emailContent.match(/property at ([^\n.]+)/);
+          if (propertyMatch && propertyMatch[1]) {
+            data.address = propertyMatch[1].trim();
+            
+            // Check for unit number in the address
+            const unitMatch = data.address.match(/#([\w-]+)/);
+            if (unitMatch && unitMatch[1]) {
+              data.unitNumber = unitMatch[1];
+            }
+          }
+        }
+        
+        // Extract zip code
+        const zipMatch = emailContent.match(/\b(\d{5})\b/);
+        if (zipMatch && zipMatch[1]) {
+          data.zipCode = zipMatch[1];
+        }
+        
+        // Look for neighborhood mentions
+        if (emailContent.toLowerCase().includes('williamsburg')) {
+          data.neighborhood = 'Williamsburg';
+        } else if (emailContent.toLowerCase().includes('east village')) {
+          data.neighborhood = 'East Village';
+        } else if (emailContent.toLowerCase().includes('bushwick')) {
+          data.neighborhood = 'Bushwick';
+        }
+        
+        // Extract bed count
+        if (emailContent.toLowerCase().includes('1-bedroom') || 
+            emailContent.toLowerCase().includes('1 bedroom')) {
+          data.bedCount = 1;
+        } else if (emailContent.toLowerCase().includes('2-bedroom') || 
+                   emailContent.toLowerCase().includes('2 bedroom')) {
+          data.bedCount = 2;
+        } else if (emailContent.toLowerCase().includes('3-bedroom') || 
+                   emailContent.toLowerCase().includes('3 bedroom')) {
+          data.bedCount = 3;
+        }
+        
+        // Set the source
+        data.source = 'Zumper';
+        
+        console.log('Successfully parsed Zumper email with structured format');
+      } else {
+        // Fallback to regular extraction if not structured format
+        console.log('Using regular extraction patterns for Zumper email');
+        
+        if (!data.bedCount && emailContent.includes('bedroom')) {
+          const bedRegex = /(\d+)\s*bedroom/i;
+          const bedMatch = emailContent.match(bedRegex);
+          if (bedMatch && bedMatch[1]) {
+            data.bedCount = parseInt(bedMatch[1]);
+          }
+        }
+        
+        // Zumper often includes property URLs
+        const zumperUrlRegex = /(https:\/\/www\.zumper\.com\/[^\s"]+)/i;
+        const zumperUrlMatch = emailContent.match(zumperUrlRegex);
+        if (zumperUrlMatch && zumperUrlMatch[1]) {
+          data.propertyUrl = zumperUrlMatch[1];
+        }
+        
+        // Zumper image regex
+        const zumperImgRegex = /(https:\/\/img\.zumpercdn\.com\/[^\s"]+)/i;
+        const zumperImgMatch = emailContent.match(zumperImgRegex);
+        if (zumperImgMatch && zumperImgMatch[1]) {
+          data.thumbnailUrl = zumperImgMatch[1];
+        }
       }
       break;
       
