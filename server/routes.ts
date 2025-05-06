@@ -1706,6 +1706,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // API endpoint for admin/parsing-patterns
+  app.get("/api/admin/parsing-patterns", isManager, async (req, res, next) => {
+    try {
+      const patterns = await storage.getAllParsingPatterns();
+      res.json({ patterns });
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Create new parsing pattern
+  app.post("/api/admin/parsing-patterns", isManager, async (req, res, next) => {
+    try {
+      const patternData = parsingPatternInsertSchema.parse(req.body);
+      const pattern = await storage.storeParsingPattern(patternData);
+      console.log(`New parsing pattern created for source: ${pattern.source}`);
+      res.json(pattern);
+    } catch (error) {
+      console.error('Error creating parsing pattern:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      next(error);
+    }
+  });
 
   // Single parsing pattern endpoint
   app.get("/api/parsing-patterns/:id", isManager, async (req, res, next) => {
