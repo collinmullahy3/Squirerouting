@@ -11,6 +11,7 @@ import Sidebar from "@/components/sidebar";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Profile from "@/pages/profile";
+import DebugDashboard from "@/pages/debug-dashboard";
 
 // Manager Pages
 import ManagerDashboard from "@/pages/manager/dashboard";
@@ -59,6 +60,9 @@ const Router = () => {
           <Switch>
             {/* Auth Routes */}
             <Route path="/login" component={Login} />
+            
+            {/* Debug Dashboard - Direct Access (No Auth Check) */}
+            <Route path="/debug-dashboard" component={DebugDashboard} />
             
             {/* Manager Routes - Protected */}
             <Route path="/" component={(props: any) => <ProtectedRoute component={ManagerDashboard} {...props} />} />

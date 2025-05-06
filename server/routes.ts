@@ -243,6 +243,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug endpoint for dashboard stats
+  app.get("/api/debug/dashboard/stats", async (req, res, next) => {
+    console.log('Debug dashboard stats endpoint accessed - bypassing auth check');
+    try {
+      // Get lead stats
+      const leadStats = await storage.getLeadStats();
+      res.json(leadStats);
+    } catch (error) {
+      console.error('Error in debug dashboard stats:', error);
+      next(error);
+    }
+  });
+  
+  // Debug endpoint for lead sources dashboard data
+  app.get("/api/debug/dashboard/lead-sources", async (req, res, next) => {
+    console.log('Debug lead sources endpoint accessed - bypassing auth check');
+    try {
+      // Get lead source metrics
+      const leadSourceMetrics = await storage.getLeadSourceMetrics();
+      res.json(leadSourceMetrics);
+    } catch (error) {
+      console.error('Error in debug lead sources:', error);
+      next(error);
+    }
+  });
+  
   // Agent Group routes
   app.get("/api/agent-groups", isAuthenticated, async (req, res, next) => {
     try {
