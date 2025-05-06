@@ -997,6 +997,7 @@ class EmailService {
       
       try {
         // Call the AI parser with email content
+        console.log('Using AI to parse email content');
         const aiParsedData = await parseEmailWithAI(text, subject);
         
         if (aiParsedData && (aiParsedData.email || aiParsedData.phone)) {
@@ -1020,6 +1021,8 @@ class EmailService {
       } catch (aiError) {
         console.error('Error using AI parser:', aiError);
       }
+      
+      // CRITICAL: Only proceed to legacy parsing if AI parsing failed
 
       // Extract email using regex
       const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
