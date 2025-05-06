@@ -624,11 +624,21 @@ export const storage = {
     }
   },
 
-  async getAllLeads(page: number = 1, limit: number = 10): Promise<Lead[]> {
+  async getAllLeads(page: number = 1, limit: number = 10, recentHours?: number): Promise<Lead[]> {
     // Using drizzle's findMany to avoid specific column issues
     try {
+      // Create where condition if filtering by recent time
+      let whereCondition = undefined;
+      
+      if (recentHours) {
+        const cutoffDate = new Date();
+        cutoffDate.setHours(cutoffDate.getHours() - recentHours);
+        whereCondition = gte(leads.receivedAt, cutoffDate);
+      }
+      
       // Select only specific columns that we know exist in the schema
       return await db.query.leads.findMany({
+        where: whereCondition,
         orderBy: desc(leads.receivedAt),
         limit: limit,
         offset: (page - 1) * limit,
@@ -665,7 +675,7 @@ export const storage = {
       console.error('Error fetching leads:', error);
       
       // Fallback to minimal SQL query if there's a schema mismatch
-      const result = await db.execute(sql`
+      let query = sql`
         SELECT 
           l.id, l.name, l.email, l.phone, l.price, l.price_max as "priceMax", 
           l.zip_code as "zipCode", l.address, l.unit_number as "unitNumber",
@@ -678,9 +688,19 @@ export const storage = {
           u.id as "agent_id", u.name as "agent_name", u.email as "agent_email"
         FROM leads l
         LEFT JOIN users u ON l.assigned_agent_id = u.id
-        ORDER BY l.received_at DESC
-        LIMIT ${limit} OFFSET ${(page - 1) * limit}
-      `);
+      `;
+      
+      // Add where condition for recent hours filter
+      if (recentHours) {
+        const cutoffDate = new Date();
+        cutoffDate.setHours(cutoffDate.getHours() - recentHours);
+        query = sql`${query} WHERE l.received_at >= ${cutoffDate.toISOString()}`;
+      }
+      
+      // Add ordering and limits
+      query = sql`${query} ORDER BY l.received_at DESC LIMIT ${limit} OFFSET ${(page - 1) * limit}`;
+      
+      const result = await db.execute(query);
       
       // Process the results to match the expected Lead type
       return result.rows.map(row => {
@@ -703,10 +723,19 @@ export const storage = {
     }
   },
 
-  async getLeadsByAgentId(agentId: number, page: number = 1, limit: number = 10): Promise<Lead[]> {
+  async getLeadsByAgentId(agentId: number, page: number = 1, limit: number = 10, recentHours?: number): Promise<Lead[]> {
     try {
+      // Create where condition that includes agent ID and (optionally) recent time filter
+      let whereCondition = eq(leads.assignedAgentId, agentId);
+      
+      if (recentHours) {
+        const cutoffDate = new Date();
+        cutoffDate.setHours(cutoffDate.getHours() - recentHours);
+        whereCondition = and(whereCondition, gte(leads.receivedAt, cutoffDate));
+      }
+      
       return await db.query.leads.findMany({
-        where: eq(leads.assignedAgentId, agentId),
+        where: whereCondition,
         orderBy: desc(leads.receivedAt),
         limit: limit,
         offset: (page - 1) * limit,
@@ -740,7 +769,7 @@ export const storage = {
       console.error('Error fetching leads for agent:', error);
       
       // Fallback to minimal SQL query if there's a schema mismatch
-      const result = await db.execute(sql`
+      let query = sql`
         SELECT 
           l.id, l.name, l.email, l.phone, l.price, l.price_max as "priceMax", 
           l.zip_code as "zipCode", l.address, l.unit_number as "unitNumber",
@@ -752,9 +781,19 @@ export const storage = {
           l.received_at as "receivedAt", l.updated_at as "updatedAt"
         FROM leads l
         WHERE l.assigned_agent_id = ${agentId}
-        ORDER BY l.received_at DESC
-        LIMIT ${limit} OFFSET ${(page - 1) * limit}
-      `);
+      `;
+
+      // Add where condition for recent hours filter if provided
+      if (recentHours) {
+        const cutoffDate = new Date();
+        cutoffDate.setHours(cutoffDate.getHours() - recentHours);
+        query = sql`${query} AND l.received_at >= ${cutoffDate.toISOString()}`;
+      }
+      
+      // Add ordering and limits
+      query = sql`${query} ORDER BY l.received_at DESC LIMIT ${limit} OFFSET ${(page - 1) * limit}`;
+      
+      const result = await db.execute(query);
       
       // Process the results to match the expected Lead type
       return result.rows.map(row => row as any as Lead);

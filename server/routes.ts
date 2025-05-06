@@ -429,8 +429,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const page = parseInt(req.query.page as string || "1");
       const limit = parseInt(req.query.limit as string || "10");
+      const recentHours = req.query.recentHours ? parseInt(req.query.recentHours as string) : 24;
       
-      const leads = await storage.getAllLeads(page, limit);
+      console.log(`Fetching leads (page ${page}, limit ${limit}, recent hours: ${recentHours})`);
+      const leads = await storage.getAllLeads(page, limit, recentHours);
       res.json(leads);
     } catch (error) {
       console.error('Error in debug leads endpoint:', error);
@@ -479,8 +481,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const page = parseInt(req.query.page as string || "1");
       const limit = parseInt(req.query.limit as string || "10");
+      const recentHours = req.query.recentHours ? parseInt(req.query.recentHours as string) : 24;
       
-      const leads = await storage.getAllLeads(page, limit);
+      console.log(`Fetching leads for authenticated user (page ${page}, limit ${limit}, recent hours: ${recentHours})`);
+      const leads = await storage.getAllLeads(page, limit, recentHours);
       res.json(leads);
     } catch (error) {
       next(error);
@@ -541,8 +545,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const page = parseInt(req.query.page as string || "1");
       const limit = parseInt(req.query.limit as string || "10");
+      const recentHours = req.query.recentHours ? parseInt(req.query.recentHours as string) : 24;
       
-      const leads = await storage.getLeadsByAgentId(agentId, page, limit);
+      console.log(`Fetching leads for agent ${agentId} (page ${page}, limit ${limit}, recent hours: ${recentHours})`);
+      const leads = await storage.getLeadsByAgentId(agentId, page, limit, recentHours);
       res.json(leads);
     } catch (error) {
       next(error);
