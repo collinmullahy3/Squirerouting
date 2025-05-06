@@ -74,12 +74,12 @@ class EmailService {
     
     // Create a new IMAP connection with the provided settings
     this.imap = new IMAP({
-      user: settings.username,
-      password: settings.password,
-      host: settings.host || 'imap.gmail.com',
-      port: settings.port || 993,
-      tls: settings.useTls !== false, // Default to true if not specified
-      tlsOptions: { rejectUnauthorized: settings.verifyTls !== false } // Default to true if not specified
+      user: settings.emailUser,
+      password: settings.emailPassword,
+      host: settings.emailHost,
+      port: settings.emailPort,
+      tls: settings.emailTls,
+      tlsOptions: { rejectUnauthorized: true } // Always verify TLS
     });
     
     // Set up event handlers
