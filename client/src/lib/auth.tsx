@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useLocation } from "wouter";
-import { queryClient } from "./queryClient";
+import { queryClient, apiRequest } from "./queryClient";
 
 interface AuthUser {
   id: number;

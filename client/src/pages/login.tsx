@@ -52,39 +52,27 @@ export default function Login() {
     try {
       console.log('Attempting login with credentials:', { username: data.username });
       
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-        credentials: "include"
-      });
-      
-      console.log('Login response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Login error response:', errorData);
-        throw new Error(errorData.message || "Login failed. Please check your credentials.");
-      }
-      
-      const user = await response.json();
-      console.log('Login successful, user data received:', { id: user.id, username: user.username, role: user.role });
-      setUser(user);
-      
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${user.name}!`,
-      });
-
-      // Redirect based on user role
-      if (user.role === "manager") {
-        console.log('Redirecting manager to dashboard');
-        setLocation("/");
-      } else {
-        console.log('Redirecting agent to my-leads');
-        setLocation("/my-leads");
+      try {
+        const user = await apiRequest('POST', '/api/auth/login', data);
+        console.log('Login successful, user data received:', { id: user.id, username: user.username, role: user.role });
+        setUser(user);
+        
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${user.name}!`,
+        });
+  
+        // Redirect based on user role
+        if (user.role === "manager") {
+          console.log('Redirecting manager to dashboard');
+          setLocation("/");
+        } else {
+          console.log('Redirecting agent to my-leads');
+          setLocation("/my-leads");
+        }
+      } catch (apiError) {
+        console.error('Login API error:', apiError);
+        throw new Error(apiError instanceof Error ? apiError.message : "Login failed. Please check your credentials.");
       }
     } catch (error) {
       console.error("Login error:", error);
