@@ -57,6 +57,7 @@ export async function parseEmailWithAI(emailContent: string, subject: string): P
       "bedCount": 2,
       "price": 2500,
       "zipCode": "10001",
+      "neighborhood": "Chelsea",
       "movingDate": "2025-06-01",
       "source": "Zillow",
       "propertyUrl": "https://zillow.com/property/123"
@@ -97,6 +98,7 @@ export async function parseEmailWithAI(emailContent: string, subject: string): P
       address: parsedData.address || '',
       unitNumber: parsedData.unitNumber || '',
       bedCount: parsedData.bedCount || null,
+      neighborhood: parsedData.neighborhood || null,
       propertyUrl: parsedData.propertyUrl || null,
       thumbnailUrl: null,
       source: parsedData.source || 'Email',

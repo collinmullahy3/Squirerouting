@@ -415,6 +415,10 @@ export default function Leads() {
                   {lead.unitNumber && (
                     <span className="text-xs text-primary">Unit {lead.unitNumber}</span>
                   )}
+
+                  {lead.neighborhood && (
+                    <span className="text-xs text-gray-600">{lead.neighborhood}</span>
+                  )}
                 </div>
               ),
               mobileLabel: "Location"
