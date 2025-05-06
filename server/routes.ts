@@ -422,6 +422,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // Clear all leads - emergency reset feature
+  app.post("/api/admin/clear-all-leads", isAuthenticated, isManager, async (req, res, next) => {
+    try {
+      console.log('!!! CAUTION: Clearing all leads from database !!!');
+      
+      // First clear all lead status history
+      await db.delete(leadStatusHistory);      
+      console.log('Lead status history cleared');
+      
+      // Then delete all leads
+      await db.delete(leads);
+      console.log('All leads cleared from database');
+      
+      // Regenerate session to ensure clean state
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error('Error regenerating session after clearing leads:', err);
+          return res.status(500).json({ success: false, message: "Failed to regenerate session" });
+        }
+        
+        req.login(req.user, (loginErr) => {
+          if (loginErr) {
+            console.error('Error re-establishing login after clearing leads:', loginErr);
+            return res.status(500).json({ success: false, message: "Failed to re-establish login" });
+          }
+          
+          console.log('Session regenerated successfully, user re-authenticated');
+          return res.status(200).json({ success: true, message: "All leads successfully cleared" });
+        });
+      });
+    } catch (error) {
+      console.error('Error clearing leads:', error);
+      return res.status(500).json({ success: false, message: "Error clearing leads", error: error.message });
+    }
+  });
 
   // Leads routes
   app.get("/api/leads", isAuthenticated, async (req, res, next) => {
