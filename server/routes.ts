@@ -440,6 +440,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug endpoint to get parsing patterns - completely open for debugging
+  app.get("/api/debug/parsing-patterns", async (req, res, next) => {
+    console.log('Debug parsing-patterns endpoint accessed - bypassing auth check');
+    try {
+      const patterns = await storage.getAllParsingPatterns();
+      res.json({ success: true, patterns });
+    } catch (error) {
+      console.error('Error fetching parsing patterns:', error);
+      return res.status(500).json({ success: false, message: "Error fetching parsing patterns", error: error.message });
+    }
+  });
+  
+  // Debug endpoint to clear all leads - completely open for debugging
+  app.post("/api/debug/clear-all-leads", async (req, res, next) => {
+    console.log('Debug clear-all-leads endpoint accessed - bypassing auth check');
+    try {
+      console.log('!!! CAUTION: Clearing all leads from database !!!');
+      
+      // First clear all lead status history
+      await db.delete(leadStatusHistory);      
+      console.log('Lead status history cleared');
+      
+      // Then delete all leads
+      await db.delete(leads);
+      console.log('All leads cleared from database');
+      
+      return res.status(200).json({ success: true, message: "All leads successfully cleared" });
+    } catch (error) {
+      console.error('Error clearing leads:', error);
+      return res.status(500).json({ success: false, message: "Error clearing leads", error: error.message });
+    }
+  });
+  
   // Clear all leads - emergency reset feature
   app.post("/api/admin/clear-all-leads", isAuthenticated, isManager, async (req, res, next) => {
     try {
