@@ -373,6 +373,7 @@ class EmailService {
         phone: leadData.phone,
         price: leadData.price,
         zipCode: leadData.zipCode,
+        zip_code: leadData.zip_code,
         address: leadData.address,
         source: leadData.source,
         propertyUrl: leadData.propertyUrl,
@@ -641,6 +642,13 @@ class EmailService {
       }
       
       // Ensure we have the required fields
+      // Make sure both zipCode and zip_code are present for database compatibility
+      if (leadData.zipCode && !leadData.zip_code) {
+        leadData.zip_code = leadData.zipCode;
+      } else if (leadData.zip_code && !leadData.zipCode) {
+        leadData.zipCode = leadData.zip_code;
+      }
+      
       return {
         ...leadData,
         originalEmail: text || html,
