@@ -105,15 +105,21 @@ class LeadRouter {
       console.log(`Found ${memberships.length} memberships for group ${groupId}:`, 
         memberships.map(m => ({agentId: m.agentId, lastAssignment: m.lastAssignment})));
       
-      // Sort agents by last assignment time (oldest first)
+      // Sort agents by last assignment time (null values first, then oldest first)
       const sortedAgents = agents.map(agent => {
         const membership = memberships.find(m => m.agentId === agent.id);
         return {
           id: agent.id,
           name: agent.name,
-          lastAssignment: membership?.lastAssignment || new Date(0) // Use epoch if no assignment
+          lastAssignment: membership?.lastAssignment // Keep null values as null
         };
       }).sort((a, b) => {
+        // If both have null lastAssignment, sort by name for consistency
+        if (!a.lastAssignment && !b.lastAssignment) return a.name.localeCompare(b.name);
+        // Null values come first (higher priority)
+        if (!a.lastAssignment) return -1;
+        if (!b.lastAssignment) return 1;
+        // Otherwise sort by oldest assignment time
         return a.lastAssignment.getTime() - b.lastAssignment.getTime();
       });
       
