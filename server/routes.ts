@@ -1437,6 +1437,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint for lead group members
+  app.get("/api/debug/lead-group-members/:groupId", async (req, res, next) => {
+    console.log('Debug lead-group-members endpoint accessed - bypassing auth check');
+    try {
+      const groupId = parseInt(req.params.groupId);
+      if (isNaN(groupId)) {
+        return res.status(400).json({ error: 'Invalid group ID' });
+      }
+      
+      // Get all memberships for this group
+      const memberships = await db.query.leadGroupMembers.findMany({
+        where: eq(leadGroupMembers.groupId, groupId),
+        with: {
+          agent: true
+        }
+      });
+      
+      // Get the group info
+      const group = await storage.getLeadGroupById(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ error: 'Lead group not found' });
+      }
+      
+      res.json({
+        groupId,
+        name: group.name,
+        memberships: memberships.map(m => ({
+          id: m.id,
+          agentId: m.agentId,
+          groupId: m.groupId,
+          lastAssignment: m.lastAssignment,
+          agent: {
+            id: m.agent.id,
+            name: m.agent.name,
+            email: m.agent.email,
+            avatarUrl: m.agent.avatarUrl
+          }
+        }))
+      });
+    } catch (error) {
+      console.error('Error in debug lead group members:', error);
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    }
+  });
+
   // Debug endpoint for lead group rotation
   app.get("/api/debug/lead-groups/:id/rotation", async (req, res, next) => {
     try {
