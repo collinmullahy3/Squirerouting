@@ -4,6 +4,7 @@ import { leadRouter } from './lead-router';
 import IMAP from 'node-imap';
 import { simpleParser } from 'mailparser';
 import nodemailer from 'nodemailer';
+import { parseEmailWithAI } from './ai-parser';
 
 class EmailService {
   private readonly FORWARDING_EMAIL = process.env.EMAIL_USER || 'squirerouting@gmail.com';
@@ -356,7 +357,7 @@ class EmailService {
   // Process an email received via the API endpoint
   async processEmail(emailData: any): Promise<boolean> {
     try {
-      const leadData = this.extractLeadData(emailData);
+      const leadData = await this.extractLeadData(emailData);
       
       if (!leadData) {
         console.log('Email could not be parsed as a lead');
@@ -583,7 +584,7 @@ class EmailService {
       }
       
       // Extract lead data from the email
-      const leadData = this.extractLeadData(emailContent);
+      const leadData = await this.extractLeadData(emailContent);
       
       if (!leadData) {
         console.log('Simulated email could not be parsed as a lead');
@@ -770,7 +771,7 @@ class EmailService {
     }
   }
   
-  private extractLeadData(email: any): LeadInsert | null {
+  private async extractLeadData(email: any): Promise<LeadInsert | null> {
     console.log('Extracting lead data from email:', {
       subject: email.subject,
       from: email.from?.text || email.from,
@@ -803,7 +804,15 @@ class EmailService {
         console.log('Detected structured email format, using dedicated parser');
         const structuredData = this.parseStructuredEmailFormat(text);
         
+        // Check if structured parser produced valid results
+        let hasValidStructuredData = false;
         if (structuredData) {
+          // Check if we have at least an email or phone number
+          hasValidStructuredData = Boolean(structuredData.email && structuredData.email.includes('@')) || 
+                                Boolean(structuredData.phone && structuredData.phone.length >= 7);
+        }
+
+        if (hasValidStructuredData) {
           // If parsing was successful, return the structured data
           // Clean price/rent value if it exists
           let price = null;
@@ -843,6 +852,50 @@ class EmailService {
             receivedAt: new Date(),
             updatedAt: new Date()
           };
+        } else {
+          // If structured parsing failed or produced invalid data, try AI parsing
+          console.log('Structured parser failed to extract valid data, trying AI parser');
+          try {
+            const aiParsedData = await parseEmailWithAI(text, subject);
+            if (aiParsedData && (aiParsedData.email || aiParsedData.phone)) {
+              console.log('AI successfully parsed the email');
+              // Ensure the AI result has the original email content
+              return {
+                ...aiParsedData,
+                originalEmail,
+                subject,
+                receivedAt: new Date(),
+                updatedAt: new Date()
+              };
+            }
+            // If AI parsing also failed, continue with the regular parsing logic
+            console.log('AI parser failed to extract valid data, falling back to traditional parser');
+          } catch (aiError) {
+            console.error('Error using AI parser:', aiError);
+            // Continue with the regular parsing logic
+          }
+        }
+      } else {
+        // For non-structured emails, try AI parsing first
+        console.log('No structured format detected, trying AI parser first');
+        try {
+          const aiParsedData = await parseEmailWithAI(text, subject);
+          if (aiParsedData && (aiParsedData.email || aiParsedData.phone)) {
+            console.log('AI successfully parsed the email');
+            // Ensure the AI result has the original email content
+            return {
+              ...aiParsedData,
+              originalEmail,
+              subject,
+              receivedAt: new Date(),
+              updatedAt: new Date()
+            };
+          }
+          // If AI parsing failed, continue with the regular parsing logic
+          console.log('AI parser failed to extract valid data, falling back to traditional parser');
+        } catch (aiError) {
+          console.error('Error using AI parser:', aiError);
+          // Continue with the regular parsing logic
         }
       }
 
