@@ -46,17 +46,13 @@ export default function ParsingPatternsPage() {
     isLoading,
     isError,
     refetch,
-  } = useQuery<ParsingPattern[]>({
+  } = useQuery<{ patterns: ParsingPattern[] }>({
     queryKey: ["/api/parsing-patterns"],
-    queryFn: async () => {
-      const response = await fetch("/api/parsing-patterns");
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${await response.text()}`);
-      }
-      const data = await response.json();
-      return data.patterns || [];
-    },
+    // Use the default queryFn set up in queryClient which properly includes credentials
   });
+  
+  // Extract patterns from the response
+  const parsingPatterns = patterns?.patterns || [];
 
   const handleViewPattern = (pattern: ParsingPattern) => {
     setSelectedPattern(pattern);
@@ -164,7 +160,7 @@ export default function ParsingPatternsPage() {
           <CardTitle className="flex items-center gap-2">
             <span>AI Learning Patterns</span>
             <Badge variant="outline" className="ml-2">
-              {patterns.length} Patterns
+              {parsingPatterns.length} Patterns
             </Badge>
           </CardTitle>
           <CardDescription>
@@ -172,7 +168,7 @@ export default function ParsingPatternsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {patterns.length === 0 ? (
+          {parsingPatterns.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 gap-4">
               <Info className="w-12 h-12 text-muted-foreground" />
               <p className="text-muted-foreground text-center max-w-md">
@@ -182,7 +178,7 @@ export default function ParsingPatternsPage() {
             </div>
           ) : (
             <ResponsiveTable
-              data={patterns}
+              data={parsingPatterns}
               columns={columns}
               keyField="id"
               emptyMessage="No patterns found"
