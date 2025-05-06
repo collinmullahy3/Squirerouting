@@ -1,6 +1,9 @@
 import { storage } from '../storage';
 import { type Lead, type LeadGroup } from '@shared/schema';
 import { emailService } from './email-service';
+import { db } from '../../db';
+import { leadGroupMembers } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 class LeadRouter {
   /**
@@ -15,6 +18,9 @@ class LeadRouter {
 
       // Find matching lead groups based on lead criteria
       const matchingGroups = await storage.findMatchingLeadGroups(lead);
+      
+      console.log(`Found ${matchingGroups.length} matching lead groups for lead ${lead.id}:`, 
+        matchingGroups.map(g => ({ id: g.id, name: g.name, priority: g.priority })));
       
       if (!matchingGroups || matchingGroups.length === 0) {
         console.log(`No matching lead group found for lead ${lead.id}`);
@@ -94,6 +100,11 @@ class LeadRouter {
         where: eq(leadGroupMembers.groupId, groupId)
       });
       
+      console.log(`Found ${agents.length} agents for group ${groupId}:`, 
+        agents.map(a => ({id: a.id, name: a.name})));
+      console.log(`Found ${memberships.length} memberships for group ${groupId}:`, 
+        memberships.map(m => ({agentId: m.agentId, lastAssignment: m.lastAssignment})));
+      
       // Sort agents by last assignment time (oldest first)
       const sortedAgents = agents.map(agent => {
         const membership = memberships.find(m => m.agentId === agent.id);
@@ -106,8 +117,12 @@ class LeadRouter {
         return a.lastAssignment.getTime() - b.lastAssignment.getTime();
       });
       
+      console.log(`Agents sorted by last assignment for group ${groupId}:`, 
+        sortedAgents.map(a => ({id: a.id, name: a.name, lastAssignment: a.lastAssignment})));
+      
       // Return the agent with the oldest last assignment
       if (sortedAgents.length > 0) {
+        console.log(`Selected agent for group ${groupId}: ${sortedAgents[0].id} (${sortedAgents[0].name})`);
         return {
           id: sortedAgents[0].id,
           name: sortedAgents[0].name
@@ -146,8 +161,3 @@ class LeadRouter {
 
 // Export a singleton instance
 export const leadRouter = new LeadRouter();
-
-// Add database import to fix the method above
-import { db } from "@db";
-import { eq } from "drizzle-orm";
-import { leadGroupMembers, agentGroupMembers } from "@shared/schema";

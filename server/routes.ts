@@ -1437,6 +1437,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint for lead group rotation
+  app.get("/api/debug/lead-groups/:id/rotation", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      // Get all agents in the group with their membership details
+      const agents = await db.query.leadGroupMembers.findMany({
+        where: eq(leadGroupMembers.groupId, id),
+        with: {
+          agent: true
+        }
+      }).then(memberships => 
+        memberships.map(membership => ({
+          id: membership.agent.id,
+          name: membership.agent.name,
+          email: membership.agent.email,
+          avatarUrl: membership.agent.avatarUrl,
+          lastAssignment: membership.lastAssignment || null
+        }))
+      );
+      
+      console.log(`Found ${agents.length} agents for lead group ${id}:`, agents);
+      
+      // Sort agents by lastAssignment (null values first, then oldest first)
+      const sortedAgents = [...agents].sort((a, b) => {
+        if (!a.lastAssignment && !b.lastAssignment) return 0;
+        if (!a.lastAssignment) return -1;
+        if (!b.lastAssignment) return 1;
+        return new Date(a.lastAssignment).getTime() - new Date(b.lastAssignment).getTime();
+      });
+      
+      // Determine who's next and who was last
+      const nextAgent = sortedAgents.length > 0 ? sortedAgents[0] : null;
+      const lastAgent = sortedAgents.length > 0 
+        ? [...sortedAgents]
+            .filter(a => a.lastAssignment)
+            .sort((a, b) => new Date(b.lastAssignment!).getTime() - new Date(a.lastAssignment!).getTime())[0] || null
+        : null;
+      
+      res.json({
+        groupId: id,
+        agents: sortedAgents,
+        nextAgent,
+        lastAgent
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Parsing patterns endpoint - for viewing AI learned patterns
   app.get("/api/parsing-patterns", isManager, async (req, res, next) => {
     try {
