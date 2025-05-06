@@ -56,58 +56,84 @@ function detectSourceFromEmail(emailContent: string, subject: string, emailFrom:
   const subjectLower = subject.toLowerCase();
   const fromLower = emailFrom.toLowerCase();
   
-  // Check the email sender domain first
-  if (fromLower.includes('@zumper.com') || fromLower.includes('zumper.com')) {
-    return 'Zumper';
+  // First check for domain patterns in email addresses - these are most reliable
+  // Map of domain patterns to source names
+  const domainSourceMap: Record<string, string> = {
+    '@myspacenyc.com': 'MySpace NYC',
+    '@zumper.com': 'Zumper',
+    '@zillow.com': 'Zillow',
+    '@trulia.com': 'Trulia',
+    '@apartments.com': 'Apartments.com',
+    '@streeteasy.com': 'StreetEasy',
+    '@hotpads.com': 'HotPads',
+    '@renthop.com': 'RentHop',
+    '@nooklyn.com': 'Nooklyn',
+    '@realtor.com': 'Realtor.com',
+    '@rentable.co': 'Rentable',
+    '@loftey.com': 'Loftey',
+    '@realty.com': 'Realty.com',
+    '@theguarantors.com': 'TheGuarantors',
+    '@bondnewyork.com': 'Bond New York',
+    '@compass.com': 'Compass',
+    '@cazamio.com': 'Cazamio'
+  };
+  
+  // Check from email domain against our map
+  for (const [domainPattern, sourceName] of Object.entries(domainSourceMap)) {
+    if (fromLower.includes(domainPattern)) {
+      return sourceName;
+    }
   }
   
-  if (fromLower.includes('@zillow.com') || fromLower.includes('zillow.com')) {
-    return 'Zillow';
+  // Check for content patterns if email domain didn't match
+  // Map of content keywords to source names
+  const contentSourceMap: Record<string, string> = {
+    'myspace nyc': 'MySpace NYC',
+    'zumper': 'Zumper',
+    'zillow': 'Zillow',
+    'trulia': 'Trulia',
+    'apartments.com': 'Apartments.com',
+    'streeteasy': 'StreetEasy',
+    'hotpads': 'HotPads',
+    'renthop': 'RentHop',
+    'nooklyn': 'Nooklyn',
+    'realtor.com': 'Realtor.com',
+    'rentable': 'Rentable',
+    'loftey': 'Loftey',
+    'realty.com': 'Realty.com',
+    'guarantors': 'TheGuarantors',
+    'bond new york': 'Bond New York',
+    'compass': 'Compass',
+    'cazamio': 'Cazamio'
+  };
+  
+  // Check both content and subject for keywords
+  for (const [keyword, sourceName] of Object.entries(contentSourceMap)) {
+    if (contentLower.includes(keyword) || subjectLower.includes(keyword)) {
+      return sourceName;
+    }
   }
   
-  if (fromLower.includes('@myspacenyc.com') || fromLower.includes('myspacenyc.com')) {
-    return 'MySpace NYC';
+  // If no match, look for other strong indicators like lead inquiry patterns
+  if (subjectLower.includes('property inquiry') || 
+      subjectLower.includes('rental inquiry') || 
+      subjectLower.includes('apartment inquiry')) {
+    return 'Property Inquiry';
   }
   
-  if (fromLower.includes('@cazamio.com') || fromLower.includes('cazamio.com')) {
-    return 'Cazamio';
+  // Check for common real estate terms in combination
+  const realEstateTerms = ['apartment', 'rental', 'bedroom', 'bath', 'rent', 'lease', 'property'];
+  let termCount = 0;
+  
+  for (const term of realEstateTerms) {
+    if (contentLower.includes(term)) {
+      termCount++;
+    }
   }
   
-  if (fromLower.includes('@compass.com') || fromLower.includes('compass.com')) {
-    return 'Compass';
-  }
-  
-  if (fromLower.includes('@theguarantors.com') || fromLower.includes('guarantors')) {
-    return 'TheGuarantors';
-  }
-  
-  if (fromLower.includes('@bondnewyork.com') || fromLower.includes('bond new york')) {
-    return 'Bond New York';
-  }
-  
-  // Check email content and subject line for clues
-  if (contentLower.includes('zumper') || subjectLower.includes('zumper')) {
-    return 'Zumper';
-  }
-  
-  if (contentLower.includes('zillow') || subjectLower.includes('zillow')) {
-    return 'Zillow';
-  }
-  
-  if (contentLower.includes('myspace nyc') || subjectLower.includes('myspace nyc')) {
-    return 'MySpace NYC';
-  }
-  
-  if (contentLower.includes('cazamio') || subjectLower.includes('cazamio')) {
-    return 'Cazamio';
-  }
-  
-  if (contentLower.includes('guarantors') || subjectLower.includes('guarantors')) {
-    return 'TheGuarantors';
-  }
-  
-  if (contentLower.includes('bond') || subjectLower.includes('bond new york')) {
-    return 'Bond New York';
+  // If we have multiple real estate terms, it's likely a real estate lead
+  if (termCount >= 3) {
+    return 'Real Estate Lead';
   }
   
   // If we can't determine the source, return null
@@ -187,14 +213,40 @@ function extractSourceSpecificData(
   const data: Partial<LeadInsert> = {};
   
   // Common patterns that work across multiple sources
-  // Email address
+  // First pass: Extract all possible data using generic patterns
+  
+  // Extract name patterns
+  const namePatterns = [
+    /(?:my name is|this is)\s+([a-zA-Z]+(\s[a-zA-Z]+){0,3})/i,  // "My name is Jane Smith"
+    /(?:from|by)\s+([a-zA-Z]+(\s[a-zA-Z]+){0,3})/i,            // "From Jane Smith"
+    /([a-zA-Z]+(\s[a-zA-Z]+){0,3})\s+(?:is interested|would like)/i // "Jane Smith is interested"
+  ];
+  
+  for (const pattern of namePatterns) {
+    const match = emailContent.match(pattern);
+    if (match && match[1]) {
+      data.name = match[1].trim();
+      break;
+    }
+  }
+  
+  // Email address extraction and filtering
   const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
   const emailMatches = emailContent.match(emailRegex) || [];
   if (emailMatches.length > 0) {
     // Filter out sender domains that shouldn't be considered as the renter's email
-    const excludeDomains = ['zumper.com', 'zillow.com', 'myspacenyc.com', 'cazamio.com', 'compass.com', 'theguarantors.com', 'bondnewyork.com'];
+    const excludeDomains = [
+      'zumper.com', 'zillow.com', 'myspacenyc.com', 'cazamio.com', 
+      'compass.com', 'theguarantors.com', 'bondnewyork.com', 'streeteasy.com',
+      'renthop.com', 'hotpads.com', 'apartments.com', 'trulia.com',
+      'nooklyn.com', 'realtor.com', 'rentable.co', 'loftey.com', 'realty.com'
+    ];
+    
     const validEmails = emailMatches.filter(email => {
-      const domain = email.split('@')[1].toLowerCase();
+      if (!email) return false;
+      const parts = email.split('@');
+      if (parts.length !== 2) return false;
+      const domain = parts[1].toLowerCase();
       return !excludeDomains.some(excl => domain.includes(excl));
     });
     
@@ -203,33 +255,150 @@ function extractSourceSpecificData(
     }
   }
   
-  // Phone number (various formats)
-  const phoneRegex = /\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})/g;
-  const phoneMatches = emailContent.match(phoneRegex) || [];
-  if (phoneMatches.length > 0) {
-    // Clean up phone format to just digits
-    data.phone = phoneMatches[0].replace(/\D/g, '');
+  // Phone number (various formats) with improved detection
+  const phonePatterns = [
+    /(?:phone|cell|mobile|tel)(?:\s*(?:number|#))?\s*(?:is|:)?\s*(\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4})/i,  // Phone: 555-123-4567
+    /(?:(?:call|text|contact)\s+(?:me|us)?\s+(?:at|on)?)\s*(\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4})/i,  // Call me at 555-123-4567
+    /\b(\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4})\b/g  // Any 10-digit phone number pattern
+  ];
+  
+  for (const pattern of phonePatterns) {
+    const match = emailContent.match(pattern);
+    if (match && match[1]) {
+      // Clean up phone format: either keep just digits or standardize format
+      data.phone = match[1].replace(/\D/g, '');
+      if (data.phone.length === 10) {
+        // Format as XXX-XXX-XXXX for consistency
+        data.phone = `${data.phone.slice(0,3)}-${data.phone.slice(3,6)}-${data.phone.slice(6)}`;
+      }
+      break;
+    }
   }
   
-  // ZIP code
-  const zipRegex = /\b\d{5}(?:-\d{4})?\b/g;
-  const zipMatches = emailContent.match(zipRegex) || [];
-  if (zipMatches.length > 0) {
-    data.zipCode = zipMatches[0];
+  // Address extraction with improved patterns
+  const addressPatterns = [
+    // Address patterns with street number and name
+    /(?:property|address|location|apartment|apt|unit)\s+(?:at|is|:|located at)?\s+([0-9]+\s+[a-zA-Z0-9\s.,]+(?:street|st|avenue|ave|road|rd|drive|dr|blvd|boulevard)\s*[a-zA-Z0-9\s.,#]*)/i,
+    // Look for NY addresses with unit/apt numbers
+    /([0-9]+\s+[a-zA-Z0-9\s.,]+(?:street|st|avenue|ave|road|rd|drive|dr|blvd|boulevard)\s*[a-zA-Z0-9\s.,#]*\s*,?\s*(?:new york|ny|brooklyn|queens|bronx|staten island))/i,
+    // Any sequence that looks like a numbered street address
+    /\b([0-9]+\s+[a-zA-Z0-9\s.,]+(?:street|st|avenue|ave|road|rd|drive|dr|blvd|boulevard|place|pl|court|ct|terrace|ter|lane|ln|way)\b)/i
+  ];
+  
+  for (const pattern of addressPatterns) {
+    const match = emailContent.match(pattern);
+    if (match && match[1]) {
+      data.address = match[1].trim();
+      break;
+    }
   }
   
-  // Common price formats ($X,XXX, $X.XK, etc.)
-  const priceRegex = /\$([0-9]{1,3}(,[0-9]{3})*?(\.[0-9]+)?|[0-9]+k|[0-9]+(\.[0-9]+)?k)/gi;
-  const priceMatches = emailContent.match(priceRegex) || [];
-  if (priceMatches.length > 0) {
-    const cleanPrice = priceMatches[0].replace(/[$,]/g, '');
-    
-    // Handle 'k' notation (e.g., '$3.5k' -> '3500')
-    if (cleanPrice.toLowerCase().endsWith('k')) {
-      const numValue = parseFloat(cleanPrice.toLowerCase().replace('k', '')) * 1000;
-      data.price = String(numValue);
-    } else {
-      data.price = cleanPrice;
+  // Unit/Apartment number extraction
+  const unitPatterns = [
+    // Unit/apt label followed by number/letter - most specific
+    /(?:unit|apt|apartment)\s*(?:#|number|no)?\s*[:#]?\s*([a-zA-Z0-9-]+)\b/i,
+    // Unit/apt label with identifier
+    /(?:unit|apt|apartment)\s+([a-zA-Z0-9-]+)\b/i,
+    // Hash symbol with unit identifier
+    /#\s*([a-zA-Z0-9-]+)\b/i,
+    // Address with "Unit X" pattern
+    /(?:street|st|avenue|ave|road|rd|drive|dr|boulevard|blvd)(?:[.,\s]+)(?:unit|apt|apartment|suite|ste)?\s+([a-zA-Z0-9-]+)\b/i,
+    // Number followed by a letter at the end of an address line
+    /\d+\s+[^,]+,?\s+([a-zA-Z0-9-]{1,4})\s*,/i
+  ];
+  
+  for (const pattern of unitPatterns) {
+    const match = emailContent.match(pattern);
+    if (match && match[1]) {
+      // Skip results that are clearly not unit numbers (common false positives)
+      const nonUnitKeywords = ['in', 'at', 'near', 'by', 'from', 'to', 'the', 'for', 'with'];
+      if (nonUnitKeywords.includes(match[1].toLowerCase())) {
+        continue;
+      }
+      data.unitNumber = match[1].trim();
+      break;
+    }
+  }
+  
+  // Neighborhood extraction
+  const neighborhoods = [
+    'Williamsburg', 'East Village', 'West Village', 'Upper East Side', 'Upper West Side',
+    'Lower East Side', 'Chelsea', 'Harlem', 'Midtown', 'SoHo', 'Tribeca', 'Financial District',
+    'Chinatown', 'Brooklyn Heights', 'Dumbo', 'Park Slope', 'Bushwick', 'Astoria', 'Long Island City',
+    'Greenpoint', 'Bedford-Stuyvesant', 'Crown Heights', 'Prospect Heights', 'Fort Greene'
+  ];
+  
+  for (const neighborhood of neighborhoods) {
+    if (emailContent.toLowerCase().includes(neighborhood.toLowerCase())) {
+      data.neighborhood = neighborhood;
+      break;
+    }
+  }
+  
+  // ZIP code extraction with improved context
+  const zipPatterns = [
+    /(?:zip|zip code|postal|postal code)\s*(?:is|:|code)?\s*(\d{5}(?:-\d{4})?)/i,  // Zip code: 10001
+    /(?:new york|ny|brooklyn|queens|bronx|staten island)\s*,?\s*(?:ny)?\s*(\d{5}(?:-\d{4})?)/i,  // Brooklyn, NY 11211
+    /\b(\d{5}(?:-\d{4})?)\b/  // Any 5-digit or 9-digit zip code
+  ];
+  
+  for (const pattern of zipPatterns) {
+    const match = emailContent.match(pattern);
+    if (match && match[1]) {
+      data.zipCode = match[1];
+      break;
+    }
+  }
+  
+  // Bed count extraction
+  const bedPatterns = [
+    /\b([0-9])\s*(?:bed|bedroom|br)\b/i,                      // "2 bedroom"
+    /\b([0-9])\s*(?:bed|bedroom|br)[s]?\b/i,                  // "2 bedrooms"
+    /\b([0-9])\s*(?:-|\/)\s*([0-9])\s*bed/i,                // "1-2 bed"
+    /\b(?:([0-9])\s*bed)/i,                                   // "2bed"
+    /\blooking\s+for\s+(?:a|an)?\s*([0-9])\s*(?:bed|bedroom|br)/i // "looking for a 2 bedroom"
+  ];
+  
+  for (const pattern of bedPatterns) {
+    const match = emailContent.match(pattern);
+    if (match && match[1]) {
+      data.bedCount = parseInt(match[1]);
+      break;
+    }
+  }
+  
+  // Price range extraction with better context detection
+  const pricePatterns = [
+    // Budget, price range mentions 
+    /(?:budget|price|rent)\s*(?:range|is|of)?\s*(?:around|about|approximately)?\s*\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+k|[0-9]+(?:\.[0-9]+)?k)\s*(?:-|to|and)\s*\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+k|[0-9]+(?:\.[0-9]+)?k)/i,
+    // Single price point
+    /(?:budget|price|rent)\s*(?:is|of)?\s*(?:around|about|approximately)?\s*\$?\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+k|[0-9]+(?:\.[0-9]+)?k)/i,
+    // Dollar sign followed by number
+    /\$([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|[0-9]+k|[0-9]+(?:\.[0-9]+)?k)/i
+  ];
+  
+  // Try to find a price range first (min-max)
+  for (const pattern of pricePatterns) {
+    const match = emailContent.match(pattern);
+    if (match) {
+      if (match[1] && match[2]) {
+        // We found a range
+        const minPrice = parsePrice(match[1]);
+        const maxPrice = parsePrice(match[2]);
+        
+        if (minPrice && maxPrice) {
+          data.price = minPrice;
+          data.priceMax = maxPrice;
+          break;
+        }
+      } else if (match[1]) {
+        // Single price point
+        const price = parsePrice(match[1]);
+        if (price) {
+          data.price = price;
+          break;
+        }
+      }
     }
   }
   
@@ -237,7 +406,7 @@ function extractSourceSpecificData(
   switch (source) {
     case 'Zumper':
       // Zumper-specific extraction
-      if (emailContent.includes('bedroom')) {
+      if (!data.bedCount && emailContent.includes('bedroom')) {
         const bedRegex = /(\d+)\s*bedroom/i;
         const bedMatch = emailContent.match(bedRegex);
         if (bedMatch && bedMatch[1]) {
@@ -251,6 +420,13 @@ function extractSourceSpecificData(
       if (zumperUrlMatch && zumperUrlMatch[1]) {
         data.propertyUrl = zumperUrlMatch[1];
       }
+      
+      // Zumper image regex
+      const zumperImgRegex = /(https:\/\/img\.zumpercdn\.com\/[^\s"]+)/i;
+      const zumperImgMatch = emailContent.match(zumperImgRegex);
+      if (zumperImgMatch && zumperImgMatch[1]) {
+        data.thumbnailUrl = zumperImgMatch[1];
+      }
       break;
       
     case 'Zillow':
@@ -259,6 +435,22 @@ function extractSourceSpecificData(
       const zillowUrlMatch = emailContent.match(zillowUrlRegex);
       if (zillowUrlMatch && zillowUrlMatch[1]) {
         data.propertyUrl = zillowUrlMatch[1];
+      }
+      
+      // Zillow images
+      const zillowImgRegex = /(https:\/\/photos\.zillowstatic\.com\/[^\s"]+)/i;
+      const zillowImgMatch = emailContent.match(zillowImgRegex);
+      if (zillowImgMatch && zillowImgMatch[1]) {
+        data.thumbnailUrl = zillowImgMatch[1];
+      }
+      break;
+      
+    case 'MySpace NYC':
+      // MySpace specific patterns
+      const myspaceUrlRegex = /(https:\/\/myspacenyc\.com\/[^\s"]+|https:\/\/landlord\.cazamio\.com\/[^\s"]+)/i;
+      const myspaceUrlMatch = emailContent.match(myspaceUrlRegex);
+      if (myspaceUrlMatch && myspaceUrlMatch[1]) {
+        data.propertyUrl = myspaceUrlMatch[1];
       }
       break;
       
@@ -271,8 +463,40 @@ function extractSourceSpecificData(
       }
       break;
       
+    case 'StreetEasy':
+      // StreetEasy specific patterns
+      const streetEasyUrlRegex = /(https:\/\/streeteasy\.com\/[^\s"]+)/i;
+      const streetEasyUrlMatch = emailContent.match(streetEasyUrlRegex);
+      if (streetEasyUrlMatch && streetEasyUrlMatch[1]) {
+        data.propertyUrl = streetEasyUrlMatch[1];
+      }
+      break;
+      
     // Add more source-specific extractors as needed
   }
   
   return data;
+}
+
+/**
+ * Helper function to parse price strings with various formats
+ * Handles $3,000, 3000, 3k, 3.5k, etc.
+ */
+function parsePrice(priceStr: string): string | null {
+  try {
+    // Remove $ and commas
+    let cleanPrice = priceStr.replace(/[$,]/g, '');
+    
+    // Handle 'k' notation (e.g., '3.5k' -> '3500')
+    if (cleanPrice.toLowerCase().endsWith('k')) {
+      const numValue = parseFloat(cleanPrice.toLowerCase().replace('k', '')) * 1000;
+      return String(numValue);
+    }
+    
+    // Otherwise just return the numeric value
+    return cleanPrice;
+  } catch (error) {
+    console.error('Error parsing price:', error);
+    return null;
+  }
 }
