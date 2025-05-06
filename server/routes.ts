@@ -9,6 +9,7 @@ import {
   routingRuleInsertSchema, 
   leadStatusUpdateSchema,
   leadGroupInsertSchema,
+  parsingPatternInsertSchema,
   users,
   leadGroupMembers,
   leads,
@@ -1729,6 +1730,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ errors: error.errors });
       }
+      next(error);
+    }
+  });
+  
+  // Update existing parsing pattern
+  app.put("/api/admin/parsing-patterns/:id", isManager, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      // Get existing pattern first
+      const existingPattern = await db
+        .select()
+        .from(parsingPatterns)
+        .where(eq(parsingPatterns.id, id))
+        .limit(1);
+      
+      if (existingPattern.length === 0) {
+        return res.status(404).json({ message: "Pattern not found" });
+      }
+      
+      // Parse the new data
+      const patternData = parsingPatternInsertSchema.parse(req.body);
+      
+      // Update the pattern
+      const [updatedPattern] = await db
+        .update(parsingPatterns)
+        .set({
+          ...patternData,
+          updatedAt: new Date(),
+        })
+        .where(eq(parsingPatterns.id, id))
+        .returning();
+      
+      console.log(`Parsing pattern updated for source: ${updatedPattern.source}`);
+      res.json(updatedPattern);
+    } catch (error) {
+      console.error('Error updating parsing pattern:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      next(error);
+    }
+  });
+  
+  // Delete a parsing pattern
+  app.delete("/api/admin/parsing-patterns/:id", isManager, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      // Check if pattern exists
+      const existingPattern = await db
+        .select()
+        .from(parsingPatterns)
+        .where(eq(parsingPatterns.id, id))
+        .limit(1);
+      
+      if (existingPattern.length === 0) {
+        return res.status(404).json({ message: "Pattern not found" });
+      }
+      
+      // Delete the pattern
+      await db
+        .delete(parsingPatterns)
+        .where(eq(parsingPatterns.id, id));
+      
+      console.log(`Parsing pattern deleted with ID: ${id}`);
+      res.json({ success: true, message: "Pattern deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting parsing pattern:', error);
       next(error);
     }
   });
