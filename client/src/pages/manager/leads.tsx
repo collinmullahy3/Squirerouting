@@ -97,7 +97,7 @@ export default function Leads() {
     queryFn: async () => {
       try {
         console.log('Fetching leads from debug endpoint...');
-        const response = await fetch(`/api/debug/leads?page=${currentPage}&limit=${limit}`);
+        const response = await fetch(`/api/debug/leads?page=${currentPage}&limit=${limit}&recentHours=24`);
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${await response.text()}`);
         }
