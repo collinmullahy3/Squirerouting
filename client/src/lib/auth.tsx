@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }: AuthProviderProps): React.ReactNode =
         }
       } else if (user.role === "agent") {
         // Agents shouldn't access manager-specific pages
-        if (path === "/" || path === "/agent-groups" || path === "/performance" || path === "/routing-rules" || path === "/email-settings") {
+        if (path === "/" || path === "/lead-groups" || path === "/agents" || path === "/performance" || path === "/email-settings") {
           setLocation("/my-leads");
         }
       }

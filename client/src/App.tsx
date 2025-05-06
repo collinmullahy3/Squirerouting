@@ -1,8 +1,8 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/lib/auth";
 
 // Components
 import Sidebar from "@/components/sidebar";
@@ -26,6 +26,28 @@ import Leads from "@/pages/manager/leads";
 import MyLeads from "@/pages/agent/my-leads";
 import MyPerformance from "@/pages/agent/my-performance";
 
+// Protected Route component for authentication
+const ProtectedRoute = ({ component: Component, ...rest }: { component: React.FC<any>, path?: string }) => {
+  const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+  
+  // If loading, show a spinner
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    </div>;
+  }
+  
+  // If not authenticated, redirect to login
+  if (!user) {
+    setLocation('/login');
+    return null;
+  }
+  
+  // If authenticated, render the component
+  return <Component {...rest} />;
+};
+
 const Router = () => {
   return (
     <AuthProvider>
@@ -36,22 +58,22 @@ const Router = () => {
             {/* Auth Routes */}
             <Route path="/login" component={Login} />
             
-            {/* Manager Routes */}
-            <Route path="/" component={ManagerDashboard} />
-            <Route path="/leads" component={Leads} />
-            <Route path="/lead-groups" component={LeadGroups} />
-            <Route path="/agents" component={Agents} />
-            <Route path="/agents/:id" component={AgentDetails} />
-            <Route path="/performance" component={Performance} />
-            <Route path="/email-settings" component={EmailSettings} />
-            <Route path="/sendgrid-settings" component={EmailSettings} />
+            {/* Manager Routes - Protected */}
+            <Route path="/" component={(props: any) => <ProtectedRoute component={ManagerDashboard} {...props} />} />
+            <Route path="/leads" component={(props: any) => <ProtectedRoute component={Leads} {...props} />} />
+            <Route path="/lead-groups" component={(props: any) => <ProtectedRoute component={LeadGroups} {...props} />} />
+            <Route path="/agents" component={(props: any) => <ProtectedRoute component={Agents} {...props} />} />
+            <Route path="/agents/:id" component={(props: any) => <ProtectedRoute component={AgentDetails} {...props} />} />
+            <Route path="/performance" component={(props: any) => <ProtectedRoute component={Performance} {...props} />} />
+            <Route path="/email-settings" component={(props: any) => <ProtectedRoute component={EmailSettings} {...props} />} />
+            <Route path="/sendgrid-settings" component={(props: any) => <ProtectedRoute component={EmailSettings} {...props} />} />
             
-            {/* Agent Routes */}
-            <Route path="/my-leads" component={MyLeads} />
-            <Route path="/my-performance" component={MyPerformance} />
+            {/* Agent Routes - Protected */}
+            <Route path="/my-leads" component={(props: any) => <ProtectedRoute component={MyLeads} {...props} />} />
+            <Route path="/my-performance" component={(props: any) => <ProtectedRoute component={MyPerformance} {...props} />} />
             
-            {/* Common Routes */}
-            <Route path="/profile" component={Profile} />
+            {/* Common Routes - Protected */}
+            <Route path="/profile" component={(props: any) => <ProtectedRoute component={Profile} {...props} />} />
             
             {/* Fallback to 404 */}
             <Route component={NotFound} />
