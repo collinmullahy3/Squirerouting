@@ -402,36 +402,7 @@ export default function DebugDashboard() {
           </div>
           
           {/* Charts Section */}
-          <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base font-medium">Lead Status Distribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={leadStatusData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {leadStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`${value} Leads`, 'Count']} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-            
+          <div className="mt-8 grid grid-cols-1 gap-5">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base font-medium">Lead Sources</CardTitle>
