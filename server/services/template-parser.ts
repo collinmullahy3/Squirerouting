@@ -678,7 +678,7 @@ function extractSourceSpecificData(
       if (data.address) {
         const unitMatch = data.address.match(/#([A-Za-z0-9-]+)/);
         if (unitMatch && unitMatch[1]) {
-          data.unitNumber = unitMatch[1];
+          data.unit_number = unitMatch[1]; // Use snake_case to match database column
         }
       }
       
@@ -705,7 +705,7 @@ function extractSourceSpecificData(
       const zipCodeRegex = /\b(\d{5})\b/;
       const zipCodeMatch = emailContent.match(zipCodeRegex);
       if (zipCodeMatch && zipCodeMatch[1]) {
-        data.zipCode = zipCodeMatch[1];
+        data.zip_code = zipCodeMatch[1]; // Use snake_case to match database column
       }
       
       // Extract Zillow URLs
@@ -737,7 +737,7 @@ function extractSourceSpecificData(
         email: data.email,
         phone: data.phone,
         address: data.address,
-        zipCode: data.zipCode,
+        zip_code: data.zip_code,
         price: data.price
       });
       break;
