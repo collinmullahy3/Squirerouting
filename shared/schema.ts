@@ -276,6 +276,13 @@ export const routingRuleInsertSchema = createInsertSchema(routingRules, {
 export const leadInsertSchema = createInsertSchema(leads, {
   name: (schema) => schema.min(2, "Lead name must be at least 2 characters"),
   email: (schema) => schema.email("Must provide a valid email"),
+  // Ensure date fields are handled correctly
+  movingDate: (schema) => schema.optional(),
+  receivedAt: (schema) => schema.optional(), 
+  updatedAt: (schema) => schema.optional(),
+  // Coerce price values to strings to match database expectations
+  price: (schema) => z.coerce.string().optional().nullable(),
+  priceMax: (schema) => z.coerce.string().optional().nullable(),
 });
 
 export const systemSettingsInsertSchema = createInsertSchema(systemSettings, {

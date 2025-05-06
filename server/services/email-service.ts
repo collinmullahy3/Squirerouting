@@ -568,6 +568,13 @@ class EmailService {
         });
         throw new Error('Subject and text are required');
       }
+      
+      // Ensure we add the current dates to the emailContent object
+      emailContent = {
+        ...emailContent,
+        receivedAt: new Date(),
+        updatedAt: new Date()
+      };
 
       console.log('Processing simulated email:', {
         subject: emailContent.subject,
