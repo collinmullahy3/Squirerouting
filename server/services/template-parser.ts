@@ -1,5 +1,6 @@
 import { LeadInsert, ParsingPattern } from '@shared/schema';
 import { storage } from '../storage';
+import { parseEmailWithAI } from './ai-parser';
 
 /**
  * Parse email using stored templates instead of AI

@@ -984,42 +984,60 @@ class EmailService {
       const detectedSource = this.detectLeadSource(text, subject, from);
       console.log(`Detected likely lead source: ${detectedSource}`);
       
-      // Check for structured format to use appropriate parsing strategy
-      const hasStructuredFormat = text.includes('Consumer Information:') || 
-                                text.includes('Property Information:') ||
-                                text.includes('First Name:') ||
-                                text.includes('Last Name:') ||
-                                text.includes('Email Address:') ||
-                                (text.includes('Rent:') && text.includes('Bedrooms:'));
+      // Import the template parser
+      const { parseEmailWithTemplates } = await import('./template-parser');
       
-      // STEP 1: Always try AI parsing first for all emails as requested
-      console.log('Using AI parser for all emails as requested');
+      // Try to parse using templates first
+      console.log('Attempting to parse email using templates');
+      const templateParsedData = await parseEmailWithTemplates(text, subject, from);
       
-      try {
-        // Call the AI parser with email content
-        console.log('Using AI to parse email content');
-        const aiParsedData = await parseEmailWithAI(text, subject);
+      if (templateParsedData && (templateParsedData.email || templateParsedData.phone)) {
+        console.log('Template parser successfully extracted data');
         
-        if (aiParsedData && (aiParsedData.email || aiParsedData.phone)) {
-          console.log('AI successfully parsed the email');
+        // Return the parsed data with original email content
+        return {
+          ...templateParsedData,
+          originalEmail,
+          subject,
+          // Make sure we use the detected source if template parsing didn't find one
+          source: templateParsedData.source || detectedSource,
+          receivedAt: new Date(),
+          updatedAt: new Date()
+        } as LeadInsert;
+      }
+      
+      console.log('Template parser could not extract data, falling back to AI parser as backup');
+      
+      // Only use AI as a fallback if template parsing fails and ANTHROPIC_API_KEY is available
+      if (process.env.ANTHROPIC_API_KEY) {
+        try {
+          // Call the AI parser with email content
+          console.log('Using AI to parse email content as backup');
+          const aiParsedData = await parseEmailWithAI(text, subject);
           
-          // If successful, store the pattern for this source
-          await this.storeSourceParsingPattern(detectedSource, aiParsedData);
-          
-          // Use the result from AI parsing with original email content
-          return {
-            ...aiParsedData,
-            originalEmail,
-            subject,
-            // Make sure we use the detected source if AI didn't find one
-            source: aiParsedData.source || detectedSource,
-            receivedAt: new Date(),
-            updatedAt: new Date()
-          };
+          if (aiParsedData && (aiParsedData.email || aiParsedData.phone)) {
+            console.log('AI successfully parsed the email');
+            
+            // If successful, store the pattern for this source
+            await this.storeSourceParsingPattern(detectedSource, aiParsedData);
+            
+            // Use the result from AI parsing with original email content
+            return {
+              ...aiParsedData,
+              originalEmail,
+              subject,
+              // Make sure we use the detected source if AI didn't find one
+              source: aiParsedData.source || detectedSource,
+              receivedAt: new Date(),
+              updatedAt: new Date()
+            };
+          }
+          console.log('AI parser also failed to extract valid data, falling back to traditional parser');
+        } catch (aiError) {
+          console.error('Error using AI parser:', aiError);
         }
-        console.log('AI parser failed to extract valid data, falling back to traditional parser');
-      } catch (aiError) {
-        console.error('Error using AI parser:', aiError);
+      } else {
+        console.log('ANTHROPIC_API_KEY not found, skipping AI parsing');
       }
       
       // CRITICAL: Only proceed to legacy parsing if AI parsing failed

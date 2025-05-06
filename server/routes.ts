@@ -440,6 +440,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug endpoint to simulate email processing - completely open for debugging
+  app.post("/api/debug/simulate-email", async (req, res, next) => {
+    console.log('Debug simulate-email endpoint accessed - bypassing auth check');
+    try {
+      const { content, subject, from, source } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ success: false, message: "Missing email content" });
+      }
+      
+      // Import the email service to use its processSimulatedEmail method
+      const { emailService } = await import('./services/email-service');
+      
+      // Create the simulated email object
+      const simulatedEmail = {
+        text: content,
+        subject: subject || 'Simulated Email Subject',
+        from: from || 'simulator@example.com',
+        html: content,  // We use the same content for text and HTML for simplicity
+        source: source || 'Simulated Email'
+      };
+      
+      // Process the simulated email
+      const result = await emailService.processSimulatedEmail(simulatedEmail);
+      
+      if (result) {
+        res.json({ success: true, message: "Email processed successfully" });
+      } else {
+        res.status(500).json({ success: false, message: "Failed to process email" });
+      }
+    } catch (error) {
+      console.error('Error processing simulated email:', error);
+      return res.status(500).json({ success: false, message: "Error processing simulated email", error: error.message });
+    }
+  });
+  
+  // Debug endpoint to test template parser - completely open for debugging
+  app.post("/api/debug/test-template-parser", async (req, res, next) => {
+    console.log('Debug test-template-parser endpoint accessed - bypassing auth check');
+    try {
+      // Import the template parser
+      const { parseEmailWithTemplates } = await import('./services/template-parser');
+      
+      // Get the email content, subject, and from from the request body
+      const { emailContent, subject, from } = req.body;
+      
+      if (!emailContent) {
+        return res.status(400).json({ success: false, message: "Missing email content" });
+      }
+      
+      // Try to parse the email using templates
+      const parsedData = await parseEmailWithTemplates(emailContent, subject || '', from || '');
+      
+      if (!parsedData) {
+        return res.status(404).json({ success: false, message: "Could not parse email with templates" });
+      }
+      
+      res.json({ success: true, parsedData });
+    } catch (error) {
+      console.error('Error testing template parser:', error);
+      return res.status(500).json({ success: false, message: "Error testing template parser", error: error.message });
+    }
+  });
+  
   // Debug endpoint to get parsing patterns - completely open for debugging
   app.get("/api/debug/parsing-patterns", async (req, res, next) => {
     console.log('Debug parsing-patterns endpoint accessed - bypassing auth check');
