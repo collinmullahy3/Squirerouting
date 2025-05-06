@@ -31,6 +31,7 @@ interface ParsingPattern {
   pattern: string;
   patternType: string;
   successCount: number;
+  lastUsed: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -104,9 +105,11 @@ export default function ParsingPatternsPage() {
     },
     {
       header: "Last Used",
-      accessorKey: "updatedAt",
+      accessorKey: "lastUsed",
       cell: (item: ParsingPattern) => (
-        <span>{new Date(item.updatedAt).toLocaleDateString()}</span>
+        <span>
+          {item.lastUsed ? new Date(item.lastUsed).toLocaleDateString() : 'Never used'}
+        </span>
       ),
       hideOnMobile: true,
     },

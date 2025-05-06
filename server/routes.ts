@@ -13,7 +13,8 @@ import {
   leadGroupMembers,
   leads,
   leadStatusHistory,
-  LeadGroupInsert
+  LeadGroupInsert,
+  parsingPatterns
 } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
@@ -1433,6 +1434,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error clearing leads:', error);
       return res.status(500).json({ error: 'Failed to clear leads' });
+    }
+  });
+
+  // Parsing patterns endpoint - for viewing AI learned patterns
+  app.get("/api/parsing-patterns", isManager, async (req, res, next) => {
+    try {
+      const patterns = await storage.getAllParsingPatterns();
+      res.json({ patterns });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Single parsing pattern endpoint
+  app.get("/api/parsing-patterns/:id", isManager, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      const pattern = await db
+        .select()
+        .from(parsingPatterns)
+        .where(eq(parsingPatterns.id, id))
+        .limit(1);
+      
+      if (pattern.length === 0) {
+        return res.status(404).json({ message: "Pattern not found" });
+      }
+      
+      res.json(pattern[0]);
+    } catch (error) {
+      next(error);
     }
   });
 
