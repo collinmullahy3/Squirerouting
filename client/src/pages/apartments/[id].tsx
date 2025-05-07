@@ -96,18 +96,11 @@ export default function ApartmentDetailPage() {
           <div className="lg:col-span-2">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
               <div className="aspect-video bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                {apartment.imageUrl ? (
-                  <img 
-                    src={apartment.imageUrl as string} 
-                    alt={apartment.title} 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-gray-400 dark:text-gray-500 flex flex-col items-center">
-                    <Square className="h-12 w-12 mb-2" />
-                    <span>No image available</span>
-                  </div>
-                )}
+                {/* Since imageUrl isn't in our schema, just showing placeholder */}
+                <div className="text-gray-400 dark:text-gray-500 flex flex-col items-center">
+                  <Square className="h-12 w-12 mb-2" />
+                  <span>No image available</span>
+                </div>
               </div>
               
               <div className="p-6">
@@ -280,27 +273,27 @@ export default function ApartmentDetailPage() {
                 <ul className="space-y-3">
                   <li className="flex justify-between">
                     <span className="text-muted-foreground">Property Type</span>
-                    <span className="font-medium">{apartment.propertyType || 'Apartment'}</span>
+                    <span className="font-medium">Apartment</span>
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground">Square Feet</span>
                     <span className="font-medium">{apartment.squareFeet || 'N/A'}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Year Built</span>
-                    <span className="font-medium">{apartment.yearBuilt || 'N/A'}</span>
-                  </li>
-                  <li className="flex justify-between">
                     <span className="text-muted-foreground">Parking</span>
-                    <span className="font-medium">{apartment.parking || 'N/A'}</span>
+                    <span className="font-medium">{apartment.parking ? 'Yes' : 'No'}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Pet Policy</span>
-                    <span className="font-medium">{apartment.petPolicy || 'N/A'}</span>
+                    <span className="text-muted-foreground">Pet Friendly</span>
+                    <span className="font-medium">{apartment.petFriendly ? 'Yes' : 'No'}</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-muted-foreground">Laundry</span>
-                    <span className="font-medium">{apartment.laundry || 'N/A'}</span>
+                    <span className="text-muted-foreground">Air Conditioning</span>
+                    <span className="font-medium">{apartment.airConditioning ? 'Yes' : 'No'}</span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span className="text-muted-foreground">Furnished</span>
+                    <span className="font-medium">{apartment.furnished ? 'Yes' : 'No'}</span>
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground">Listed On</span>

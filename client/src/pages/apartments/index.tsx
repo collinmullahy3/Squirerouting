@@ -285,10 +285,10 @@ export default function ApartmentsIndex() {
                 </div>
                 <div className="flex items-center">
                   <Bath className="h-4 w-4 mr-1" />
-                  <span className="text-sm">{apartment.bathrooms} {apartment.bathrooms === 1 ? 'Bath' : 'Baths'}</span>
+                  <span className="text-sm">{apartment.bathrooms} {Number(apartment.bathrooms) === 1 ? 'Bath' : 'Baths'}</span>
                 </div>
                 <div className="flex items-center">
-                  <span className="text-sm">{apartment.propertyType || 'Apartment'}</span>
+                  <span className="text-sm">Apartment</span>
                 </div>
               </CardFooter>
             </Card>

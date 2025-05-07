@@ -7,7 +7,7 @@ interface AuthUser {
   username: string;
   name: string;
   email: string;
-  role: "manager" | "agent";
+  role: "manager" | "agent" | "landlord" | "renter" | "admin";
   phone?: string;
   avatarUrl?: string;
 }
