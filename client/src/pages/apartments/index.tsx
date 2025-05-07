@@ -11,7 +11,9 @@ import {
   Plus,
   Loader2,
   Filter,
-  X
+  X,
+  List,
+  Map
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -35,6 +37,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MapView from "@/components/apartments/MapView";
 
 export default function ApartmentsIndex() {
   const [, setLocation] = useLocation();
