@@ -253,51 +253,72 @@ export default function ApartmentsIndex() {
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
       ) : filteredApartments && filteredApartments.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredApartments.map((apartment) => (
-            <Card 
-              key={apartment.id} 
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => setLocation(`/apartments/${apartment.id}`)}
-            >
-              <div className="aspect-[16/9] bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                {/* Image placeholder - in a real app, you'd use apartment.imageUrl if it existed */}
-                <div className="text-gray-400 dark:text-gray-500">No image available</div>
-              </div>
-              
-              <CardContent className="p-4">
-                <div className="mb-2">
-                  <p className="text-xl font-bold">{apartment.title}</p>
-                  <p className="text-2xl font-semibold text-primary">
-                    {formatPrice(apartment.price)}
-                    <span className="text-sm font-normal text-muted-foreground">/month</span>
-                  </p>
-                </div>
-                
-                <div className="flex items-center text-muted-foreground mb-3">
-                  <MapPin className="h-4 w-4 mr-1" />
-                  <p className="text-sm truncate">{apartment.address}, {apartment.city}</p>
-                </div>
-                
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{apartment.description}</p>
-              </CardContent>
-              
-              <CardFooter className="px-4 py-3 border-t bg-gray-50 dark:bg-gray-800 flex justify-between">
-                <div className="flex items-center">
-                  <BedDouble className="h-4 w-4 mr-1" />
-                  <span className="text-sm">{apartment.bedrooms} {apartment.bedrooms === 1 ? 'Bed' : 'Beds'}</span>
-                </div>
-                <div className="flex items-center">
-                  <Bath className="h-4 w-4 mr-1" />
-                  <span className="text-sm">{apartment.bathrooms} {Number(apartment.bathrooms) === 1 ? 'Bath' : 'Baths'}</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="text-sm">Apartment</span>
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+        <Tabs defaultValue="grid" className="w-full">
+          <div className="flex justify-end mb-6">
+            <TabsList>
+              <TabsTrigger value="grid" className="flex items-center gap-1">
+                <List className="h-4 w-4" />
+                <span>List</span>
+              </TabsTrigger>
+              <TabsTrigger value="map" className="flex items-center gap-1">
+                <Map className="h-4 w-4" />
+                <span>Map</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="grid" className="w-full mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredApartments.map((apartment) => (
+                <Card 
+                  key={apartment.id} 
+                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => setLocation(`/apartments/${apartment.id}`)}
+                >
+                  <div className="aspect-[16/9] bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    {/* Image placeholder - in a real app, you'd use apartment.imageUrl if it existed */}
+                    <div className="text-gray-400 dark:text-gray-500">No image available</div>
+                  </div>
+                  
+                  <CardContent className="p-4">
+                    <div className="mb-2">
+                      <p className="text-xl font-bold">{apartment.title}</p>
+                      <p className="text-2xl font-semibold text-primary">
+                        {formatPrice(apartment.price)}
+                        <span className="text-sm font-normal text-muted-foreground">/month</span>
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center text-muted-foreground mb-3">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      <p className="text-sm truncate">{apartment.address}, {apartment.city}</p>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{apartment.description}</p>
+                  </CardContent>
+                  
+                  <CardFooter className="px-4 py-3 border-t bg-gray-50 dark:bg-gray-800 flex justify-between">
+                    <div className="flex items-center">
+                      <BedDouble className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{apartment.bedrooms} {apartment.bedrooms === 1 ? 'Bed' : 'Beds'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Bath className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{apartment.bathrooms} {Number(apartment.bathrooms) === 1 ? 'Bath' : 'Baths'}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-sm">Apartment</span>
+                    </div>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="map" className="w-full mt-0">
+            <MapView apartments={filteredApartments} />
+          </TabsContent>
+        </Tabs>
       ) : (
         <div className="text-center py-20 bg-gray-100 dark:bg-gray-800 rounded-lg">
           <p className="text-lg mb-4">No properties found matching your criteria.</p>
