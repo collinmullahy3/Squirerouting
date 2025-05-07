@@ -12,7 +12,7 @@ interface SidebarProps {
 export default function Sidebar({ className }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [location] = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const isMobile = useMobile();
 
   useEffect(() => {
@@ -25,7 +25,8 @@ export default function Sidebar({ className }: SidebarProps) {
 
   const toggleSidebar = () => setIsOpen(!isOpen);
 
-  if (!isAuthenticated) {
+  // Don't render sidebar if not logged in
+  if (!user) {
     return null;
   }
 
@@ -102,6 +103,19 @@ export default function Sidebar({ className }: SidebarProps) {
                     </NavItem>
                   </>
                 )}
+                
+                {/* Apartment Navigation Items - Available to everyone */}
+                <div className="pt-4 mt-4 border-t border-slate-700">
+                  <NavItem href="/apartments" icon="building" active={location === "/apartments" || location.startsWith("/apartments/")}>
+                    Apartments
+                  </NavItem>
+                  
+                  {user?.role === "landlord" && (
+                    <NavItem href="/my-properties" icon="home" active={location === "/my-properties"}>
+                      My Properties
+                    </NavItem>
+                  )}
+                </div>
                 
                 {/* Common Navigation Items */}
                 <div className="pt-4 mt-4 border-t border-slate-700">
@@ -243,6 +257,12 @@ function NavIcon({ name, active = false, className }: NavIconProps) {
       return (
         <svg className={iconClass} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+        </svg>
+      );
+    case "building":
+      return (
+        <svg className={iconClass} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       );
     default:
