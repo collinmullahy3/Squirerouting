@@ -4,7 +4,7 @@ import { useLocation } from "wouter";
 import { ApartmentInsert } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/lib/auth";
 import { 
   Form, 
   FormControl, 
