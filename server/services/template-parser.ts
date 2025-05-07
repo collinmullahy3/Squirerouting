@@ -278,12 +278,20 @@ function extractSourceSpecificData(
   
   // Address extraction with improved patterns
   const addressPatterns = [
-    // Address patterns with street number and name
-    /(?:property|address|location|apartment|apt|unit)\s+(?:at|is|:|located at)?\s+([0-9]+\s+[a-zA-Z0-9\s.,]+(?:street|st|avenue|ave|road|rd|drive|dr|blvd|boulevard)\s*[a-zA-Z0-9\s.,#]*)/i,
-    // Look for NY addresses with unit/apt numbers
-    /([0-9]+\s+[a-zA-Z0-9\s.,]+(?:street|st|avenue|ave|road|rd|drive|dr|blvd|boulevard)\s*[a-zA-Z0-9\s.,#]*\s*,?\s*(?:new york|ny|brooklyn|queens|bronx|staten island))/i,
-    // Any sequence that looks like a numbered street address
-    /\b([0-9]+\s+[a-zA-Z0-9\s.,]+(?:street|st|avenue|ave|road|rd|drive|dr|blvd|boulevard|place|pl|court|ct|terrace|ter|lane|ln|way)\b)/i
+    // Look for addresses in context of property-related terms
+    /(?:property|address|location|apartment|apt|unit|listing|home|house|rental)\s+(?:at|is|:|located at|on)?\s+([0-9]+\s+[a-zA-Z0-9\s.,'-]+(?:street|st\.?|avenue|ave\.?|road|rd\.?|drive|dr\.?|blvd\.?|boulevard|place|pl\.?|court|ct\.?|terrace|ter\.?|lane|ln\.?|way|parkway|pkwy\.?)\b\s*[a-zA-Z0-9\s.,#-]*)/i,
+    
+    // Look for NY addresses with unit/apt numbers and borough
+    /\b([0-9]+\s+[a-zA-Z0-9\s.,'-]+(?:street|st\.?|avenue|ave\.?|road|rd\.?|drive|dr\.?|blvd\.?|boulevard|place|pl\.?|court|ct\.?|terrace|ter\.?|lane|ln\.?|way|parkway|pkwy\.?)\s*[a-zA-Z0-9\s.,#-]*\s*,?\s*(?:new york|ny|manhattan|brooklyn|queens|bronx|staten island))/i,
+    
+    // Try to match Zillow-style addresses in the subject line
+    /(?:zillow|property|check out|inquiry)(?:[:\s])+([0-9]+[a-zA-Z0-9\s.,'-]+)/i,
+    
+    // Any sequence that looks like a street address with number
+    /\b([0-9]+\s+[a-zA-Z0-9\s.,'-]+(?:street|st\.?|avenue|ave\.?|road|rd\.?|drive|dr\.?|boulevard|blvd\.?|place|pl\.?|court|ct\.?|terrace|ter\.?|lane|ln\.?|way|parkway|pkwy\.?)\b)/i,
+    
+    // More generic pattern for any numbered street
+    /\b([0-9]+\s+[a-zA-Z]+\s+(?:street|st\.?|avenue|ave\.?|road|rd\.?|drive|dr\.?|boulevard|blvd\.?|place|pl\.?|court|ct\.?|terrace|ter\.?|lane|ln\.?|way|parkway|pkwy\.?))/i
   ];
   
   for (const pattern of addressPatterns) {
