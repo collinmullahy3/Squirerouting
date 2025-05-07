@@ -11,12 +11,16 @@ import {
   leadStatusUpdateSchema,
   leadGroupInsertSchema,
   parsingPatternInsertSchema,
+  apartmentInsertSchema,
   users,
   leadGroupMembers,
   leads,
   leadStatusHistory,
   LeadGroupInsert,
-  parsingPatterns
+  parsingPatterns,
+  apartments,
+  Apartment,
+  ApartmentInsert
 } from "@shared/schema";
 import { z } from "zod";
 import session from "express-session";
@@ -25,7 +29,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import bcrypt from "bcryptjs";
 import { pool, db } from "@db";
-import { eq } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up session store with PostgreSQL
@@ -2146,6 +2150,243 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('Error processing test email:', error);
+      next(error);
+    }
+  });
+
+  // Apartment API endpoints
+  app.get("/api/apartments", async (req, res, next) => {
+    try {
+      // Extract query parameters for filtering
+      const { minPrice, maxPrice, bedrooms, city, zip } = req.query;
+      
+      // Build the query with filters
+      let query = db.select().from(apartments);
+      
+      if (minPrice && !isNaN(Number(minPrice))) {
+        query = query.where(sql`${apartments.price} >= ${Number(minPrice)}`);
+      }
+      
+      if (maxPrice && !isNaN(Number(maxPrice))) {
+        query = query.where(sql`${apartments.price} <= ${Number(maxPrice)}`);
+      }
+      
+      if (bedrooms && !isNaN(Number(bedrooms))) {
+        query = query.where(eq(apartments.bedrooms, Number(bedrooms)));
+      }
+      
+      if (city) {
+        query = query.where(sql`${apartments.city} ILIKE ${`%${city}%`}`);
+      }
+      
+      if (zip) {
+        query = query.where(eq(apartments.zip, String(zip)));
+      }
+      
+      // Execute the query
+      const apartmentsList = await query.orderBy(desc(apartments.createdAt));
+      
+      res.json(apartmentsList);
+    } catch (error) {
+      console.error('Error fetching apartments:', error);
+      next(error);
+    }
+  });
+
+  app.get("/api/apartments/:id", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid apartment ID" });
+      }
+      
+      const apartment = await db.query.apartments.findFirst({
+        where: eq(apartments.id, id),
+        with: {
+          owner: true
+        }
+      });
+      
+      if (!apartment) {
+        return res.status(404).json({ message: "Apartment not found" });
+      }
+      
+      // Remove sensitive information from the owner
+      if (apartment.owner) {
+        delete apartment.owner.password;
+      }
+      
+      res.json(apartment);
+    } catch (error) {
+      console.error('Error fetching apartment details:', error);
+      next(error);
+    }
+  });
+
+  app.post("/api/apartments", isAuthenticated, async (req, res, next) => {
+    try {
+      const user = req.user as any;
+      
+      // Verify the user has permission to create listings (landlord or admin)
+      if (user.role !== 'landlord' && user.role !== 'admin') {
+        return res.status(403).json({ 
+          message: "Only landlords and admins can create property listings" 
+        });
+      }
+      
+      // Handle numeric fields properly
+      const formData = {
+        ...req.body,
+        // Convert string price to number
+        price: typeof req.body.price === 'string' ? parseFloat(req.body.price) : req.body.price,
+        // Convert string bedrooms to number
+        bedrooms: typeof req.body.bedrooms === 'string' ? parseInt(req.body.bedrooms) : req.body.bedrooms,
+        // Convert string bathrooms to number
+        bathrooms: typeof req.body.bathrooms === 'string' ? parseFloat(req.body.bathrooms) : req.body.bathrooms,
+        // Add the user ID of the creator
+        userId: user.id
+      };
+      
+      // Validate the data
+      const apartmentData = apartmentInsertSchema.parse(formData);
+      
+      // Insert into database
+      const [apartment] = await db.insert(apartments).values(apartmentData).returning();
+      
+      res.status(201).json(apartment);
+    } catch (error) {
+      console.error('Error creating apartment listing:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      next(error);
+    }
+  });
+
+  app.put("/api/apartments/:id", isAuthenticated, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid apartment ID" });
+      }
+      
+      const user = req.user as any;
+      
+      // Fetch the apartment to check ownership
+      const existingApartment = await db.query.apartments.findFirst({
+        where: eq(apartments.id, id)
+      });
+      
+      if (!existingApartment) {
+        return res.status(404).json({ message: "Apartment not found" });
+      }
+      
+      // Check if user has permission to update (owner, or admin)
+      if (existingApartment.userId !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ 
+          message: "You don't have permission to update this listing" 
+        });
+      }
+      
+      // Handle numeric fields properly
+      const formData = {
+        ...req.body,
+        price: typeof req.body.price === 'string' ? parseFloat(req.body.price) : req.body.price,
+        bedrooms: typeof req.body.bedrooms === 'string' ? parseInt(req.body.bedrooms) : req.body.bedrooms,
+        bathrooms: typeof req.body.bathrooms === 'string' ? parseFloat(req.body.bathrooms) : req.body.bathrooms,
+      };
+      
+      // Validate the update data
+      const apartmentData = apartmentInsertSchema.parse(formData);
+      
+      // Update in database
+      const [updatedApartment] = await db
+        .update(apartments)
+        .set({
+          ...apartmentData,
+          updatedAt: new Date()
+        })
+        .where(eq(apartments.id, id))
+        .returning();
+      
+      res.json(updatedApartment);
+    } catch (error) {
+      console.error('Error updating apartment listing:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      next(error);
+    }
+  });
+
+  app.delete("/api/apartments/:id", isAuthenticated, async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid apartment ID" });
+      }
+      
+      const user = req.user as any;
+      
+      // Fetch the apartment to check ownership
+      const existingApartment = await db.query.apartments.findFirst({
+        where: eq(apartments.id, id)
+      });
+      
+      if (!existingApartment) {
+        return res.status(404).json({ message: "Apartment not found" });
+      }
+      
+      // Check if user has permission to delete (owner, or admin)
+      if (existingApartment.userId !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ 
+          message: "You don't have permission to delete this listing" 
+        });
+      }
+      
+      // Delete from database
+      await db.delete(apartments).where(eq(apartments.id, id));
+      
+      res.json({ success: true, message: "Apartment listing deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting apartment listing:', error);
+      next(error);
+    }
+  });
+
+  // Get apartments by landlord (user ID)
+  app.get("/api/users/:id/apartments", async (req, res, next) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const userApartments = await db.query.apartments.findMany({
+        where: eq(apartments.userId, userId),
+        orderBy: desc(apartments.createdAt)
+      });
+      
+      res.json(userApartments);
+    } catch (error) {
+      console.error('Error fetching user apartments:', error);
+      next(error);
+    }
+  });
+
+  // Get my apartments (for authenticated users)
+  app.get("/api/my/apartments", isAuthenticated, async (req, res, next) => {
+    try {
+      const user = req.user as any;
+      
+      const myApartments = await db.query.apartments.findMany({
+        where: eq(apartments.userId, user.id),
+        orderBy: desc(apartments.createdAt)
+      });
+      
+      res.json(myApartments);
+    } catch (error) {
+      console.error('Error fetching my apartments:', error);
       next(error);
     }
   });
