@@ -1,8 +1,9 @@
-import type { Express, Request, Response } from "express";
+import express, { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { emailService } from "./services/email-service";
 import { leadRouter } from "./services/lead-router";
+import { exportLeads, importLeads, ExportFormat } from "./services/crm-integration";
 import { 
   userLoginSchema, 
   agentGroupInsertSchema, 
@@ -954,6 +955,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const count = await leadRouter.processAllPendingLeads();
       res.json({ success: true, processedCount: count });
     } catch (error) {
+      next(error);
+    }
+  });
+
+  // CRM Integration - Export leads
+  app.get("/api/crm/export", isManager, async (req, res, next) => {
+    try {
+      const format = req.query.format as string || 'csv';
+      const agentId = req.query.agentId ? parseInt(req.query.agentId as string) : undefined;
+      const status = req.query.status as string;
+      const includeNotes = req.query.includeNotes === 'true';
+      
+      let dateRange;
+      if (req.query.startDate && req.query.endDate) {
+        dateRange = {
+          startDate: new Date(req.query.startDate as string),
+          endDate: new Date(req.query.endDate as string)
+        };
+      }
+      
+      const options = {
+        format: format as ExportFormat,
+        agentId,
+        leadStatus: status,
+        dateRange,
+        includeNotes
+      };
+      
+      console.log('Exporting leads with options:', options);
+      const { data, filename } = await exportLeads(options);
+      
+      // Set headers for file download
+      res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      res.send(data);
+    } catch (error) {
+      console.error('Error exporting leads:', error);
+      next(error);
+    }
+  });
+  
+  // CRM Integration - Import leads
+  app.post("/api/crm/import", isManager, express.text({ limit: '10mb', type: ['text/csv', 'application/json'] }), async (req, res, next) => {
+    try {
+      const format = req.query.format as string || 'csv';
+      
+      if (!req.body) {
+        return res.status(400).json({ success: false, message: "No data provided" });
+      }
+      
+      console.log(`Importing leads from ${format} data`);
+      const result = await importLeads(format as ExportFormat, req.body);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error importing leads:', error);
       next(error);
     }
   });
