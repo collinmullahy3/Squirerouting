@@ -659,26 +659,63 @@ function extractSourceSpecificData(
         }
       }
       
-      // Extract property address
-      const addressRegexes = [
-        /Property:\s*([^\n]+)/i,
-        /inquiry(?:.*?)(?:for|at|on)\s+([^\n,.]+(?:[,.][^\n,.]+){1,3})/i,
-        /(?:at|for|property)\s+([^,]+,[^,]+,[^,]+)/i
-      ];
-      
-      for (const regex of addressRegexes) {
-        const addressMatch = emailContent.match(regex);
-        if (addressMatch && addressMatch[1]) {
-          data.address = addressMatch[1].trim();
-          break;
+      // Extract property address - IMPROVED with better patterns
+      // First, try to get from subject line as it's often the most reliable source
+      if (subject.includes('Zillow:')) {
+        // This regex captures just the address part from a Zillow subject line
+        const subjectAddressMatch = subject.match(/Zillow:\s*([^,]+)(?:,|$| Unit| Apt| #)/i);
+        if (subjectAddressMatch && subjectAddressMatch[1]) {
+          data.address = subjectAddressMatch[1].trim();
+          console.log('Extracted address from subject line:', data.address);
+          
+          // Also try to extract unit number from subject if present
+          const unitInSubject = subject.match(/(?:Unit|Apt|#)\s*([A-Za-z0-9-]{1,5})/i);
+          if (unitInSubject && unitInSubject[1]) {
+            data.unitNumber = unitInSubject[1];
+            console.log('Extracted unit from subject line:', data.unitNumber);
+          }
+        } else {
+          // If the more specific match failed, try a broader pattern
+          const broadSubjectMatch = subject.match(/Zillow:\s*([^:]+?)(?:$| - | \|)/i);
+          if (broadSubjectMatch && broadSubjectMatch[1]) {
+            data.address = broadSubjectMatch[1].trim();
+            console.log('Extracted address from broad subject match:', data.address);
+          }
         }
       }
       
-      // If no address yet, try extracting from subject
-      if (!data.address && subject.includes('Zillow:')) {
-        const subjectAddressMatch = subject.match(/Zillow:\s*([^\n]+)/);
-        if (subjectAddressMatch && subjectAddressMatch[1]) {
-          data.address = subjectAddressMatch[1].trim();
+      // If still no address from subject, look in email content with multiple approaches
+      if (!data.address) {
+        const addressRegexes = [
+          // Structured formats in Zillow emails
+          /Property:\s*([^\n]+)/i,
+          /Property Address:\s*([^\n]+)/i,
+          /Located at:\s*([^\n]+)/i,
+          
+          // Common patterns for address descriptions
+          /(?:property at|located at|home at|house at|apartment at|interested in)\s+([0-9][^\n,.]+?(?:[,.][^\n,.]+){0,2})/i,
+          
+          // Address with pricing information
+          /([0-9][^,]+?(?:St\.?|Street|Ave\.?|Avenue|Rd\.?|Road|Dr\.?|Drive|Blvd\.?|Boulevard|Ln\.?|Lane|Pl\.?|Place|Ct\.?|Court|Terrace|Ter\.?)[^,\n]*?)(?:\s+is listed for|\s+for\s+\$)/i,
+          
+          // Address with zip code
+          /([0-9][^,]+?(?:St\.?|Street|Ave\.?|Avenue|Rd\.?|Road|Dr\.?|Drive|Blvd\.?|Boulevard|Ln\.?|Lane|Pl\.?|Place|Ct\.?|Court|Terrace|Ter\.?)[^,\n]*?(?:New York|NY|Brooklyn|Queens|Bronx|Staten Island|Manhattan)[^,\n]*?\d{5})/i,
+          
+          // More general patterns
+          /inquiry(?:.*?)(?:for|at|on)\s+([^\n,.]+(?:[,.][^\n,.]+){0,3})/i,
+          /(?:at|for|property)\s+([^,]+(?:,[^,]+){0,2})/i,
+          
+          // Street address patterns
+          /\b([0-9]+\s+[^,\n]{5,50}(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Drive|Dr\.?|Boulevard|Blvd\.?|Lane|Ln\.?|Place|Pl\.?|Court|Ct\.?|Terrace|Ter\.?))\b/i
+        ];
+        
+        for (const regex of addressRegexes) {
+          const addressMatch = emailContent.match(regex);
+          if (addressMatch && addressMatch[1]) {
+            data.address = addressMatch[1].trim();
+            console.log('Extracted address from email content:', data.address);
+            break;
+          }
         }
       }
       
