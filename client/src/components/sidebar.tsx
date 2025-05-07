@@ -85,6 +85,9 @@ export default function Sidebar({ className }: SidebarProps) {
                     <NavItem href="/parsing-patterns" icon="code" active={location === "/parsing-patterns"}>
                       Parsing Patterns
                     </NavItem>
+                    <NavItem href="/crm-integration" icon="layers" active={location === "/crm-integration"}>
+                      CRM Integration
+                    </NavItem>
                   </>
                 )}
                 
