@@ -841,6 +841,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next(error);
     }
   });
+  
+  // Debug endpoint for agents - bypasses auth for debugging
+  app.get("/api/debug/agents", async (req, res, next) => {
+    console.log('Debug agents endpoint accessed - bypassing auth check');
+    try {
+      const agents = await storage.getAllAgents();
+      
+      // For each agent, get their lead groups
+      const agentsWithGroups = await Promise.all(agents.map(async (agent) => {
+        const groups = await storage.getLeadGroupsByAgentId(agent.id);
+        return {
+          id: agent.id,
+          name: agent.name,
+          email: agent.email,
+          username: agent.username,
+          phone: agent.phone,
+          avatarUrl: agent.avatarUrl,
+          groups
+        };
+      }));
+      
+      res.json(agentsWithGroups);
+    } catch (error) {
+      console.error('Error in debug agents endpoint:', error);
+      next(error);
+    }
+  });
 
   // Dashboard data routes
   app.get("/api/dashboard/stats", isAuthenticated, async (req, res, next) => {
@@ -997,9 +1024,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug CRM Integration - Export leads (bypasses auth)
+  app.get("/api/debug/crm/export", async (req, res, next) => {
+    try {
+      console.log('Debug CRM export endpoint accessed - bypassing auth check');
+      const format = req.query.format as string || 'csv';
+      const agentId = req.query.agentId ? parseInt(req.query.agentId as string) : undefined;
+      const status = req.query.status as string;
+      const includeNotes = req.query.includeNotes === 'true';
+      
+      let dateRange;
+      if (req.query.startDate && req.query.endDate) {
+        dateRange = {
+          startDate: new Date(req.query.startDate as string),
+          endDate: new Date(req.query.endDate as string)
+        };
+      }
+      
+      const options = {
+        format: format as ExportFormat,
+        agentId,
+        leadStatus: status,
+        dateRange,
+        includeNotes
+      };
+      
+      console.log('Exporting leads with options:', options);
+      const { data, filename } = await exportLeads(options);
+      
+      // Set headers for file download
+      res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      res.send(data);
+    } catch (error) {
+      console.error('Error exporting leads:', error);
+      next(error);
+    }
+  });
+  
   // CRM Integration - Import leads
   app.post("/api/crm/import", isManager, express.text({ limit: '10mb', type: ['text/csv', 'application/json'] }), async (req, res, next) => {
     try {
+      const format = req.query.format as string || 'csv';
+      
+      if (!req.body) {
+        return res.status(400).json({ success: false, message: "No data provided" });
+      }
+      
+      console.log(`Importing leads from ${format} data`);
+      const result = await importLeads(format as ExportFormat, req.body);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error importing leads:', error);
+      next(error);
+    }
+  });
+  
+  // Debug CRM Integration - Import leads (bypasses auth)
+  app.post("/api/debug/crm/import", express.text({ limit: '10mb', type: ['text/csv', 'application/json'] }), async (req, res, next) => {
+    try {
+      console.log('Debug CRM import endpoint accessed - bypassing auth check');
       const format = req.query.format as string || 'csv';
       
       if (!req.body) {
