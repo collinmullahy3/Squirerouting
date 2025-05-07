@@ -4,7 +4,7 @@ import { relations } from "drizzle-orm";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum('user_role', ['manager', 'agent']);
+export const userRoleEnum = pgEnum('user_role', ['manager', 'agent', 'landlord', 'renter', 'admin']);
 export const leadStatusEnum = pgEnum('lead_status', ['pending', 'assigned', 'closed']);
 export const settingTypeEnum = pgEnum('setting_type', ['email', 'notification', 'system']);
 export const parsingPatternTypeEnum = pgEnum('parsing_pattern_type', ['regex', 'ai']);
@@ -150,6 +150,31 @@ export const parsingPatterns = pgTable("parsing_patterns", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Apartments table - for property listings
+export const apartments = pgTable("apartments", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  zip: text("zip").notNull(),
+  bedrooms: integer("bedrooms").notNull().default(1),
+  bathrooms: decimal("bathrooms", { precision: 3, scale: 1 }).notNull().default('1.0'),
+  squareFeet: integer("square_feet"),
+  available: boolean("available").default(true),
+  availableFrom: timestamp("available_from"),
+  petFriendly: boolean("pet_friendly").default(false),
+  furnished: boolean("furnished").default(false),
+  parking: boolean("parking").default(false),
+  airConditioning: boolean("air_conditioning").default(false),
+  viewCount: integer("view_count").default(0),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   systemSettingsUpdates: many(systemSettings),
@@ -159,6 +184,16 @@ export const usersRelations = relations(users, ({ many }) => ({
   leadGroupMemberships: many(leadGroupMembers),
   // Legacy
   groupMemberships: many(agentGroupMembers),
+  // Apartments relation
+  apartments: many(apartments),
+}));
+
+// Apartments Relations
+export const apartmentsRelations = relations(apartments, ({ one }) => ({
+  owner: one(users, {
+    fields: [apartments.userId],
+    references: [users.id],
+  }),
 }));
 
 // New Lead Groups Relations
@@ -307,6 +342,18 @@ export const parsingPatternInsertSchema = createInsertSchema(parsingPatterns, {
   pattern: (schema) => schema.min(2, "Pattern must not be empty"),
 });
 
+export const apartmentInsertSchema = createInsertSchema(apartments, {
+  title: (schema) => schema.min(3, "Title must be at least 3 characters"),
+  description: (schema) => schema.min(10, "Description must be at least 10 characters"),
+  price: () => z.coerce.number().positive("Price must be greater than 0"),
+  address: (schema) => schema.min(3, "Address is required"),
+  city: (schema) => schema.min(2, "City is required"),
+  state: (schema) => schema.min(2, "State is required"),
+  zip: (schema) => schema.min(5, "Valid ZIP code is required"),
+  bedrooms: () => z.coerce.number().min(0, "Bedrooms must be 0 or more"),
+  bathrooms: () => z.coerce.number().min(0, "Bathrooms must be 0 or more"),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type UserInsert = z.infer<typeof userInsertSchema>;
@@ -336,3 +383,6 @@ export type LeadStatusUpdate = z.infer<typeof leadStatusUpdateSchema>;
 
 export type ParsingPattern = typeof parsingPatterns.$inferSelect;
 export type ParsingPatternInsert = z.infer<typeof parsingPatternInsertSchema>;
+
+export type Apartment = typeof apartments.$inferSelect;
+export type ApartmentInsert = z.infer<typeof apartmentInsertSchema>;
