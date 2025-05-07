@@ -13,6 +13,12 @@ import Login from "@/pages/login";
 import Profile from "@/pages/profile";
 import DebugDashboard from "@/pages/debug-dashboard";
 
+// Apartment Pages
+import ApartmentsIndex from "@/pages/apartments/index";
+import ApartmentDetails from "@/pages/apartments/[id]";
+import CreateApartment from "@/pages/apartments/create";
+import EditApartment from "@/pages/apartments/[id]/edit";
+
 // Manager Pages
 import ManagerDashboard from "@/pages/manager/dashboard";
 import Agents from "@/pages/manager/agents";
