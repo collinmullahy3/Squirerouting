@@ -110,7 +110,7 @@ export default function Sidebar({ className }: SidebarProps) {
                     Apartments
                   </NavItem>
                   
-                  {user?.role === "landlord" && (
+                  {(user?.role === "landlord" || user?.role === "admin" || user?.role === "manager") && (
                     <NavItem href="/my-properties" icon="home" active={location === "/my-properties"}>
                       My Properties
                     </NavItem>
