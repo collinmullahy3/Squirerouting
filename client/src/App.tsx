@@ -2,7 +2,7 @@ import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider, useAuth } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 
 // Components
 import Sidebar from "@/components/sidebar";
@@ -86,6 +86,12 @@ const Router = () => {
             {/* Agent Routes - Protected */}
             <Route path="/my-leads" component={(props: any) => <ProtectedRoute component={MyLeads} {...props} />} />
             <Route path="/my-performance" component={(props: any) => <ProtectedRoute component={MyPerformance} {...props} />} />
+            
+            {/* Apartment Routes */}
+            <Route path="/apartments" component={ApartmentsIndex} />
+            <Route path="/apartments/create" component={(props: any) => <ProtectedRoute component={CreateApartment} {...props} />} />
+            <Route path="/apartments/:id/edit" component={(props: any) => <ProtectedRoute component={EditApartment} {...props} />} />
+            <Route path="/apartments/:id" component={ApartmentDetails} />
             
             {/* Common Routes - Protected */}
             <Route path="/profile" component={(props: any) => <ProtectedRoute component={Profile} {...props} />} />

@@ -45,7 +45,7 @@ export default function ApartmentDetailPage() {
         description: "Please log in to contact the landlord.",
         variant: "destructive",
       });
-      setLocation("/auth");
+      setLocation("/login");
       return;
     }
 
@@ -56,14 +56,16 @@ export default function ApartmentDetailPage() {
     });
   };
 
-  const formatPrice = (price?: number) => {
+  const formatPrice = (price?: number | string) => {
     if (!price) return "$0";
+    
+    const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
     
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
       maximumFractionDigits: 0,
-    }).format(price);
+    }).format(numericPrice);
   };
 
   const isOwner = user && apartment?.userId === user.id;
@@ -96,7 +98,7 @@ export default function ApartmentDetailPage() {
               <div className="aspect-video bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                 {apartment.imageUrl ? (
                   <img 
-                    src={apartment.imageUrl} 
+                    src={apartment.imageUrl as string} 
                     alt={apartment.title} 
                     className="w-full h-full object-cover"
                   />
@@ -180,9 +182,29 @@ export default function ApartmentDetailPage() {
                       <Button 
                         variant="destructive"
                         onClick={() => {
-                          // Implement delete functionality
                           if (confirm("Are you sure you want to delete this listing?")) {
-                            // Delete the listing
+                            // Implement delete functionality
+                            fetch(`/api/apartments/${apartment.id}`, {
+                              method: 'DELETE'
+                            })
+                            .then(response => {
+                              if (response.ok) {
+                                toast({
+                                  title: "Success",
+                                  description: "Apartment listing deleted successfully"
+                                });
+                                setLocation("/apartments");
+                              } else {
+                                throw new Error("Failed to delete listing");
+                              }
+                            })
+                            .catch(error => {
+                              toast({
+                                title: "Error",
+                                description: error.message,
+                                variant: "destructive"
+                              });
+                            });
                           }
                         }}
                       >

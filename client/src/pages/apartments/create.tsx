@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ApartmentInsert } from "@shared/schema";
@@ -52,6 +52,8 @@ const formSchema = z.object({
   features: z.array(z.string()).optional(),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 export default function CreateApartmentPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -61,7 +63,7 @@ export default function CreateApartmentPage() {
   const [newFeature, setNewFeature] = useState("");
 
   // Initialize react-hook-form
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
@@ -74,7 +76,7 @@ export default function CreateApartmentPage() {
       bedrooms: 0,
       bathrooms: 0,
       imageUrl: "",
-      availableFrom: "",
+      availableFrom: new Date().toISOString().split('T')[0],
       squareFeet: undefined,
       yearBuilt: undefined,
       propertyType: "Apartment",
@@ -85,30 +87,32 @@ export default function CreateApartmentPage() {
     },
   });
 
-  // Check if user has permission to create listings
-  const hasPermission = user && (user.role === 'landlord' || user.role === 'admin');
-
-  // Redirect if not logged in or doesn't have permission
-  React.useEffect(() => {
+  // Redirect if not logged in
+  useEffect(() => {
     if (user === null) {
       toast({
         title: "Authentication Required",
-        description: "Please log in to create property listings.",
+        description: "Please log in to create a property listing.",
         variant: "destructive",
       });
-      setLocation("/auth");
-      return;
+      setLocation("/login");
     }
+  }, [user, setLocation, toast]);
 
-    if (user && !hasPermission) {
+  // Check if the user can create apartments (should be landlord, admin, or manager)
+  const canCreateApartment = user && ['landlord', 'admin', 'manager'].includes(user.role);
+
+  // Redirect if not authorized
+  useEffect(() => {
+    if (user && !canCreateApartment) {
       toast({
         title: "Permission Denied",
-        description: "Only landlords and admins can create property listings.",
+        description: "You don't have permission to create property listings.",
         variant: "destructive",
       });
-      setLocation("/");
+      setLocation("/apartments");
     }
-  }, [user, hasPermission, setLocation, toast]);
+  }, [user, canCreateApartment, setLocation, toast]);
 
   // Add feature to the list
   const addFeature = () => {
@@ -129,33 +133,39 @@ export default function CreateApartmentPage() {
 
   // Handle form submission
   const createMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof formSchema>) => {
-      return await apiRequest<ApartmentInsert>("POST", "/api/apartments", data);
+    mutationFn: async (data: FormValues) => {
+      // Add userId from the logged-in user
+      const apartmentData = {
+        ...data,
+        userId: user?.id
+      };
+      return await apiRequest("POST", "/api/apartments", apartmentData);
     },
-    onSuccess: () => {
+    onSuccess: async (response) => {
+      const data = await response.json();
       queryClient.invalidateQueries({ queryKey: ["/api/apartments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/my/apartments"] });
       toast({
         title: "Success!",
-        description: "Your property listing has been created.",
+        description: "Your property has been listed.",
       });
-      setLocation("/apartments");
+      setLocation(`/apartments/${data.id}`);
     },
     onError: (error) => {
       console.error("Error creating apartment:", error);
       toast({
         title: "Error",
-        description: "Failed to create property listing. Please try again.",
+        description: "Failed to create listing. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
+  const onSubmit = (data: FormValues) => {
     createMutation.mutate(data);
   };
 
-  // If not logged in or checking permission, show loading
+  // Show loading state
   if (user === undefined) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -414,6 +424,7 @@ export default function CreateApartmentPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="">Not Specified</SelectItem>
                         <SelectItem value="Street Parking">Street Parking</SelectItem>
                         <SelectItem value="Garage">Garage</SelectItem>
                         <SelectItem value="Driveway">Driveway</SelectItem>
@@ -442,6 +453,7 @@ export default function CreateApartmentPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="">Not Specified</SelectItem>
                         <SelectItem value="In Unit">In Unit</SelectItem>
                         <SelectItem value="In Building">In Building</SelectItem>
                         <SelectItem value="Hookups Only">Hookups Only</SelectItem>
@@ -469,6 +481,7 @@ export default function CreateApartmentPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="">Not Specified</SelectItem>
                         <SelectItem value="No Pets">No Pets</SelectItem>
                         <SelectItem value="Cats Allowed">Cats Allowed</SelectItem>
                         <SelectItem value="Small Dogs Allowed">Small Dogs Allowed</SelectItem>
