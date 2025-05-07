@@ -12,6 +12,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Profile from "@/pages/profile";
 import DebugDashboard from "@/pages/debug-dashboard";
+import LandingPage from "@/pages/landing-page";
 
 // Apartment Pages
 import ApartmentsIndex from "@/pages/apartments/index";
@@ -65,6 +66,9 @@ const Router = () => {
         <Sidebar />
         <div className="flex flex-col md:ml-64 flex-1 overflow-hidden p-4">
           <Switch>
+            {/* Landing Page */}
+            <Route path="/" component={LandingPage} />
+            
             {/* Auth Routes */}
             <Route path="/login" component={Login} />
             
@@ -72,7 +76,7 @@ const Router = () => {
             <Route path="/debug-dashboard" component={DebugDashboard} />
             
             {/* Manager Routes - Protected */}
-            <Route path="/" component={(props: any) => <ProtectedRoute component={ManagerDashboard} {...props} />} />
+            <Route path="/dashboard" component={(props: any) => <ProtectedRoute component={ManagerDashboard} {...props} />} />
             <Route path="/leads" component={(props: any) => <ProtectedRoute component={Leads} {...props} />} />
             <Route path="/lead-groups" component={(props: any) => <ProtectedRoute component={LeadGroups} {...props} />} />
             <Route path="/agents" component={(props: any) => <ProtectedRoute component={Agents} {...props} />} />
