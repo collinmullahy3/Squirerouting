@@ -29,7 +29,6 @@ import LeadGroups from "@/pages/manager/lead-groups";
 import EmailSettings from "@/pages/manager/email-settings";
 import ParsingPatterns from "@/pages/manager/parsing-patterns";
 import CRMIntegration from "@/pages/manager/crm-integration";
-// Using EmailSettings instead of SendGridSettings
 import Leads from "@/pages/manager/leads";
 
 // Agent Pages
@@ -41,85 +40,76 @@ const ProtectedRoute = ({ component: Component, ...rest }: { component: React.FC
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   
-  // If loading, show a spinner
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
     </div>;
   }
   
-  // If not authenticated, redirect to login
   if (!user) {
-    console.log('Protected route - redirecting to login');
     setLocation('/login');
     return null;
   }
   
-  // If authenticated, render the component
   return <Component {...rest} />;
+};
+
+const AppRouter = () => {
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex flex-col md:ml-64 flex-1 overflow-hidden p-4">
+        <Switch>
+          <Route path="/login" component={Login} />
+          <Route path="/debug-dashboard" component={DebugDashboard} />
+          
+          <Route path="/dashboard" component={(props: any) => <ProtectedRoute component={ManagerDashboard} {...props} />} />
+          <Route path="/leads" component={(props: any) => <ProtectedRoute component={Leads} {...props} />} />
+          <Route path="/lead-groups" component={(props: any) => <ProtectedRoute component={LeadGroups} {...props} />} />
+          <Route path="/agents" component={(props: any) => <ProtectedRoute component={Agents} {...props} />} />
+          <Route path="/agents/:id" component={(props: any) => <ProtectedRoute component={AgentDetails} {...props} />} />
+          <Route path="/performance" component={(props: any) => <ProtectedRoute component={Performance} {...props} />} />
+          <Route path="/email-settings" component={(props: any) => <ProtectedRoute component={EmailSettings} {...props} />} />
+          <Route path="/parsing-patterns" component={(props: any) => <ProtectedRoute component={ParsingPatterns} {...props} />} />
+          <Route path="/crm-integration" component={(props: any) => <ProtectedRoute component={CRMIntegration} {...props} />} />
+          <Route path="/sendgrid-settings" component={(props: any) => <ProtectedRoute component={EmailSettings} {...props} />} />
+          
+          <Route path="/my-leads" component={(props: any) => <ProtectedRoute component={MyLeads} {...props} />} />
+          <Route path="/my-performance" component={(props: any) => <ProtectedRoute component={MyPerformance} {...props} />} />
+          
+          <Route path="/apartments" component={ApartmentsIndex} />
+          <Route path="/apartments/create" component={(props: any) => <ProtectedRoute component={CreateApartment} {...props} />} />
+          <Route path="/apartments/:id/edit" component={(props: any) => <ProtectedRoute component={EditApartment} {...props} />} />
+          <Route path="/apartments/:id" component={ApartmentDetails} />
+          
+          <Route path="/profile" component={(props: any) => <ProtectedRoute component={Profile} {...props} />} />
+          
+          <Route component={NotFound} />
+        </Switch>
+      </div>
+    </div>
+  );
 };
 
 const Router = () => {
   const [location] = useLocation();
   const isLandingPage = location === "/";
 
+  if (isLandingPage) {
+    return (
+      <div className="min-h-screen">
+        <LandingPage />
+      </div>
+    );
+  }
+
   return (
     <AuthProvider>
-      {isLandingPage ? (
-        // Landing page layout - no sidebar, full width
-        <div className="min-h-screen">
-          <LandingPage />
-        </div>
-      ) : (
-        // App layout with sidebar for all other routes
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
-          <div className="flex flex-col md:ml-64 flex-1 overflow-hidden p-4">
-            <Switch>
-              {/* Landing page route (for deep links) */}
-              <Route path="/" component={LandingPage} />
-              
-              {/* Auth Routes */}
-              <Route path="/login" component={Login} />
-              
-              {/* Debug Dashboard - Direct Access (No Auth Check) */}
-              <Route path="/debug-dashboard" component={DebugDashboard} />
-              
-              {/* Manager Routes - Protected */}
-              <Route path="/dashboard" component={(props: any) => <ProtectedRoute component={ManagerDashboard} {...props} />} />
-              <Route path="/leads" component={(props: any) => <ProtectedRoute component={Leads} {...props} />} />
-              <Route path="/lead-groups" component={(props: any) => <ProtectedRoute component={LeadGroups} {...props} />} />
-              <Route path="/agents" component={(props: any) => <ProtectedRoute component={Agents} {...props} />} />
-              <Route path="/agents/:id" component={(props: any) => <ProtectedRoute component={AgentDetails} {...props} />} />
-              <Route path="/performance" component={(props: any) => <ProtectedRoute component={Performance} {...props} />} />
-              <Route path="/email-settings" component={(props: any) => <ProtectedRoute component={EmailSettings} {...props} />} />
-              <Route path="/parsing-patterns" component={(props: any) => <ProtectedRoute component={ParsingPatterns} {...props} />} />
-              <Route path="/crm-integration" component={(props: any) => <ProtectedRoute component={CRMIntegration} {...props} />} />
-              <Route path="/sendgrid-settings" component={(props: any) => <ProtectedRoute component={EmailSettings} {...props} />} />
-              
-              {/* Agent Routes - Protected */}
-              <Route path="/my-leads" component={(props: any) => <ProtectedRoute component={MyLeads} {...props} />} />
-              <Route path="/my-performance" component={(props: any) => <ProtectedRoute component={MyPerformance} {...props} />} />
-              
-              {/* Apartment Routes */}
-              <Route path="/apartments" component={ApartmentsIndex} />
-              <Route path="/apartments/create" component={(props: any) => <ProtectedRoute component={CreateApartment} {...props} />} />
-              <Route path="/apartments/:id/edit" component={(props: any) => <ProtectedRoute component={EditApartment} {...props} />} />
-              <Route path="/apartments/:id" component={ApartmentDetails} />
-              
-              {/* Common Routes - Protected */}
-              <Route path="/profile" component={(props: any) => <ProtectedRoute component={Profile} {...props} />} />
-              
-              {/* Fallback to 404 */}
-              <Route component={NotFound} />
-            </Switch>
-          </div>
-        </div>
-      )}
+      <AppRouter />
       <Toaster />
     </AuthProvider>
   );
-}
+};
 
 function App() {
   return (
