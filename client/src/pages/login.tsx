@@ -92,7 +92,6 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-3xl font-bold text-center">Squire</CardTitle>
           <div className="flex justify-center my-6">
             <img src="https://i.imgur.com/UX6uPj3.png" alt="Squire Logo" className="h-36 w-auto" />
           </div>
