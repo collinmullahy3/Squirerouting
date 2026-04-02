@@ -62,12 +62,9 @@ export default function Login() {
           description: `Welcome back, ${user.name}!`,
         });
   
-        // Redirect based on user role
         if (user.role === "manager") {
-          console.log('Redirecting manager to dashboard');
           setLocation("/");
         } else {
-          console.log('Redirecting agent to my-leads');
           setLocation("/my-leads");
         }
       } catch (apiError) {
@@ -86,6 +83,11 @@ export default function Login() {
     }
   }
 
+  const fillDemo = (username: string, password: string) => {
+    form.setValue("username", username);
+    form.setValue("password", password);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-md">
@@ -99,6 +101,41 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Demo Accounts Box */}
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm font-semibold text-amber-800 mb-3">
+              🎯 Try a demo account
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-amber-900">Manager Account</p>
+                  <p className="text-xs text-amber-700">username: <span className="font-mono">admin</span> · password: <span className="font-mono">admin123</span></p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fillDemo("admin", "admin123")}
+                  className="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-1 rounded font-medium transition-colors"
+                >
+                  Use this
+                </button>
+              </div>
+              <div className="border-t border-amber-200 pt-2 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-amber-900">Agent Account</p>
+                  <p className="text-xs text-amber-700">username: <span className="font-mono">emily.j</span> · password: <span className="font-mono">emily123</span></p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fillDemo("emily.j", "emily123")}
+                  className="text-xs bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-1 rounded font-medium transition-colors"
+                >
+                  Use this
+                </button>
+              </div>
+            </div>
+          </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
