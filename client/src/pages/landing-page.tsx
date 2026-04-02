@@ -31,11 +31,7 @@ export default function LandingPage() {
       <header className="w-full py-4 px-4 md:px-8 border-b border-gray-200 sticky top-0 bg-white z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center">
-            <img 
-              src="/attached_assets/Squire%20Logo.png" 
-              alt="Squire Logo" 
-              className="h-10 w-auto mr-2"
-            />
+           <img src="https://i.imgur.com/UX6uPj3.png" alt="Squire Logo" className="h-36 w-auto" />
             <span className="text-2xl font-bold text-gray-900">Squire</span>
           </div>
           <div className="hidden md:flex space-x-6">
