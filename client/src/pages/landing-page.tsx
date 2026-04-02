@@ -32,7 +32,6 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center">
            <img src="https://i.imgur.com/UX6uPj3.png" alt="Squire Logo" className="h-36 w-auto" />
-            <span className="text-2xl font-bold text-gray-900">Squire</span>
           </div>
           <div className="hidden md:flex space-x-6">
             <a href="#features" className="text-gray-600 hover:text-gray-900">Features</a>
